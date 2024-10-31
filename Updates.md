@@ -10,6 +10,8 @@
 - [x] Added NativeWind styling
 - [x] Set up Jest testing environment
 - [x] Fixed auth store tests by implementing proper mock store
+- [x] Standardized to npm package manager
+- [x] Fixed styled-components dependency issues
 
 ## Current Features
 - Basic authentication flow
@@ -17,6 +19,7 @@
 - Type-safe state management
 - UI component library integration
 - Testing infrastructure
+- Proper styled-components integration
 
 ## Next Steps
 1. Implement profile management features

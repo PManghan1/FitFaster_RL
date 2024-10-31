@@ -1,7 +1,9 @@
 import React from 'react';
-import { View, TouchableOpacity, FlatList, ListRenderItem } from 'react-native';
+import { FlatList, ListRenderItem, StyleSheet, View } from 'react-native';
+import { ChevronRight, Plus, Star } from 'react-native-feather';
 import styled from 'styled-components/native';
-import { Plus, ChevronRight, Star } from 'react-native-feather';
+
+import { colors, shadows } from '../../theme';
 import { Exercise, MuscleGroup } from '../../types/workout';
 
 const Container = styled.View`
@@ -9,15 +11,15 @@ const Container = styled.View`
 `;
 
 const ExerciseItem = styled.TouchableOpacity`
-  background-color: white;
+  background-color: ${colors.background.default};
   border-radius: 12px;
   margin-vertical: 4px;
   padding: 12px;
-  shadow-color: #000;
-  shadow-offset: 0px 2px;
-  shadow-opacity: 0.1;
-  shadow-radius: 3px;
-  elevation: 3;
+  shadow-color: ${shadows.sm.shadowColor};
+  shadow-offset: ${`${shadows.sm.shadowOffset.width}px ${shadows.sm.shadowOffset.height}px`};
+  shadow-opacity: ${shadows.sm.shadowOpacity};
+  shadow-radius: ${shadows.sm.shadowRadius}px;
+  elevation: ${shadows.sm.elevation};
 `;
 
 const ItemHeader = styled.View`
@@ -30,13 +32,13 @@ const ItemHeader = styled.View`
 const ItemTitle = styled.Text`
   font-size: 16px;
   font-weight: 600;
-  color: #1F2937;
+  color: ${colors.text.default};
   flex: 1;
   margin-right: 8px;
 `;
 
 const MuscleGroupTag = styled.View`
-  background-color: #E5E7EB;
+  background-color: ${colors.background.dark};
   border-radius: 12px;
   padding-horizontal: 8px;
   padding-vertical: 4px;
@@ -45,7 +47,7 @@ const MuscleGroupTag = styled.View`
 
 const MuscleGroupText = styled.Text`
   font-size: 12px;
-  color: #4B5563;
+  color: ${colors.text.light};
 `;
 
 const MuscleGroupsContainer = styled.View`
@@ -68,7 +70,7 @@ const EmptyState = styled.View`
 
 const EmptyStateText = styled.Text`
   font-size: 16px;
-  color: #6B7280;
+  color: ${colors.text.light};
   text-align: center;
   margin-top: 12px;
 `;
@@ -83,18 +85,53 @@ const FilterContainer = styled.ScrollView.attrs({
   margin-bottom: 8px;
 `;
 
-const FilterButton = styled.TouchableOpacity<{ isSelected?: boolean }>`
-  background-color: ${props => props.isSelected ? '#3B82F6' : '#E5E7EB'};
+interface FilterButtonProps {
+  isSelected?: boolean;
+}
+
+const FilterButton = styled.TouchableOpacity<FilterButtonProps>`
+  background-color: ${(props: FilterButtonProps) =>
+    props.isSelected ? colors.primary.default : colors.background.dark};
   border-radius: 20px;
   padding-horizontal: 12px;
   padding-vertical: 6px;
   margin-right: 8px;
 `;
 
-const FilterText = styled.Text<{ isSelected?: boolean }>`
-  color: ${props => props.isSelected ? 'white' : '#4B5563'};
-  font-weight: ${props => props.isSelected ? '600' : '400'};
+interface FilterTextProps {
+  isSelected?: boolean;
+}
+
+const FilterText = styled.Text<FilterTextProps>`
+  color: ${(props: FilterTextProps) =>
+    props.isSelected ? colors.background.default : colors.text.light};
+  font-weight: ${(props: FilterTextProps) => (props.isSelected ? '600' : '400')};
 `;
+
+const styles = StyleSheet.create({
+  actionRow: {
+    flexDirection: 'row',
+  },
+  fabButton: {
+    alignItems: 'center',
+    backgroundColor: colors.primary.default,
+    borderRadius: 28,
+    bottom: 16,
+    elevation: shadows.md.elevation,
+    height: 56,
+    justifyContent: 'center',
+    position: 'absolute',
+    right: 16,
+    shadowColor: shadows.md.shadowColor,
+    shadowOffset: shadows.md.shadowOffset,
+    shadowOpacity: shadows.md.shadowOpacity,
+    shadowRadius: shadows.md.shadowRadius,
+    width: 56,
+  },
+  listContent: {
+    padding: 8,
+  },
+});
 
 interface ExerciseListProps {
   exercises: Exercise[];
@@ -133,7 +170,7 @@ export const ExerciseList: React.FC<ExerciseListProps> = ({
 
   const renderMuscleGroupFilter = () => (
     <FilterContainer testID={`${testID}-filters`}>
-      {Object.values(MuscleGroup).map((group) => (
+      {Object.values(MuscleGroup).map(group => (
         <FilterButton
           key={group}
           isSelected={selectedMuscleGroups.has(group)}
@@ -155,7 +192,7 @@ export const ExerciseList: React.FC<ExerciseListProps> = ({
     >
       <ItemHeader>
         <ItemTitle numberOfLines={1}>{exercise.name}</ItemTitle>
-        <View style={{ flexDirection: 'row' }}>
+        <View style={styles.actionRow}>
           {onFavorite && (
             <ActionButton
               onPress={() => onFavorite(exercise)}
@@ -164,19 +201,17 @@ export const ExerciseList: React.FC<ExerciseListProps> = ({
               <Star
                 width={20}
                 height={20}
-                color={favorites.has(exercise.id) ? '#EF4444' : '#9CA3AF'}
-                fill={favorites.has(exercise.id) ? '#EF4444' : 'none'}
+                color={favorites.has(exercise.id) ? colors.error.default : colors.border.dark}
+                fill={favorites.has(exercise.id) ? colors.error.default : 'none'}
               />
             </ActionButton>
           )}
-          {onSelectExercise && (
-            <ChevronRight width={20} height={20} color="#9CA3AF" />
-          )}
+          {onSelectExercise && <ChevronRight width={20} height={20} color={colors.border.dark} />}
         </View>
       </ItemHeader>
 
       <MuscleGroupsContainer>
-        {exercise.muscleGroups.map((group) => (
+        {exercise.muscleGroups.map(group => (
           <MuscleGroupTag key={group}>
             <MuscleGroupText>{group.replace('_', ' ')}</MuscleGroupText>
           </MuscleGroupTag>
@@ -192,11 +227,8 @@ export const ExerciseList: React.FC<ExerciseListProps> = ({
         <EmptyState testID={`${testID}-empty`}>
           <EmptyStateText>{emptyMessage}</EmptyStateText>
           {onAddExercise && (
-            <ActionButton
-              onPress={onAddExercise}
-              testID={`${testID}-add-new`}
-            >
-              <Plus width={24} height={24} color="#3B82F6" />
+            <ActionButton onPress={onAddExercise} testID={`${testID}-add-new`}>
+              <Plus width={24} height={24} color={colors.primary.default} />
             </ActionButton>
           )}
         </EmptyState>
@@ -210,33 +242,14 @@ export const ExerciseList: React.FC<ExerciseListProps> = ({
       <FlatList<Exercise>
         data={exercises}
         renderItem={renderExerciseItem}
-        keyExtractor={(item) => item.id}
+        keyExtractor={item => item.id}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ padding: 8 }}
+        contentContainerStyle={styles.listContent}
         testID={`${testID}-list`}
       />
       {onAddExercise && (
-        <ActionButton
-          onPress={onAddExercise}
-          style={{
-            position: 'absolute',
-            bottom: 16,
-            right: 16,
-            backgroundColor: '#3B82F6',
-            borderRadius: 28,
-            width: 56,
-            height: 56,
-            justifyContent: 'center',
-            alignItems: 'center',
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.25,
-            shadowRadius: 3.84,
-            elevation: 5,
-          }}
-          testID={`${testID}-add-fab`}
-        >
-          <Plus width={24} height={24} color="white" />
+        <ActionButton onPress={onAddExercise} style={styles.fabButton} testID={`${testID}-add-fab`}>
+          <Plus width={24} height={24} color={colors.background.default} />
         </ActionButton>
       )}
     </Container>

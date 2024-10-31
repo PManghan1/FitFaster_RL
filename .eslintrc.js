@@ -47,12 +47,52 @@ module.exports = {
     'import/order': [
       'error',
       {
-        groups: ['builtin', 'external', 'internal', 'parent', 'sibling', 'index'],
+        groups: [
+          'external',
+          'internal',
+          'parent',
+          'sibling',
+          'index',
+          'object',
+          'type',
+        ],
+        pathGroups: [
+          {
+            pattern: 'react',
+            group: 'external',
+            position: 'before',
+          },
+          {
+            pattern: 'react-native',
+            group: 'external',
+            position: 'before',
+          },
+          {
+            pattern: '@react-navigation/**',
+            group: 'external',
+            position: 'before',
+          },
+          {
+            pattern: 'react-native-**',
+            group: 'external',
+            position: 'before',
+          },
+        ],
+        distinctGroup: false,
         'newlines-between': 'always',
         alphabetize: {
           order: 'asc',
           caseInsensitive: true,
         },
+      },
+    ],
+    'import/no-duplicates': 'error',
+    'sort-imports': [
+      'error',
+      {
+        ignoreCase: true,
+        ignoreDeclarationSort: true,
+        ignoreMemberSort: false,
       },
     ],
   },

@@ -1,6 +1,8 @@
-import React from "react";
-import { TextInput as RNTextInput, TextInputProps, ViewStyle } from "react-native";
-import { TextInput, Text, View } from "../styled";
+import React from 'react';
+import { StyleSheet, TextInputProps, ViewStyle } from 'react-native';
+
+import { colors } from '../../theme';
+import { Text, TextInput, View } from '../styled';
 
 interface AuthInputProps extends Omit<TextInputProps, 'style'> {
   error?: string;
@@ -8,48 +10,45 @@ interface AuthInputProps extends Omit<TextInputProps, 'style'> {
   style?: ViewStyle;
 }
 
-export const AuthInput: React.FC<AuthInputProps> = ({
-  error,
-  label,
-  style,
-  ...props
-}) => {
+const styles = StyleSheet.create({
+  container: {
+    marginBottom: 16,
+  },
+  errorText: {
+    color: colors.error.default,
+    fontSize: 12,
+    marginTop: 4,
+  },
+  input: {
+    backgroundColor: colors.background.default,
+    borderRadius: 8,
+    borderWidth: 1,
+    fontSize: 16,
+    padding: 16,
+  },
+  inputError: {
+    borderColor: colors.error.default,
+  },
+  inputNormal: {
+    borderColor: colors.border.default,
+  },
+  label: {
+    color: colors.text.light,
+    fontSize: 14,
+    marginBottom: 4,
+  },
+});
+
+export const AuthInput: React.FC<AuthInputProps> = ({ error, label, style, ...props }) => {
   return (
-    <View style={{ marginBottom: 16 }}>
-      {label && (
-        <Text
-          style={{
-            fontSize: 14,
-            color: "#4B5563",
-            marginBottom: 4,
-          }}
-        >
-          {label}
-        </Text>
-      )}
+    <View style={styles.container}>
+      {label && <Text style={styles.label}>{label}</Text>}
       <TextInput
-        style={[{
-          borderWidth: 1,
-          borderColor: error ? "#EF4444" : "#D1D5DB",
-          borderRadius: 8,
-          padding: 16,
-          fontSize: 16,
-          backgroundColor: "white",
-        }, style]}
-        placeholderTextColor="#9CA3AF"
+        style={[styles.input, error ? styles.inputError : styles.inputNormal, style]}
+        placeholderTextColor={colors.border.dark}
         {...props}
       />
-      {error && (
-        <Text
-          style={{
-            color: "#EF4444",
-            fontSize: 12,
-            marginTop: 4,
-          }}
-        >
-          {error}
-        </Text>
-      )}
+      {error && <Text style={styles.errorText}>{error}</Text>}
     </View>
   );
 };

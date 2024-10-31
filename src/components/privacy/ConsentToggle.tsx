@@ -1,156 +1,107 @@
-import React from 'react';
-import { TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { Switch, Text, TouchableOpacity, View } from 'react-native';
+import { Info, Shield } from 'react-native-feather';
 import styled from 'styled-components/native';
-import { Shield, Info } from 'react-native-feather';
+
 import { ConsentPurpose } from '../../types/profile';
-
-const Container = styled.View`
-  margin-vertical: 8px;
-`;
-
-const Header = styled.View`
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-`;
-
-const Title = styled.Text`
-  font-size: 16px;
-  font-weight: 600;
-  color: #1F2937;
-`;
-
-const Required = styled.Text`
-  font-size: 12px;
-  color: #EF4444;
-  margin-left: 8px;
-`;
-
-const Description = styled.Text`
-  font-size: 14px;
-  color: #6B7280;
-  margin-bottom: 12px;
-`;
-
-const ToggleContainer = styled.View`
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-`;
-
-const ToggleTrack = styled.View<{ isEnabled: boolean }>`
-  width: 48px;
-  height: 24px;
-  border-radius: 12px;
-  background-color: ${props => props.isEnabled ? '#3B82F6' : '#D1D5DB'};
-  padding: 2px;
-`;
-
-const ToggleThumb = styled.View<{ isEnabled: boolean }>`
-  width: 20px;
-  height: 20px;
-  border-radius: 10px;
-  background-color: white;
-  shadow-color: #000;
-  shadow-offset: 0px 1px;
-  shadow-opacity: 0.2;
-  shadow-radius: 2px;
-  elevation: 2;
-  transform: translateX(${props => props.isEnabled ? '24px' : '0px'});
-`;
-
-const InfoButton = styled.TouchableOpacity`
-  padding: 8px;
-  margin-left: 8px;
-`;
-
-const InfoModal = styled.View`
-  background-color: white;
-  padding: 16px;
-  border-radius: 12px;
-  margin-top: 8px;
-  border-width: 1px;
-  border-color: #E5E7EB;
-`;
-
-const InfoTitle = styled.Text`
-  font-size: 14px;
-  font-weight: 600;
-  color: #1F2937;
-  margin-bottom: 8px;
-`;
-
-const InfoText = styled.Text`
-  font-size: 14px;
-  color: #6B7280;
-`;
 
 interface ConsentToggleProps {
   purpose: ConsentPurpose;
-  title: string;
-  description: string;
-  isRequired?: boolean;
   isEnabled: boolean;
-  onToggle: () => void;
-  infoContent?: {
-    title: string;
-    description: string;
-  };
+  onToggle: (value: boolean) => void;
+  infoContent?: string;
   testID?: string;
 }
 
+const Container = styled(View)`
+  margin-vertical: 8px;
+`;
+
+const Header = styled(View)`
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+`;
+
+const TitleContainer = styled(View)`
+  flex-direction: row;
+  align-items: center;
+  flex: 1;
+`;
+
+const IconContainer = styled(View)`
+  margin-right: 8px;
+`;
+
+const Title = styled(Text)`
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+`;
+
+const Description = styled(Text)`
+  font-size: 14px;
+  color: #4b5563;
+  margin-bottom: 8px;
+`;
+
+const InfoButton = styled(TouchableOpacity)`
+  padding: 4px;
+  margin-left: 8px;
+`;
+
+const InfoContent = styled(Text)`
+  font-size: 14px;
+  color: #6b7280;
+  margin-top: 4px;
+  padding: 8px;
+  background-color: #f3f4f6;
+  border-radius: 4px;
+`;
+
+const ToggleContainer = styled(View)`
+  flex-direction: row;
+  align-items: center;
+`;
+
 export const ConsentToggle: React.FC<ConsentToggleProps> = ({
   purpose,
-  title,
-  description,
-  isRequired = false,
   isEnabled,
   onToggle,
   infoContent,
-  testID,
+  testID = 'consent-toggle',
 }) => {
-  const [showInfo, setShowInfo] = React.useState(false);
+  const [showInfo, setShowInfo] = useState(false);
 
   return (
     <Container testID={testID}>
       <Header>
-        <Title>
-          {title}
-          {isRequired && <Required>Required</Required>}
-        </Title>
+        <TitleContainer>
+          <IconContainer>
+            <Shield width={20} height={20} color="#10B981" />
+          </IconContainer>
+          <Title>{purpose.title}</Title>
+        </TitleContainer>
+        <ToggleContainer>
+          <Switch
+            testID={`${testID}-toggle`}
+            value={isEnabled}
+            onValueChange={onToggle}
+            trackColor={{ false: '#D1D5DB', true: '#10B981' }}
+            thumbColor={isEnabled ? '#FFFFFF' : '#FFFFFF'}
+          />
+        </ToggleContainer>
         {infoContent && (
-          <InfoButton 
-            onPress={() => setShowInfo(!showInfo)}
-            testID={`${testID}-info-button`}
-          >
+          <InfoButton onPress={() => setShowInfo(!showInfo)} testID={`${testID}-info-button`}>
             <Info width={20} height={20} color="#6B7280" />
           </InfoButton>
         )}
       </Header>
-
-      <Description>{description}</Description>
-
+      <Description>{purpose.description}</Description>
       {showInfo && infoContent && (
-        <InfoModal testID={`${testID}-info-modal`}>
-          <InfoTitle>{infoContent.title}</InfoTitle>
-          <InfoText>{infoContent.description}</InfoText>
-        </InfoModal>
+        <InfoContent testID={`${testID}-info-content`}>{infoContent}</InfoContent>
       )}
-
-      <ToggleContainer>
-        <Shield width={20} height={20} color={isEnabled ? '#3B82F6' : '#6B7280'} />
-        <TouchableOpacity
-          onPress={isRequired ? undefined : onToggle}
-          disabled={isRequired}
-          testID={`${testID}-toggle`}
-          activeOpacity={isRequired ? 1 : 0.8}
-        >
-          <ToggleTrack isEnabled={isEnabled || isRequired}>
-            <ToggleThumb isEnabled={isEnabled || isRequired} />
-          </ToggleTrack>
-        </TouchableOpacity>
-      </ToggleContainer>
     </Container>
   );
 };

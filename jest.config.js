@@ -1,36 +1,26 @@
 module.exports = {
   preset: 'jest-expo',
-  setupFiles: [
-    '<rootDir>/node_modules/react-native-gesture-handler/jestSetup.js'
-  ],
-  setupFilesAfterEnv: [
-    '@testing-library/jest-native/extend-expect',
-    '<rootDir>/src/__tests__/setup.ts'
-  ],
   transformIgnorePatterns: [
-    'node_modules/(?!(jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|styled-components|expo-constants)',
+    'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg)',
   ],
-  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
+  setupFiles: ['./jest.setup.js'],
+  setupFilesAfterEnv: ['@testing-library/jest-native/extend-expect'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
-    '^src/config/(.*)$': '<rootDir>/src/__mocks__/config.ts',
-    '^src/config$': '<rootDir>/src/__mocks__/config.ts',
   },
-  testMatch: [
-    '**/__tests__/**/*.test.[jt]s?(x)',
-  ],
-  moduleDirectories: [
-    'node_modules',
-    '<rootDir>/src'
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
+  collectCoverageFrom: [
+    'src/**/*.{ts,tsx}',
+    '!src/**/*.d.ts',
+    '!src/**/*.stories.{ts,tsx}',
+    '!src/**/*.test.{ts,tsx}',
   ],
   testEnvironment: 'node',
-  collectCoverageFrom: [
-    'src/**/*.{js,jsx,ts,tsx}',
-    '!src/**/*.d.ts',
-  ],
   globals: {
     'ts-jest': {
-      isolatedModules: true,
+      tsconfig: {
+        jsx: 'react',
+      },
     },
   },
 };

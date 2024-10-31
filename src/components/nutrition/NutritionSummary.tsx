@@ -1,18 +1,20 @@
 import React from 'react';
-import { View } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import styled from 'styled-components/native';
+
+import { colors, shadows } from '../../theme';
 import { Nutrients, NutritionGoal } from '../../types/nutrition';
 
 const Container = styled.View`
-  background-color: white;
+  background-color: ${colors.background.default};
   border-radius: 12px;
   padding: 16px;
   margin-vertical: 8px;
-  shadow-color: #000;
-  shadow-offset: 0px 2px;
-  shadow-opacity: 0.1;
-  shadow-radius: 3px;
-  elevation: 3;
+  shadow-color: ${shadows.sm.shadowColor};
+  shadow-offset: ${`${shadows.sm.shadowOffset.width}px ${shadows.sm.shadowOffset.height}px`};
+  shadow-opacity: ${shadows.sm.shadowOpacity};
+  shadow-radius: ${shadows.sm.shadowRadius}px;
+  elevation: ${shadows.sm.elevation};
 `;
 
 const Header = styled.View`
@@ -22,15 +24,15 @@ const Header = styled.View`
   margin-bottom: 16px;
 `;
 
-const Title = styled.Text`
+const StyledTitle = styled.Text`
   font-size: 18px;
   font-weight: 600;
-  color: #1F2937;
+  color: ${colors.text.default};
 `;
 
-const Date = styled.Text`
+const StyledDate = styled.Text`
   font-size: 14px;
-  color: #6B7280;
+  color: ${colors.text.light};
 `;
 
 const ProgressContainer = styled.View`
@@ -44,19 +46,19 @@ const ProgressHeader = styled.View`
   margin-bottom: 4px;
 `;
 
-const ProgressLabel = styled.Text`
+const StyledProgressLabel = styled.Text`
   font-size: 14px;
-  color: #374151;
+  color: ${colors.text.default};
 `;
 
-const ProgressValue = styled.Text`
+const StyledProgressValue = styled.Text`
   font-size: 14px;
-  color: #6B7280;
+  color: ${colors.text.light};
 `;
 
 const ProgressBarContainer = styled.View`
   height: 8px;
-  background-color: #E5E7EB;
+  background-color: ${colors.background.dark};
   border-radius: 4px;
   overflow: hidden;
 `;
@@ -78,23 +80,29 @@ const MacroItem = styled.View`
   flex: 1;
 `;
 
-const MacroValue = styled.Text`
+const StyledMacroValue = styled.Text`
   font-size: 20px;
   font-weight: 600;
-  color: #1F2937;
+  color: ${colors.text.default};
   margin-bottom: 4px;
 `;
 
-const MacroLabel = styled.Text`
+const StyledMacroLabel = styled.Text`
   font-size: 12px;
-  color: #6B7280;
+  color: ${colors.text.light};
 `;
 
-const MacroProgress = styled.Text`
+const StyledMacroProgress = styled.Text`
   font-size: 12px;
-  color: #6B7280;
+  color: ${colors.text.light};
   margin-top: 2px;
 `;
+
+const styles = StyleSheet.create({
+  additionalMacros: {
+    marginTop: 16,
+  },
+});
 
 interface NutritionSummaryProps {
   date: Date;
@@ -130,22 +138,28 @@ export const NutritionSummary: React.FC<NutritionSummaryProps> = ({
   return (
     <Container testID={testID}>
       <Header>
-        <Title>Daily Summary</Title>
-        <Date>{formatDate(date)}</Date>
+        <StyledTitle>
+          <Text>Daily Summary</Text>
+        </StyledTitle>
+        <StyledDate>
+          <Text>{formatDate(date)}</Text>
+        </StyledDate>
       </Header>
 
       {goal && (
         <ProgressContainer>
           <ProgressHeader>
-            <ProgressLabel>Calories</ProgressLabel>
-            <ProgressValue>
-              {totals.calories} / {goal.calories} kcal
-            </ProgressValue>
+            <StyledProgressLabel>
+              <Text>Calories</Text>
+            </StyledProgressLabel>
+            <StyledProgressValue>
+              <Text>{`${totals.calories} / ${goal.calories} kcal`}</Text>
+            </StyledProgressValue>
           </ProgressHeader>
           <ProgressBarContainer>
             <ProgressBar
               progress={calculateProgress(totals.calories, goal.calories)}
-              color="#3B82F6"
+              color={colors.primary.default}
               testID={`${testID}-calories-progress`}
             />
           </ProgressBarContainer>
@@ -154,55 +168,79 @@ export const NutritionSummary: React.FC<NutritionSummaryProps> = ({
 
       <MacroGrid>
         <MacroItem>
-          <MacroValue testID={`${testID}-protein`}>{totals.protein}g</MacroValue>
-          <MacroLabel>Protein</MacroLabel>
+          <StyledMacroValue testID={`${testID}-protein`}>
+            <Text>{`${totals.protein}g`}</Text>
+          </StyledMacroValue>
+          <StyledMacroLabel>
+            <Text>Protein</Text>
+          </StyledMacroLabel>
           {goal && (
-            <MacroProgress>
-              {formatProgress(totals.protein, goal.protein)}
-            </MacroProgress>
+            <StyledMacroProgress>
+              <Text>{formatProgress(totals.protein, goal.protein)}</Text>
+            </StyledMacroProgress>
           )}
         </MacroItem>
         <MacroItem>
-          <MacroValue testID={`${testID}-carbs`}>{totals.carbs}g</MacroValue>
-          <MacroLabel>Carbs</MacroLabel>
+          <StyledMacroValue testID={`${testID}-carbs`}>
+            <Text>{`${totals.carbs}g`}</Text>
+          </StyledMacroValue>
+          <StyledMacroLabel>
+            <Text>Carbs</Text>
+          </StyledMacroLabel>
           {goal && (
-            <MacroProgress>
-              {formatProgress(totals.carbs, goal.carbs)}
-            </MacroProgress>
+            <StyledMacroProgress>
+              <Text>{formatProgress(totals.carbs, goal.carbs)}</Text>
+            </StyledMacroProgress>
           )}
         </MacroItem>
         <MacroItem>
-          <MacroValue testID={`${testID}-fat`}>{totals.fat}g</MacroValue>
-          <MacroLabel>Fat</MacroLabel>
+          <StyledMacroValue testID={`${testID}-fat`}>
+            <Text>{`${totals.fat}g`}</Text>
+          </StyledMacroValue>
+          <StyledMacroLabel>
+            <Text>Fat</Text>
+          </StyledMacroLabel>
           {goal && (
-            <MacroProgress>
-              {formatProgress(totals.fat, goal.fat)}
-            </MacroProgress>
+            <StyledMacroProgress>
+              <Text>{formatProgress(totals.fat, goal.fat)}</Text>
+            </StyledMacroProgress>
           )}
         </MacroItem>
       </MacroGrid>
 
       {totals.fiber !== undefined && (
-        <MacroGrid style={{ marginTop: 16 }}>
+        <MacroGrid style={styles.additionalMacros}>
           <MacroItem>
-            <MacroValue testID={`${testID}-fiber`}>{totals.fiber}g</MacroValue>
-            <MacroLabel>Fiber</MacroLabel>
+            <StyledMacroValue testID={`${testID}-fiber`}>
+              <Text>{`${totals.fiber}g`}</Text>
+            </StyledMacroValue>
+            <StyledMacroLabel>
+              <Text>Fiber</Text>
+            </StyledMacroLabel>
             {goal?.fiber && (
-              <MacroProgress>
-                {formatProgress(totals.fiber, goal.fiber)}
-              </MacroProgress>
+              <StyledMacroProgress>
+                <Text>{formatProgress(totals.fiber, goal.fiber)}</Text>
+              </StyledMacroProgress>
             )}
           </MacroItem>
           {totals.sugar !== undefined && (
             <MacroItem>
-              <MacroValue testID={`${testID}-sugar`}>{totals.sugar}g</MacroValue>
-              <MacroLabel>Sugar</MacroLabel>
+              <StyledMacroValue testID={`${testID}-sugar`}>
+                <Text>{`${totals.sugar}g`}</Text>
+              </StyledMacroValue>
+              <StyledMacroLabel>
+                <Text>Sugar</Text>
+              </StyledMacroLabel>
             </MacroItem>
           )}
           {totals.sodium !== undefined && (
             <MacroItem>
-              <MacroValue testID={`${testID}-sodium`}>{totals.sodium}mg</MacroValue>
-              <MacroLabel>Sodium</MacroLabel>
+              <StyledMacroValue testID={`${testID}-sodium`}>
+                <Text>{`${totals.sodium}mg`}</Text>
+              </StyledMacroValue>
+              <StyledMacroLabel>
+                <Text>Sodium</Text>
+              </StyledMacroLabel>
             </MacroItem>
           )}
         </MacroGrid>

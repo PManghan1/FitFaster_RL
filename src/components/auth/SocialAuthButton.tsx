@@ -1,6 +1,8 @@
-import React from "react";
-import { TouchableOpacity, Text, ActivityIndicator, ViewStyle } from "react-native";
-import { Provider } from "@supabase/supabase-js";
+import { Provider } from '@supabase/supabase-js';
+import React from 'react';
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, ViewStyle } from 'react-native';
+
+import { colors } from '../../theme';
 
 interface SocialAuthButtonProps {
   provider: Provider;
@@ -12,36 +14,56 @@ interface SocialAuthButtonProps {
 
 const getProviderConfig = (provider: Provider) => {
   switch (provider) {
-    case "google":
+    case 'google':
       return {
-        text: "Continue with Google",
-        backgroundColor: "#fff",
-        textColor: "#1F2937",
-        borderColor: "#D1D5DB",
+        text: 'Continue with Google',
+        backgroundColor: colors.background.default,
+        textColor: colors.text.default,
+        borderColor: colors.border.default,
       };
-    case "apple":
+    case 'apple':
       return {
-        text: "Continue with Apple",
-        backgroundColor: "#000",
-        textColor: "#fff",
-        borderColor: "#000",
+        text: 'Continue with Apple',
+        backgroundColor: '#000', // Keeping black for Apple as it's their brand requirement
+        textColor: colors.background.default,
+        borderColor: '#000', // Keeping black for Apple as it's their brand requirement
       };
-    case "facebook":
+    case 'facebook':
       return {
-        text: "Continue with Facebook",
-        backgroundColor: "#1877F2",
-        textColor: "#fff",
-        borderColor: "#1877F2",
+        text: 'Continue with Facebook',
+        backgroundColor: colors.social.facebook,
+        textColor: colors.background.default,
+        borderColor: colors.social.facebook,
       };
     default:
       return {
         text: `Continue with ${provider}`,
-        backgroundColor: "#fff",
-        textColor: "#1F2937",
-        borderColor: "#D1D5DB",
+        backgroundColor: colors.background.default,
+        textColor: colors.text.default,
+        borderColor: colors.border.default,
       };
   }
 };
+
+const styles = StyleSheet.create({
+  button: {
+    alignItems: 'center',
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 12,
+    padding: 16,
+  },
+  loadingIndicator: {
+    marginRight: 8,
+  },
+  text: {
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+});
 
 export const SocialAuthButton: React.FC<SocialAuthButtonProps> = ({
   provider,
@@ -56,16 +78,10 @@ export const SocialAuthButton: React.FC<SocialAuthButtonProps> = ({
     <TouchableOpacity
       testID={testID}
       style={[
+        styles.button,
         {
           backgroundColor: config.backgroundColor,
-          padding: 16,
-          borderRadius: 8,
-          borderWidth: 1,
           borderColor: config.borderColor,
-          flexDirection: "row",
-          justifyContent: "center",
-          alignItems: "center",
-          marginBottom: 12,
         },
         style,
       ]}
@@ -73,21 +89,9 @@ export const SocialAuthButton: React.FC<SocialAuthButtonProps> = ({
       disabled={isLoading}
     >
       {isLoading ? (
-        <ActivityIndicator
-          color={config.textColor}
-          style={{ marginRight: 8 }}
-        />
+        <ActivityIndicator color={config.textColor} style={styles.loadingIndicator} />
       ) : null}
-      <Text
-        style={{
-          color: config.textColor,
-          fontSize: 16,
-          fontWeight: "600",
-          textAlign: "center",
-        }}
-      >
-        {config.text}
-      </Text>
+      <Text style={[styles.text, { color: config.textColor }]}>{config.text}</Text>
     </TouchableOpacity>
   );
 };

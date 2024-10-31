@@ -1,44 +1,31 @@
 import React from 'react';
-import { ScrollView, Linking } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
+import { ExternalLink } from 'react-native-feather';
 import styled from 'styled-components/native';
-import { FileText, ExternalLink, Shield } from 'react-native-feather';
-import { DataSensitivityIndicator } from './DataSensitivityIndicator';
+
+import { colors } from '../../theme';
 
 const Container = styled.View`
   padding: 16px;
-  background-color: white;
+  background-color: ${colors.background.default};
   border-radius: 12px;
-  border-width: 1px;
-  border-color: #E5E7EB;
-`;
-
-const Header = styled.View`
-  flex-direction: row;
-  align-items: center;
-  margin-bottom: 16px;
-`;
-
-const Title = styled.Text`
-  font-size: 18px;
-  font-weight: 600;
-  color: #1F2937;
-  margin-left: 8px;
+  margin-vertical: 8px;
 `;
 
 const Section = styled.View`
   margin-bottom: 16px;
 `;
 
-const SectionTitle = styled.Text`
-  font-size: 16px;
+const StyledSectionTitle = styled.Text`
+  font-size: 18px;
   font-weight: 600;
-  color: #374151;
+  color: ${colors.text.default};
   margin-bottom: 8px;
 `;
 
-const SectionContent = styled.Text`
+const StyledSectionContent = styled.Text`
   font-size: 14px;
-  color: #6B7280;
+  color: ${colors.text.light};
   line-height: 20px;
 `;
 
@@ -46,150 +33,90 @@ const LinkContainer = styled.TouchableOpacity`
   flex-direction: row;
   align-items: center;
   padding: 12px;
-  background-color: #F3F4F6;
+  background-color: ${colors.background.light};
   border-radius: 8px;
-  margin-top: 8px;
 `;
 
-const LinkText = styled.Text`
+const StyledLinkText = styled.Text`
+  color: ${colors.text.default};
   font-size: 14px;
-  color: #3B82F6;
-  margin-left: 8px;
 `;
 
-const BulletList = styled.View`
-  margin-top: 8px;
-`;
-
-const BulletPoint = styled.View`
-  flex-direction: row;
-  align-items: flex-start;
-  margin-bottom: 4px;
-`;
-
-const Bullet = styled.View`
-  width: 4px;
-  height: 4px;
-  border-radius: 2px;
-  background-color: #6B7280;
-  margin-top: 8px;
-  margin-right: 8px;
-`;
-
-const BulletText = styled.Text`
-  flex: 1;
-  font-size: 14px;
-  color: #6B7280;
-  line-height: 20px;
-`;
+const styles = StyleSheet.create({
+  externalLink: {
+    marginLeft: 'auto',
+  },
+});
 
 interface PrivacyNoticeProps {
-  title?: string;
-  dataUsageDescription: string;
-  dataCollectionPoints: string[];
-  dataProtectionMeasures: string[];
-  privacyPolicyUrl: string;
-  dataRetentionPeriod: string;
+  onReadMore?: () => void;
   testID?: string;
 }
 
-export const PrivacyNotice: React.FC<PrivacyNoticeProps> = ({
-  title = 'Privacy Notice',
-  dataUsageDescription,
-  dataCollectionPoints,
-  dataProtectionMeasures,
-  privacyPolicyUrl,
-  dataRetentionPeriod,
-  testID,
-}) => {
-  const handlePrivacyPolicyPress = () => {
-    Linking.openURL(privacyPolicyUrl);
-  };
-
+export const PrivacyNotice: React.FC<PrivacyNoticeProps> = ({ onReadMore, testID }) => {
   return (
-    <ScrollView>
-      <Container testID={testID}>
-        <Header>
-          <Shield width={24} height={24} color="#3B82F6" />
-          <Title>{title}</Title>
-        </Header>
+    <Container testID={testID}>
+      <Section>
+        <StyledSectionTitle>
+          <Text>Data Usage</Text>
+        </StyledSectionTitle>
+        <StyledSectionContent>
+          <Text>
+            We collect and process your fitness data to provide personalized workout recommendations
+            and track your progress over time.
+          </Text>
+        </StyledSectionContent>
+      </Section>
 
-        <Section>
-          <SectionTitle>Data Usage</SectionTitle>
-          <SectionContent>{dataUsageDescription}</SectionContent>
-        </Section>
+      <Section>
+        <StyledSectionTitle>
+          <Text>Data Collection</Text>
+        </StyledSectionTitle>
+        <StyledSectionContent>
+          <Text>
+            Information we collect includes workout history, exercise preferences, and basic health
+            metrics. This data is used exclusively to enhance your fitness experience.
+          </Text>
+        </StyledSectionContent>
+      </Section>
 
-        <Section>
-          <SectionTitle>Data Collection</SectionTitle>
-          <BulletList>
-            {dataCollectionPoints.map((point, index) => (
-              <BulletPoint key={index} testID={`${testID}-collection-point-${index}`}>
-                <Bullet />
-                <BulletText>{point}</BulletText>
-              </BulletPoint>
-            ))}
-          </BulletList>
-        </Section>
+      <Section>
+        <StyledSectionTitle>
+          <Text>Data Protection</Text>
+        </StyledSectionTitle>
+        <StyledSectionContent>
+          <Text>
+            Your data is encrypted and stored securely. We implement industry-standard security
+            measures to protect your information from unauthorized access.
+          </Text>
+        </StyledSectionContent>
+      </Section>
 
-        <Section>
-          <SectionTitle>Data Protection</SectionTitle>
-          <BulletList>
-            {dataProtectionMeasures.map((measure, index) => (
-              <BulletPoint key={index} testID={`${testID}-protection-measure-${index}`}>
-                <Bullet />
-                <BulletText>{measure}</BulletText>
-              </BulletPoint>
-            ))}
-          </BulletList>
-        </Section>
+      <Section>
+        <StyledSectionTitle>
+          <Text>Data Retention</Text>
+        </StyledSectionTitle>
+        <StyledSectionContent>
+          <Text>
+            You can request deletion of your data at any time. We retain your data only as long as
+            necessary to provide our services and comply with legal obligations.
+          </Text>
+        </StyledSectionContent>
+      </Section>
 
-        <Section>
-          <SectionTitle>Data Retention</SectionTitle>
-          <SectionContent>{dataRetentionPeriod}</SectionContent>
-        </Section>
-
-        <DataSensitivityIndicator
-          level="high"
-          dataType="Health & Fitness Data"
-          protectionMeasures={[
-            'End-to-end encryption',
-            'Regular security audits',
-            'Strict access controls',
-          ]}
-          testID={`${testID}-sensitivity-indicator`}
-        />
-
-        <LinkContainer 
-          onPress={handlePrivacyPolicyPress}
-          testID={`${testID}-privacy-policy-link`}
-        >
-          <FileText width={20} height={20} color="#3B82F6" />
-          <LinkText>Read Full Privacy Policy</LinkText>
-          <ExternalLink width={16} height={16} color="#3B82F6" style={{ marginLeft: 'auto' }} />
+      {onReadMore && (
+        <LinkContainer onPress={onReadMore} testID={`${testID}-read-more`}>
+          <StyledLinkText>
+            <Text>Read Full Privacy Policy</Text>
+          </StyledLinkText>
+          <ExternalLink
+            width={16}
+            height={16}
+            color={colors.primary.default}
+            style={styles.externalLink}
+          />
         </LinkContainer>
-      </Container>
-    </ScrollView>
+      )}
+    </Container>
   );
-};
-
-// Example usage configuration
-export const DEFAULT_PRIVACY_NOTICE_CONFIG = {
-  dataUsageDescription: 
-    'We collect and process your data to provide personalized fitness tracking and health monitoring services. Your privacy and data security are our top priorities.',
-  dataCollectionPoints: [
-    'Basic profile information (name, email)',
-    'Health metrics (weight, height, activity levels)',
-    'Fitness goals and preferences',
-    'Workout and nutrition data',
-  ],
-  dataProtectionMeasures: [
-    'Advanced encryption for all sensitive data',
-    'Regular security audits and updates',
-    'Strict access controls and authentication',
-    'Compliance with GDPR and health data regulations',
-    'Transparent data processing practices',
-  ],
-  privacyPolicyUrl: 'https://fitfaster.app/privacy',
-  dataRetentionPeriod: 
-    'Your data is retained for the duration of your account activity plus 30 days after account deletion. You can request complete data deletion at any time.',
 };

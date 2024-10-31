@@ -1,130 +1,112 @@
+import { fireEvent, render } from '@testing-library/react-native';
 import React from 'react';
-import { render, waitFor } from '@testing-library/react-native';
+
 import { WorkoutDetailsScreen } from '../../screens/WorkoutDetailsScreen';
 import { useWorkoutDetails } from '../../store/workout.store';
-import { ExerciseType, WorkoutSummary } from '../../types/workout';
+import { mockSet, mockWorkout } from '../utils/test-data';
 
-// Mock navigation
-const mockRoute = {
-  params: { sessionId: '123' },
-};
-
+jest.mock('../../store/workout.store');
 jest.mock('@react-navigation/native', () => ({
-  useRoute: () => mockRoute,
+  useRoute: () => ({
+    params: { workoutId: '1' },
+  }),
+  useNavigation: () => ({
+    navigate: jest.fn(),
+  }),
 }));
-
-// Mock the workout store
-jest.mock('../../store/workout.store', () => ({
-  useWorkoutDetails: jest.fn(),
-}));
-
-const mockWorkout: WorkoutSummary = {
-  session: {
-    id: '123',
-    userId: 'user-1',
-    name: 'Morning Workout',
-    date: new Date().toISOString(),
-    duration: 3600, // 1 hour
-    sets: [],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  exercises: [
-    {
-      exercise: {
-        id: '1',
-        name: 'Bench Press',
-        type: ExerciseType.enum.STRENGTH,
-        muscleGroups: ['CHEST'],
-        isCustom: false,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      sets: [
-        {
-          id: 'set-1',
-          userId: 'user-1',
-          exerciseId: '1',
-          sessionId: '123',
-          weight: 80,
-          reps: 10,
-          createdAt: new Date().toISOString(),
-        },
-      ],
-    },
-  ],
-  duration: 3600,
-  totalSets: 1,
-  muscleGroups: ['CHEST'],
-};
 
 describe('WorkoutDetailsScreen', () => {
+  const defaultMockStore = {
+    workout: mockWorkout,
+    loading: false,
+    error: null,
+    updateSet: jest.fn(),
+    addSet: jest.fn(),
+    removeSet: jest.fn(),
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
+    (useWorkoutDetails as jest.Mock).mockReturnValue(defaultMockStore);
   });
 
-  it('renders loading state', () => {
-    (useWorkoutDetails as jest.Mock).mockReturnValue({
-      workout: null,
-      isLoading: true,
-      error: null,
-      loadWorkout: jest.fn(),
-    });
+  describe('Rendering States', () => {
+    it('should render workout details when data is available', () => {
+      const { getByText } = render(<WorkoutDetailsScreen />);
 
-    const { getByTestId } = render(<WorkoutDetailsScreen />);
-    expect(getByTestId('loading-indicator')).toBeTruthy();
-  });
-
-  it('renders error state', () => {
-    const errorMessage = 'Failed to load workout';
-    (useWorkoutDetails as jest.Mock).mockReturnValue({
-      workout: null,
-      isLoading: false,
-      error: errorMessage,
-      loadWorkout: jest.fn(),
-    });
-
-    const { getByText } = render(<WorkoutDetailsScreen />);
-    expect(getByText(errorMessage)).toBeTruthy();
-  });
-
-  it('renders workout details', async () => {
-    const mockLoadWorkout = jest.fn();
-    (useWorkoutDetails as jest.Mock).mockReturnValue({
-      workout: mockWorkout,
-      isLoading: false,
-      error: null,
-      loadWorkout: mockLoadWorkout,
-    });
-
-    const { getByText } = render(<WorkoutDetailsScreen />);
-
-    await waitFor(() => {
-      expect(mockLoadWorkout).toHaveBeenCalledWith('123');
-      expect(getByText('Morning Workout')).toBeTruthy();
-      expect(getByText('1h 0m')).toBeTruthy();
+      expect(getByText('Monday Workout')).toBeTruthy();
       expect(getByText('Bench Press')).toBeTruthy();
-      expect(getByText('80kg × 10 reps')).toBeTruthy();
+      expect(getByText('100 lbs × 10')).toBeTruthy();
+    });
+
+    it('should display loading indicator when loading', () => {
+      (useWorkoutDetails as jest.Mock).mockReturnValue({
+        ...defaultMockStore,
+        workout: null,
+        loading: true,
+      });
+
+      const { getByTestId } = render(<WorkoutDetailsScreen />);
+      expect(getByTestId('loading-indicator')).toBeTruthy();
+    });
+
+    it('should display error message when error occurs', () => {
+      const errorMessage = 'Failed to load workout';
+      (useWorkoutDetails as jest.Mock).mockReturnValue({
+        ...defaultMockStore,
+        workout: null,
+        error: errorMessage,
+      });
+
+      const { getByText } = render(<WorkoutDetailsScreen />);
+      expect(getByText(errorMessage)).toBeTruthy();
     });
   });
 
-  it('calculates workout metrics correctly', () => {
-    (useWorkoutDetails as jest.Mock).mockReturnValue({
-      workout: mockWorkout,
-      isLoading: false,
-      error: null,
-      loadWorkout: jest.fn(),
+  describe('Set Management', () => {
+    it('should handle set completion toggle', () => {
+      const mockUpdateSet = jest.fn();
+      (useWorkoutDetails as jest.Mock).mockReturnValue({
+        ...defaultMockStore,
+        updateSet: mockUpdateSet,
+      });
+
+      const { getByTestId } = render(<WorkoutDetailsScreen />);
+      const setCheckbox = getByTestId('set-1-checkbox');
+
+      fireEvent.press(setCheckbox);
+      expect(mockUpdateSet).toHaveBeenCalledWith({
+        ...mockSet,
+        completed: true,
+      });
     });
 
-    const { getByText } = render(<WorkoutDetailsScreen />);
+    it('should handle adding new sets', () => {
+      const mockAddSet = jest.fn();
+      (useWorkoutDetails as jest.Mock).mockReturnValue({
+        ...defaultMockStore,
+        addSet: mockAddSet,
+      });
 
-    // Duration
-    expect(getByText('1h 0m')).toBeTruthy();
-    // Exercise count
-    expect(getByText('1')).toBeTruthy();
-    // Total sets
-    expect(getByText('1')).toBeTruthy();
-    // Total volume (weight * reps)
-    expect(getByText('800')).toBeTruthy();
+      const { getByTestId } = render(<WorkoutDetailsScreen />);
+      const addSetButton = getByTestId('add-set-button');
+
+      fireEvent.press(addSetButton);
+      expect(mockAddSet).toHaveBeenCalled();
+    });
+
+    it('should handle removing sets', () => {
+      const mockRemoveSet = jest.fn();
+      (useWorkoutDetails as jest.Mock).mockReturnValue({
+        ...defaultMockStore,
+        removeSet: mockRemoveSet,
+      });
+
+      const { getByTestId } = render(<WorkoutDetailsScreen />);
+      const removeSetButton = getByTestId('remove-set-1-button');
+
+      fireEvent.press(removeSetButton);
+      expect(mockRemoveSet).toHaveBeenCalledWith(mockSet.id);
+    });
   });
 });

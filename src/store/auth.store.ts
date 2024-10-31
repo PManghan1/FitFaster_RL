@@ -1,7 +1,9 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
+
 import { supabase } from '../services/supabase';
-import type { Session, User, AuthError } from '@supabase/supabase-js';
+
+import type { AuthError, Session, User } from '@supabase/supabase-js';
 
 interface AuthState {
   user: User | null;
@@ -13,8 +15,14 @@ interface AuthState {
 
 interface AuthStore extends AuthState {
   initialize: () => Promise<void>;
-  signIn: (email: string, password: string) => Promise<{ user: User | null; session: Session | null; error?: AuthError }>;
-  signUp: (email: string, password: string) => Promise<{ user: User | null; session: Session | null; error?: AuthError }>;
+  signIn: (
+    email: string,
+    password: string,
+  ) => Promise<{ user: User | null; session: Session | null; error?: AuthError }>;
+  signUp: (
+    email: string,
+    password: string,
+  ) => Promise<{ user: User | null; session: Session | null; error?: AuthError }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   setError: (error: string | null) => void;
@@ -23,7 +31,7 @@ interface AuthStore extends AuthState {
 
 export const useAuthStore = create<AuthStore>()(
   devtools(
-    (set) => ({
+    set => ({
       user: null,
       session: null,
       isAuthenticated: false,
@@ -34,9 +42,9 @@ export const useAuthStore = create<AuthStore>()(
         try {
           set({ isLoading: true, error: null });
           const { data, error } = await supabase.auth.getSession();
-          
+
           if (error) throw error;
-          
+
           if (data.session) {
             set({
               user: data.session.user,
@@ -44,8 +52,9 @@ export const useAuthStore = create<AuthStore>()(
               isAuthenticated: true,
             });
           }
-        } catch (error: any) {
-          set({ error: error.message });
+        } catch (error) {
+          const authError = error as AuthError;
+          set({ error: authError.message });
         } finally {
           set({ isLoading: false });
         }
@@ -68,9 +77,10 @@ export const useAuthStore = create<AuthStore>()(
           });
 
           return { user: data.user, session: data.session };
-        } catch (error: any) {
-          set({ error: error.message });
-          return { user: null, session: null, error };
+        } catch (error) {
+          const authError = error as AuthError;
+          set({ error: authError.message });
+          return { user: null, session: null, error: authError };
         } finally {
           set({ isLoading: false });
         }
@@ -93,9 +103,10 @@ export const useAuthStore = create<AuthStore>()(
           });
 
           return { user: data.user, session: data.session };
-        } catch (error: any) {
-          set({ error: error.message });
-          return { user: null, session: null, error };
+        } catch (error) {
+          const authError = error as AuthError;
+          set({ error: authError.message });
+          return { user: null, session: null, error: authError };
         } finally {
           set({ isLoading: false });
         }
@@ -113,8 +124,9 @@ export const useAuthStore = create<AuthStore>()(
             session: null,
             isAuthenticated: false,
           });
-        } catch (error: any) {
-          set({ error: error.message });
+        } catch (error) {
+          const authError = error as AuthError;
+          set({ error: authError.message });
         } finally {
           set({ isLoading: false });
         }
@@ -126,8 +138,9 @@ export const useAuthStore = create<AuthStore>()(
           const { error } = await supabase.auth.resetPasswordForEmail(email);
 
           if (error) throw error;
-        } catch (error: any) {
-          set({ error: error.message });
+        } catch (error) {
+          const authError = error as AuthError;
+          set({ error: authError.message });
         } finally {
           set({ isLoading: false });
         }
@@ -136,6 +149,6 @@ export const useAuthStore = create<AuthStore>()(
       setError: (error: string | null) => set({ error }),
       clearError: () => set({ error: null }),
     }),
-    { name: 'auth-store' }
-  )
+    { name: 'auth-store' },
+  ),
 );

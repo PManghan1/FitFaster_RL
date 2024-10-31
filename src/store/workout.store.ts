@@ -1,168 +1,133 @@
+import { z } from 'zod';
 import { create } from 'zustand';
-import { devtools } from 'zustand/middleware';
-import { persist } from './middleware/persist';
-import type { WorkoutStore, WorkoutState, WorkoutSession, Exercise, ExerciseId, Set } from '../types/workout';
-import type { PersistApi } from './middleware/persist';
-import { workoutService } from '../services/workout';
-import { useAuthStore } from './auth.store';
 
-const initialState: WorkoutState = {
-  activeWorkout: null,
-  workoutHistory: [],
+import { Exercise, MuscleGroup, Set, Workout } from '../types/workout';
+
+interface WorkoutStore {
+  workouts: Workout[];
+  currentWorkout: Workout | null;
+  exercises: Exercise[];
+  searchTerm: string;
+  selectedMuscleGroup: string | null;
+  loading: boolean;
+  error: string | null;
+
+  // Actions
+  addWorkout: (workout: Workout) => void;
+  updateWorkout: (workout: Workout) => void;
+  deleteWorkout: (id: string) => void;
+  setCurrentWorkout: (workout: Workout | null) => void;
+  addSet: (workoutId: string, set: Set) => void;
+  updateSet: (workoutId: string, set: Set) => void;
+  removeSet: (workoutId: string, setId: string) => void;
+  setSearchTerm: (term: string) => void;
+  setSelectedMuscleGroup: (group: string | null) => void;
+  reset: () => void;
+}
+
+export const useWorkoutStore = create<WorkoutStore>(setState => ({
+  workouts: [],
+  currentWorkout: null,
   exercises: [],
-  isLoading: false,
+  searchTerm: '',
+  selectedMuscleGroup: null,
+  loading: false,
   error: null,
+
+  addWorkout: (workout: Workout) =>
+    setState((state: WorkoutStore) => ({
+      workouts: [...state.workouts, workout],
+    })),
+
+  updateWorkout: (workout: Workout) =>
+    setState((state: WorkoutStore) => ({
+      workouts: state.workouts.map(w => (w.id === workout.id ? workout : w)),
+    })),
+
+  deleteWorkout: (id: string) =>
+    setState((state: WorkoutStore) => ({
+      workouts: state.workouts.filter(w => w.id !== id),
+    })),
+
+  setCurrentWorkout: (workout: Workout | null) => setState({ currentWorkout: workout }),
+
+  addSet: (workoutId: string, newSet: Set) =>
+    setState((state: WorkoutStore) => ({
+      workouts: state.workouts.map(w =>
+        w.id === workoutId ? { ...w, sets: [...w.sets, newSet] } : w,
+      ),
+    })),
+
+  updateSet: (workoutId: string, updatedSet: Set) =>
+    setState((state: WorkoutStore) => ({
+      workouts: state.workouts.map(w =>
+        w.id === workoutId
+          ? { ...w, sets: w.sets.map(s => (s.id === updatedSet.id ? updatedSet : s)) }
+          : w,
+      ),
+    })),
+
+  removeSet: (workoutId: string, setId: string) =>
+    setState((state: WorkoutStore) => ({
+      workouts: state.workouts.map(w =>
+        w.id === workoutId ? { ...w, sets: w.sets.filter(s => s.id !== setId) } : w,
+      ),
+    })),
+
+  setSearchTerm: (term: string) => setState({ searchTerm: term }),
+
+  setSelectedMuscleGroup: (group: string | null) => setState({ selectedMuscleGroup: group }),
+
+  reset: () =>
+    setState({
+      workouts: [],
+      currentWorkout: null,
+      exercises: [],
+      searchTerm: '',
+      selectedMuscleGroup: null,
+      loading: false,
+      error: null,
+    }),
+}));
+
+// Custom hooks for specific functionality
+export const useWorkoutDetails = (workoutId: string) => {
+  const workout = useWorkoutStore(state => state.workouts.find(w => w.id === workoutId));
+  const { updateSet, addSet, removeSet } = useWorkoutStore();
+  const loading = useWorkoutStore(state => state.loading);
+  const error = useWorkoutStore(state => state.error);
+
+  return {
+    workout,
+    loading,
+    error,
+    updateSet: (set: Set) => updateSet(workoutId, set),
+    addSet: (set: Set) => addSet(workoutId, set),
+    removeSet: (setId: string) => removeSet(workoutId, setId),
+  };
 };
 
-type WorkoutStoreWithPersist = WorkoutStore & PersistApi;
+// Hook for exercise library functionality
+export const useExerciseLibrary = () => {
+  const exercises = useWorkoutStore(state => state.exercises);
+  const searchTerm = useWorkoutStore(state => state.searchTerm);
+  const selectedMuscleGroup = useWorkoutStore(state => state.selectedMuscleGroup);
+  const { setSearchTerm, setSelectedMuscleGroup } = useWorkoutStore();
 
-export const useWorkoutStore = create<WorkoutStoreWithPersist>()(
-  devtools(
-    persist(
-      (set, get) => ({
-        ...initialState,
+  const filteredExercises = exercises.filter(exercise => {
+    const matchesSearch = exercise.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesMuscleGroup =
+      !selectedMuscleGroup ||
+      exercise.muscleGroups.includes(selectedMuscleGroup as z.infer<typeof MuscleGroup>);
+    return matchesSearch && matchesMuscleGroup;
+  });
 
-        startWorkout: async () => {
-          try {
-            set({ isLoading: true, error: null });
-            const userId = useAuthStore.getState().user?.id;
-            if (!userId) throw new Error('User not authenticated');
-
-            const session = await workoutService.startWorkoutSession(userId);
-            set({ activeWorkout: session });
-          } catch (error: any) {
-            set({ error: error.message });
-          } finally {
-            set({ isLoading: false });
-          }
-        },
-
-        endWorkout: async () => {
-          try {
-            set({ isLoading: true, error: null });
-            const { activeWorkout } = get();
-            if (!activeWorkout) throw new Error('No active workout');
-            
-            await workoutService.updateSessionDuration(
-              activeWorkout.id,
-              activeWorkout.duration
-            );
-
-            const summary = await workoutService.getWorkoutSummary(activeWorkout.id);
-            set(state => ({
-              activeWorkout: null,
-              workoutHistory: [summary.session, ...state.workoutHistory],
-            }));
-          } catch (error: any) {
-            set({ error: error.message });
-          } finally {
-            set({ isLoading: false });
-          }
-        },
-
-        addExercise: (exercise: Exercise) => {
-          set((state: WorkoutState) => {
-            if (!state.activeWorkout) return state;
-            return {
-              ...state,
-              activeWorkout: {
-                ...state.activeWorkout,
-                exercises: [...state.activeWorkout.exercises, exercise],
-              },
-            };
-          });
-        },
-
-        removeExercise: (exerciseId: ExerciseId) => {
-          set((state: WorkoutState) => {
-            if (!state.activeWorkout) return state;
-            return {
-              ...state,
-              activeWorkout: {
-                ...state.activeWorkout,
-                exercises: state.activeWorkout.exercises.filter(exercise => exercise.id !== exerciseId),
-              },
-            };
-          });
-        },
-
-        updateSet: async (exerciseId: ExerciseId, setIndex: number, data: Partial<Set>) => {
-          try {
-            const { activeWorkout } = get();
-            if (!activeWorkout) throw new Error('No active workout');
-
-            const userId = useAuthStore.getState().user?.id;
-            if (!userId) throw new Error('User not authenticated');
-
-            const newSet = await workoutService.addSetToSession(
-              userId,
-              activeWorkout.id,
-              exerciseId,
-              data
-            );
-
-            set((state: WorkoutState) => {
-              if (!state.activeWorkout) return state;
-              return {
-                ...state,
-                activeWorkout: {
-                  ...state.activeWorkout,
-                  exercises: state.activeWorkout.exercises.map(exercise => {
-                    if (exercise.id !== exerciseId) return exercise;
-                    return {
-                      ...exercise,
-                      sets: exercise.sets.map((s, index) => 
-                        index === setIndex ? newSet : s
-                      ),
-                    };
-                  }),
-                },
-              };
-            });
-          } catch (error: any) {
-            set({ error: error.message });
-          }
-        },
-
-        loadWorkoutHistory: async () => {
-          try {
-            set({ isLoading: true, error: null });
-            const userId = useAuthStore.getState().user?.id;
-            if (!userId) throw new Error('User not authenticated');
-
-            const history = await workoutService.getWorkoutHistory(userId);
-            // Convert WorkoutSummary[] to WorkoutSession[]
-            const sessions = history.map(summary => summary.session);
-            set({ workoutHistory: sessions });
-          } catch (error: any) {
-            set({ error: error.message });
-          } finally {
-            set({ isLoading: false });
-          }
-        },
-
-        loadExercises: async () => {
-          try {
-            set({ isLoading: true, error: null });
-            const exercises = await workoutService.searchExercises('');
-            set({ exercises });
-          } catch (error: any) {
-            set({ error: error.message });
-          } finally {
-            set({ isLoading: false });
-          }
-        },
-
-        reset: () => {
-          set(initialState);
-        },
-      }),
-      {
-        name: 'workout-store',
-        version: 1,
-        blacklist: ['isLoading', 'error'],
-      }
-    ),
-    { name: 'workout-store' }
-  )
-);
+  return {
+    exercises,
+    searchTerm,
+    setSearchTerm,
+    selectedMuscleGroup,
+    setSelectedMuscleGroup,
+    filteredExercises,
+  };
+};

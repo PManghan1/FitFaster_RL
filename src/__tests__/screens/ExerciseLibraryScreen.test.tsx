@@ -1,131 +1,98 @@
+import { fireEvent, render } from '@testing-library/react-native';
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
+
 import { ExerciseLibraryScreen } from '../../screens/ExerciseLibraryScreen';
 import { useExerciseLibrary } from '../../store/workout.store';
-import { Exercise, ExerciseType } from '../../types/workout';
+import { mockExercises } from '../utils/test-data';
 
-// Mock the navigation
-const mockNavigate = jest.fn();
-jest.mock('@react-navigation/native', () => ({
-  useNavigation: () => ({
-    navigate: mockNavigate,
-  }),
-}));
-
-// Mock the workout store
-jest.mock('../../store/workout.store', () => ({
-  useExerciseLibrary: jest.fn(),
-}));
-
-const mockExercises: Exercise[] = [
-  {
-    id: '1',
-    name: 'Bench Press',
-    type: ExerciseType.enum.STRENGTH,
-    muscleGroups: ['CHEST'],
-    isCustom: false,
-    description: 'Barbell bench press for chest development',
-    instructions: 'Lie on bench, grip bar, lower to chest, press up',
-    equipment: ['BARBELL'],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: '2',
-    name: 'Squats',
-    type: ExerciseType.enum.STRENGTH,
-    muscleGroups: ['LEGS'],
-    isCustom: false,
-    description: 'Barbell squats for leg development',
-    instructions: 'Place bar on shoulders, squat down, stand up',
-    equipment: ['BARBELL'],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
+jest.mock('../../store/workout.store');
 
 describe('ExerciseLibraryScreen', () => {
+  const defaultMockStore = {
+    exercises: mockExercises,
+    searchTerm: '',
+    setSearchTerm: jest.fn(),
+    selectedMuscleGroup: null,
+    setSelectedMuscleGroup: jest.fn(),
+    filteredExercises: mockExercises,
+  };
+
   beforeEach(() => {
     jest.clearAllMocks();
-    (useExerciseLibrary as jest.Mock).mockReturnValue({
-      exercises: mockExercises,
-      searchResults: [],
-      isSearching: false,
-      error: null,
-      searchExercises: jest.fn(),
+    (useExerciseLibrary as jest.Mock).mockReturnValue(defaultMockStore);
+  });
+
+  describe('Exercise List Display', () => {
+    it('should render all exercises when no filters are applied', () => {
+      const { getByText } = render(<ExerciseLibraryScreen />);
+
+      expect(getByText('Bench Press')).toBeTruthy();
+      expect(getByText('Running')).toBeTruthy();
+    });
+
+    it('should display exercise descriptions', () => {
+      const { getByText } = render(<ExerciseLibraryScreen />);
+
+      expect(getByText('Barbell bench press for chest development')).toBeTruthy();
+      expect(getByText('Outdoor or treadmill running')).toBeTruthy();
     });
   });
 
-  it('renders correctly', () => {
-    const { getByTestId, getByPlaceholderText } = render(<ExerciseLibraryScreen />);
-    
-    expect(getByTestId('exercise-library')).toBeTruthy();
-    expect(getByPlaceholderText('Search exercises...')).toBeTruthy();
-  });
+  describe('Search Functionality', () => {
+    it('should update search term when user types in search input', () => {
+      const mockSetSearchTerm = jest.fn();
+      (useExerciseLibrary as jest.Mock).mockReturnValue({
+        ...defaultMockStore,
+        setSearchTerm: mockSetSearchTerm,
+      });
 
-  it('displays exercises', () => {
-    const { getByText } = render(<ExerciseLibraryScreen />);
-    
-    expect(getByText('Bench Press')).toBeTruthy();
-    expect(getByText('Squats')).toBeTruthy();
-  });
+      const { getByPlaceholderText } = render(<ExerciseLibraryScreen />);
+      const searchInput = getByPlaceholderText('Search exercises...');
 
-  it('handles search input', async () => {
-    const mockSearchExercises = jest.fn();
-    (useExerciseLibrary as jest.Mock).mockReturnValue({
-      exercises: mockExercises,
-      searchResults: [],
-      isSearching: false,
-      error: null,
-      searchExercises: mockSearchExercises,
+      fireEvent.changeText(searchInput, 'bench');
+      expect(mockSetSearchTerm).toHaveBeenCalledWith('bench');
     });
 
-    const { getByPlaceholderText } = render(<ExerciseLibraryScreen />);
-    const searchInput = getByPlaceholderText('Search exercises...');
-    
-    fireEvent.changeText(searchInput, 'bench');
-    
-    await waitFor(() => {
-      expect(mockSearchExercises).toHaveBeenCalledWith('bench', []);
+    it('should display only filtered exercises based on search term', () => {
+      (useExerciseLibrary as jest.Mock).mockReturnValue({
+        ...defaultMockStore,
+        searchTerm: 'bench',
+        filteredExercises: [mockExercises[0]],
+      });
+
+      const { getByText, queryByText } = render(<ExerciseLibraryScreen />);
+
+      expect(getByText('Bench Press')).toBeTruthy();
+      expect(queryByText('Running')).toBeNull();
     });
   });
 
-  it('handles exercise selection', () => {
-    const { getByText } = render(<ExerciseLibraryScreen />);
-    
-    fireEvent.press(getByText('Bench Press'));
-    
-    expect(mockNavigate).toHaveBeenCalledWith('Workout', {
-      selectedExercise: mockExercises[0],
-    });
-  });
+  describe('Muscle Group Filtering', () => {
+    it('should filter exercises by selected muscle group', () => {
+      (useExerciseLibrary as jest.Mock).mockReturnValue({
+        ...defaultMockStore,
+        selectedMuscleGroup: 'CHEST',
+        filteredExercises: [mockExercises[0]],
+      });
 
-  it('displays loading state', () => {
-    (useExerciseLibrary as jest.Mock).mockReturnValue({
-      exercises: [],
-      searchResults: [],
-      isSearching: true,
-      error: null,
-      searchExercises: jest.fn(),
+      const { getByText, queryByText } = render(<ExerciseLibraryScreen />);
+
+      expect(getByText('Bench Press')).toBeTruthy();
+      expect(queryByText('Running')).toBeNull();
     });
 
-    const { getByText } = render(<ExerciseLibraryScreen />);
-    
-    expect(getByText('Loading exercises...')).toBeTruthy();
-  });
+    it('should update selected muscle group when filter is changed', () => {
+      const mockSetSelectedMuscleGroup = jest.fn();
+      (useExerciseLibrary as jest.Mock).mockReturnValue({
+        ...defaultMockStore,
+        setSelectedMuscleGroup: mockSetSelectedMuscleGroup,
+      });
 
-  it('displays error state', () => {
-    const errorMessage = 'Failed to load exercises';
-    (useExerciseLibrary as jest.Mock).mockReturnValue({
-      exercises: [],
-      searchResults: [],
-      isSearching: false,
-      error: errorMessage,
-      searchExercises: jest.fn(),
+      const { getByText } = render(<ExerciseLibraryScreen />);
+      const chestFilter = getByText('Chest');
+
+      fireEvent.press(chestFilter);
+      expect(mockSetSelectedMuscleGroup).toHaveBeenCalledWith('CHEST');
     });
-
-    const { getByText } = render(<ExerciseLibraryScreen />);
-    
-    expect(getByText(errorMessage)).toBeTruthy();
   });
 });

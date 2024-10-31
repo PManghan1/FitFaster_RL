@@ -1,18 +1,19 @@
-import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { WorkoutScreen } from '../../screens/WorkoutScreen';
+import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import React from 'react';
+
 import { WorkoutDetailsScreen } from '../../screens/WorkoutDetailsScreen';
+import { WorkoutScreen } from '../../screens/WorkoutScreen';
 import { useWorkoutStore } from '../../store/workout.store';
-import { createMockStoreHook, MockStoreHook } from '../utils/store-utils';
-import type { WorkoutStore } from '../../types/workout';
-import type { PersistApi } from '../../store/middleware/persist';
-import { createWorkoutId, createExerciseId } from '../../types/branded';
+import { Workout } from '../../types/workout';
 
 const Stack = createNativeStackNavigator();
 
-const TestNavigator = () => (
+/**
+ * Test navigation wrapper component
+ */
+const TestNavigator: React.FC = () => (
   <NavigationContainer>
     <Stack.Navigator>
       <Stack.Screen name="Workout" component={WorkoutScreen} />
@@ -21,116 +22,85 @@ const TestNavigator = () => (
   </NavigationContainer>
 );
 
-type MockStore = WorkoutStore & PersistApi;
-
-// Mock the store module
-jest.mock('../../store/workout.store', () => ({
-  useWorkoutStore: jest.fn(),
-}));
-
-describe('Workout Flow Integration', () => {
-  const mockStore = createMockStoreHook<MockStore>({
-    activeWorkout: null,
-    workoutHistory: [],
-    exercises: [
-      {
-        id: createExerciseId('1'),
-        name: 'Bench Press',
-        category: 'Chest',
-        sets: [],
-      },
-      {
-        id: createExerciseId('2'),
-        name: 'Squats',
-        category: 'Legs',
-        sets: [],
-      },
-    ],
-    isLoading: false,
-    error: null,
-    startWorkout: jest.fn(),
-    endWorkout: jest.fn(),
-    addExercise: jest.fn(),
-    removeExercise: jest.fn(),
-    updateSet: jest.fn(),
-    loadWorkoutHistory: jest.fn(),
-    loadExercises: jest.fn(),
-    reset: jest.fn(),
-    clearPersistedState: jest.fn(),
-  });
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-    (useWorkoutStore as unknown as MockStoreHook<MockStore>).mockImplementation(() => mockStore());
-  });
-
-  it('should start a new workout and add exercises', async () => {
-    const { getByTestId, getByText } = render(<TestNavigator />);
-
-    // Start new workout
-    fireEvent.press(getByTestId('start-workout-button'));
-    expect(mockStore.getState().startWorkout).toHaveBeenCalled();
-
-    // Add exercises
-    fireEvent.press(getByTestId('add-exercise-button'));
-    fireEvent.press(getByText('Bench Press'));
-    
-    await waitFor(() => {
-      expect(mockStore.getState().addExercise).toHaveBeenCalledWith(
-        expect.objectContaining({ name: 'Bench Press' })
-      );
-    });
-
-    // Add sets
-    fireEvent.press(getByTestId('add-set-button'));
-    const weightInput = getByTestId('weight-input-0');
-    const repsInput = getByTestId('reps-input-0');
-
-    fireEvent.changeText(weightInput, '100');
-    fireEvent.changeText(repsInput, '10');
-
-    await waitFor(() => {
-      expect(mockStore.getState().updateSet).toHaveBeenCalledWith(
-        createExerciseId('1'),
-        0,
-        expect.objectContaining({ weight: 100, reps: 10 })
-      );
-    });
-
-    // End workout
-    fireEvent.press(getByTestId('end-workout-button'));
-    expect(mockStore.getState().endWorkout).toHaveBeenCalled();
-  });
-
-  it('should load and display workout history', async () => {
-    mockStore.setState({
-      workoutHistory: [
+/**
+ * Creates a mock workout for testing
+ */
+const createMockWorkout = (includeSet = false): Workout => ({
+  id: '1',
+  name: 'Morning Workout',
+  exercises: [
+    {
+      id: '1',
+      name: 'Bench Press',
+      type: 'STRENGTH',
+      muscleGroups: ['CHEST'],
+      isCustom: false,
+      createdAt: new Date().toISOString(),
+    },
+  ],
+  sets: includeSet
+    ? [
         {
-          id: createWorkoutId('1'),
-          date: new Date().toISOString(),
-          duration: 3600,
-          exercises: [
-            {
-              id: createExerciseId('1'),
-              name: 'Bench Press',
-              category: 'Chest',
-              sets: [
-                { id: '1', weight: 100, reps: 10 },
-                { id: '2', weight: 100, reps: 10 },
-              ],
-            },
-          ],
+          id: '1',
+          exerciseId: '1',
+          weight: 135,
+          reps: 10,
+          completed: true,
         },
-      ],
-    });
+      ]
+    : [],
+  createdAt: new Date().toISOString(),
+});
 
+describe('Workout Flow Integration Tests', () => {
+  beforeEach(() => {
+    const store = useWorkoutStore.getState();
+    store.reset();
+  });
+
+  it('should create and track a workout session', async () => {
     const { getByText, getByTestId } = render(<TestNavigator />);
 
-    fireEvent.press(getByTestId('history-tab'));
+    // Start new workout
+    fireEvent.press(getByText('Start Workout'));
 
+    // Add exercise
+    fireEvent.press(getByTestId('add-exercise-button'));
+    fireEvent.press(getByText('Bench Press'));
+
+    // Create and add workout
+    const workout = createMockWorkout(false);
+    const store = useWorkoutStore.getState();
+    store.addWorkout(workout);
+
+    // Verify UI updates
     await waitFor(() => {
+      expect(getByTestId('workout-summary')).toBeTruthy();
       expect(getByText('Bench Press')).toBeTruthy();
-      expect(getByText('2 sets • 2000kg total')).toBeTruthy();
+    });
+
+    // Verify store updates
+    const savedWorkouts = store.workouts;
+    expect(savedWorkouts).toHaveLength(1);
+    expect(savedWorkouts[0].exercises[0].name).toBe('Bench Press');
+  });
+
+  it('should navigate to workout details and display set information', async () => {
+    const { getByText } = render(<TestNavigator />);
+
+    // Create and add workout with sets
+    const workout = createMockWorkout(true);
+    const store = useWorkoutStore.getState();
+    store.addWorkout(workout);
+
+    // Navigate to details
+    fireEvent.press(getByText('View Details'));
+
+    // Verify details view
+    await waitFor(() => {
+      expect(getByText('Workout Details')).toBeTruthy();
+      expect(getByText('Bench Press')).toBeTruthy();
+      expect(getByText('135 lbs × 10')).toBeTruthy();
     });
   });
 });
