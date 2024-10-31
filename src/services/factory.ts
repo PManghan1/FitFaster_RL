@@ -12,13 +12,13 @@ import type {
   PrivacySettings,
 } from '../types/profile';
 import type { ProgressMetrics, WorkoutHistoryItem } from '../types/progress';
-import type { Exercise, Set, Workout } from '../types/workout';
+import type { Exercise, Set, WorkoutSession, WorkoutSummary } from '../types/workout';
 
 export interface WorkoutService {
   getExercise(id: string): Promise<Exercise>;
   searchExercises(query: string, muscleGroups?: string[]): Promise<Exercise[]>;
   createExercise(exercise: Partial<Exercise>): Promise<Exercise>;
-  startWorkoutSession(userId: string, name?: string): Promise<Workout>;
+  startWorkoutSession(userId: string, name?: string): Promise<WorkoutSession>;
   addSetToSession(
     userId: string,
     sessionId: string,
@@ -26,7 +26,7 @@ export interface WorkoutService {
     setData: Partial<Set>,
   ): Promise<Set>;
   updateSessionDuration(sessionId: string, duration: number): Promise<void>;
-  getWorkoutHistory(userId: string): Promise<Workout[]>;
+  getWorkoutHistory(userId: string): Promise<WorkoutSummary[]>;
 }
 
 export interface NutritionService {
