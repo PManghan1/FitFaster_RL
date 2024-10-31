@@ -1,153 +1,71 @@
-import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  ActivityIndicator,
-  ScrollView,
-  StyleSheet,
-} from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import React from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { LineChart } from 'react-native-chart-kit';
+
 import { useProgressStore } from '../store/progress.store';
-import { useAuthStore } from '../store/auth.store';
-import { ErrorBoundary } from '../components/ErrorBoundary';
+import { colors } from '../theme';
 
-const ProgressScreenContent = () => {
-  const navigation = useNavigation();
-  const { isAuthenticated } = useAuthStore();
-  const {
-    metrics,
-    recentWorkouts,
-    isLoading,
-    error,
-    loadProgress,
-    loadRecentWorkouts,
-  } = useProgressStore();
+const ProgressScreen: React.FC = () => {
+  const { metrics } = useProgressStore();
 
-  const [newWeight, setNewWeight] = useState('');
-  const [measurementType, setMeasurementType] = useState('');
-  const [measurementValue, setMeasurementValue] = useState('');
-
-  useEffect(() => {
-    if (!isAuthenticated) {
-      navigation.navigate('Auth' as never);
-      return;
-    }
-    // TODO: Get actual user ID from auth context
-    const userId = 'user-id';
-    loadProgress(userId);
-    loadRecentWorkouts(userId);
-  }, [isAuthenticated, navigation, loadProgress, loadRecentWorkouts]);
-
-  const handleAddWeight = () => {
-    if (newWeight) {
-      // TODO: Implement weight addition logic
-      setNewWeight('');
-    }
+  const chartConfig = {
+    backgroundGradientFrom: colors.background.default,
+    backgroundGradientTo: colors.background.default,
+    color: () => colors.primary.default,
+    strokeWidth: 2,
+    barPercentage: 0.5,
+    decimalPlaces: 0,
   };
 
-  const handleAddMeasurement = () => {
-    if (measurementType && measurementValue) {
-      // TODO: Implement measurement addition logic
-      setMeasurementType('');
-      setMeasurementValue('');
-    }
+  const workoutData = {
+    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    datasets: [
+      {
+        data: Array(7).fill(metrics?.weeklyCount || 0),
+        color: () => colors.primary.default,
+        strokeWidth: 2,
+      },
+    ],
   };
-
-  if (isLoading) {
-    return (
-      <View style={styles.loadingContainer} testID="loading-indicator">
-        <ActivityIndicator size="large" color="#007AFF" />
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>{error}</Text>
-      </View>
-    );
-  }
 
   return (
     <ScrollView style={styles.container}>
       <View style={styles.section}>
-        <Text style={styles.title}>Weight Progress</Text>
-        <View testID="weight-chart" style={styles.chart}>
-          {metrics.totalWorkouts > 0 && (
-            <Text style={styles.metricText}>{metrics.totalWorkouts} Total Workouts</Text>
-          )}
-          {metrics.currentStreak > 0 && (
-            <Text style={styles.metricText}>{metrics.currentStreak} Day Streak</Text>
-          )}
-        </View>
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter weight"
-            value={newWeight}
-            onChangeText={setNewWeight}
-            keyboardType="numeric"
-          />
-          <TouchableOpacity
-            testID="add-weight-button"
-            style={styles.button}
-            onPress={handleAddWeight}
-          >
-            <Text style={styles.buttonText}>Add Weight</Text>
-          </TouchableOpacity>
+        <Text style={styles.sectionTitle}>Weekly Progress</Text>
+        <LineChart
+          data={workoutData}
+          width={350}
+          height={220}
+          chartConfig={chartConfig}
+          bezier
+          style={styles.chart}
+        />
+      </View>
+
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Summary</Text>
+        <View style={styles.statsContainer}>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{metrics?.totalWorkouts || 0}</Text>
+            <Text style={styles.statLabel}>Total Workouts</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{metrics?.currentStreak || 0}</Text>
+            <Text style={styles.statLabel}>Current Streak</Text>
+          </View>
+          <View style={styles.statItem}>
+            <Text style={styles.statValue}>{metrics?.totalVolume || 0}</Text>
+            <Text style={styles.statLabel}>Total Volume</Text>
+          </View>
         </View>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.title}>Body Measurements</Text>
-        <View testID="measurements-chart" style={styles.chart}>
-          {metrics.mostUsedExercises.map((exercise) => (
-            <Text key={exercise.exerciseId} style={styles.measurementText}>
-              {exercise.name}: {exercise.count} times
-            </Text>
-          ))}
-        </View>
-        <View style={styles.inputContainer}>
-          <TextInput
-            testID="measurement-type-input"
-            style={styles.input}
-            placeholder="Measurement type"
-            value={measurementType}
-            onChangeText={setMeasurementType}
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Enter measurement"
-            value={measurementValue}
-            onChangeText={setMeasurementValue}
-            keyboardType="numeric"
-          />
-          <TouchableOpacity
-            testID="add-measurement-button"
-            style={styles.button}
-            onPress={handleAddMeasurement}
-          >
-            <Text style={styles.buttonText}>Add Measurement</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.title}>Recent Workouts</Text>
-        {recentWorkouts.map(workout => (
-          <View key={workout.id} style={styles.workoutCard}>
-            <Text style={styles.workoutTitle}>
-              {workout.name || new Date(workout.date).toLocaleDateString()}
-            </Text>
-            <Text style={styles.workoutDetail}>
-              {workout.exerciseCount} exercises • {Math.round(workout.duration / 60)} min
-            </Text>
-            <Text style={styles.workoutDetail}>
-              Total Volume: {Math.round(workout.totalVolume)}kg
-            </Text>
+        <Text style={styles.sectionTitle}>Most Used Exercises</Text>
+        {metrics?.mostUsedExercises.map(exercise => (
+          <View key={exercise.exerciseId} style={styles.exerciseItem}>
+            <Text style={styles.exerciseName}>{exercise.name}</Text>
+            <Text style={styles.exerciseCount}>{exercise.count} times</Text>
           </View>
         ))}
       </View>
@@ -155,105 +73,64 @@ const ProgressScreenContent = () => {
   );
 };
 
-const ProgressScreen = () => (
-  <ErrorBoundary>
-    <ProgressScreenContent />
-  </ErrorBoundary>
-);
-
 const styles = StyleSheet.create({
+  chart: {
+    borderRadius: 16,
+    marginTop: 12,
+  },
   container: {
+    backgroundColor: colors.background.default,
     flex: 1,
-    backgroundColor: '#f9fafb',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     padding: 16,
+  },
+  exerciseCount: {
+    color: colors.text.light,
+    fontSize: 14,
+  },
+  exerciseItem: {
+    alignItems: 'center',
+    backgroundColor: colors.background.light,
+    borderRadius: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+    padding: 12,
+  },
+  exerciseName: {
+    color: colors.text.default,
+    fontSize: 16,
   },
   section: {
     marginBottom: 24,
-    padding: 16,
   },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1f2937',
-    marginBottom: 16,
-  },
-  chart: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  metricText: {
-    fontSize: 16,
-    color: '#374151',
-    marginBottom: 8,
-  },
-  measurementText: {
-    fontSize: 16,
-    color: '#374151',
-    marginBottom: 8,
-  },
-  inputContainer: {
-    gap: 8,
-  },
-  input: {
-    backgroundColor: '#ffffff',
-    borderRadius: 8,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  button: {
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
-    padding: 12,
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: '#ffffff',
+  sectionTitle: {
+    color: colors.text.default,
+    fontSize: 18,
     fontWeight: '600',
   },
-  errorText: {
-    color: '#ef4444',
-    fontSize: 16,
+  statItem: {
+    alignItems: 'center',
+    backgroundColor: colors.background.light,
+    borderRadius: 12,
+    flex: 1,
+    marginHorizontal: 4,
+    padding: 16,
+  },
+  statLabel: {
+    color: colors.text.light,
+    fontSize: 14,
+    marginTop: 4,
     textAlign: 'center',
   },
-  workoutCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  workoutTitle: {
-    fontSize: 16,
+  statValue: {
+    color: colors.text.default,
+    fontSize: 24,
     fontWeight: '600',
-    color: '#1f2937',
-    marginBottom: 8,
   },
-  workoutDetail: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 4,
+  statsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,
   },
 });
 

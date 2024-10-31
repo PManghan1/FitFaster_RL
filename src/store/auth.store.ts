@@ -27,6 +27,7 @@ interface AuthStore extends AuthState {
   resetPassword: (email: string) => Promise<void>;
   setError: (error: string | null) => void;
   clearError: () => void;
+  reset: () => void;
 }
 
 export const useAuthStore = create<AuthStore>()(
@@ -148,6 +149,14 @@ export const useAuthStore = create<AuthStore>()(
 
       setError: (error: string | null) => set({ error }),
       clearError: () => set({ error: null }),
+      reset: () =>
+        set({
+          user: null,
+          session: null,
+          isAuthenticated: false,
+          isLoading: false,
+          error: null,
+        }),
     }),
     { name: 'auth-store' },
   ),

@@ -1,42 +1,35 @@
 import { useEffect } from 'react';
-import { useAuthStore } from '../auth.store';
-import { useWorkoutStore } from '../workout.store';
-import { useProgressStore } from '../progress.store';
-import { useNutritionStore } from '../nutrition.store';
-import type { WorkoutStore } from '../../types/workout';
-import type { ProgressStore } from '../../types/progress';
-import type { NutritionStore } from '../../types/nutrition';
-import type { StoreWithPersist } from '../types';
 
+import { useAuthStore } from '../auth.store';
+import { useProgressStore } from '../progress.store';
+import { useWorkoutStore } from '../workout.store';
+
+/**
+ * Hook to handle cleanup of store state when the app is closed or user logs out
+ */
 export const useStoreCleanup = () => {
-  const { isAuthenticated } = useAuthStore();
-  
-  // Get store instances with proper typing
-  const workoutStore = useWorkoutStore() as unknown as StoreWithPersist<WorkoutStore>;
-  const progressStore = useProgressStore() as unknown as StoreWithPersist<ProgressStore>;
-  const nutritionStore = useNutritionStore() as unknown as StoreWithPersist<NutritionStore>;
+  const authReset = useAuthStore(state => state.reset);
+  const progressReset = useProgressStore(state => state.reset);
+  const workoutReset = useWorkoutStore(state => state.reset);
 
   useEffect(() => {
-    const cleanup = async () => {
-      if (!isAuthenticated) {
-        try {
-          // Clear all stores when user logs out
-          workoutStore.reset();
-          progressStore.reset();
-          nutritionStore.reset();
-
-          // Clear persisted state
-          await Promise.all([
-            workoutStore.clearPersistedState(),
-            progressStore.clearPersistedState(),
-            nutritionStore.clearPersistedState(),
-          ]);
-        } catch (error) {
-          console.error('Failed to cleanup stores:', error);
-        }
-      }
+    const cleanup = () => {
+      authReset();
+      progressReset();
+      workoutReset();
     };
 
-    cleanup();
-  }, [isAuthenticated]);
+    // Add event listener for app state changes
+    if (__DEV__) {
+      // In development, log when cleanup occurs
+      console.log('Store cleanup registered');
+    }
+
+    return () => {
+      cleanup();
+      if (__DEV__) {
+        console.log('Store cleanup executed');
+      }
+    };
+  }, [authReset, progressReset, workoutReset]);
 };

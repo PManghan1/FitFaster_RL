@@ -1,9 +1,10 @@
-import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
-import { COLORS, SPACING, FONT_SIZE } from "../constants/theme";
+import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+
+import { colors } from '../theme';
 
 interface Props {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 interface State {
@@ -11,36 +12,36 @@ interface State {
   error: Error | null;
 }
 
-export class ErrorBoundary extends React.Component<Props, State> {
-  public state: State = {
-    hasError: false,
-    error: null,
-  };
+export class ErrorBoundary extends Component<Props, State> {
+  constructor(props: Props) {
+    super(props);
+    this.state = {
+      hasError: false,
+      error: null,
+    };
+  }
 
   static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
+    return {
+      hasError: true,
+      error,
+    };
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Log error to error reporting service
-    console.error("ErrorBoundary caught an error:", error, errorInfo);
+    console.error('Error caught by boundary:', error, errorInfo);
   }
-
-  handleReset = (): void => {
-    this.setState({ hasError: false, error: null });
-  };
 
   render() {
     if (this.state.hasError) {
       return (
         <View style={styles.container}>
-          <Text style={styles.title}>Oops! Something went wrong</Text>
+          <Text style={styles.title}>Something went wrong</Text>
           <Text style={styles.message}>
-            {this.state.error?.message || "An unexpected error occurred"}
+            {this.state.error?.message || 'An unexpected error occurred'}
           </Text>
-          <TouchableOpacity style={styles.button} onPress={this.handleReset}>
-            <Text style={styles.buttonText}>Try Again</Text>
-          </TouchableOpacity>
+          <Text style={styles.instruction}>Please try restarting the app</Text>
         </View>
       );
     }
@@ -51,33 +52,27 @@ export class ErrorBoundary extends React.Component<Props, State> {
 
 const styles = StyleSheet.create({
   container: {
+    alignItems: 'center',
+    backgroundColor: colors.background.default,
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: SPACING.lg,
-    backgroundColor: COLORS.background.default,
+    justifyContent: 'center',
+    padding: 20,
   },
-  title: {
-    fontSize: FONT_SIZE.xl,
-    fontWeight: "bold",
-    color: COLORS.text.default,
-    marginBottom: SPACING.md,
+  instruction: {
+    color: colors.text.light,
+    fontSize: 14,
+    textAlign: 'center',
   },
   message: {
-    fontSize: FONT_SIZE.md,
-    color: COLORS.text.light,
-    textAlign: "center",
-    marginBottom: SPACING.xl,
+    color: colors.text.light,
+    fontSize: 16,
+    marginBottom: 8,
+    textAlign: 'center',
   },
-  button: {
-    backgroundColor: COLORS.primary.default,
-    paddingHorizontal: SPACING.lg,
-    paddingVertical: SPACING.md,
-    borderRadius: SPACING.sm,
-  },
-  buttonText: {
-    color: COLORS.background.default,
-    fontSize: FONT_SIZE.md,
-    fontWeight: "bold",
+  title: {
+    color: colors.text.default,
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 12,
   },
 });
