@@ -1,11 +1,11 @@
-import Constants from "expo-constants";
+import Constants from 'expo-constants';
 
 // Environment variables from Expo config
 const extra = Constants.expoConfig?.extra;
 
 if (!extra?.supabaseUrl || !extra?.supabaseAnonKey) {
   throw new Error(
-    "Missing Supabase configuration. Please set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY in your .env file"
+    'Missing Supabase configuration. Please set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY in your .env file',
   );
 }
 
@@ -38,13 +38,16 @@ export const config = {
     url: extra.supabaseUrl as string,
     anonKey: extra.supabaseAnonKey as string,
   },
-  environment: (extra.appEnv as string) || "development",
-  version: Constants.expoConfig?.version || "1.0.0",
-  isProduction: extra.appEnv === "production",
-  isDevelopment: extra.appEnv === "development",
-  appUrl: extra.appUrl || "exp://localhost:19000",
+  sentry: {
+    dsn: extra.sentryDsn as string, // Add Sentry DSN from environment variables
+  },
+  environment: (extra.appEnv as string) || 'development',
+  version: Constants.expoConfig?.version || '1.0.0',
+  isProduction: extra.appEnv === 'production',
+  isDevelopment: extra.appEnv === 'development',
+  appUrl: extra.appUrl || 'exp://localhost:19000',
   auth: {
-    redirectUrl: extra.authRedirectUrl || "exp://localhost:19000/auth/callback",
+    redirectUrl: extra.authRedirectUrl || 'exp://localhost:19000/auth/callback',
     providers: {
       google: {
         enabled: true,
@@ -76,7 +79,7 @@ export const config = {
     defaultConsentDuration: 365, // days
     retentionPeriods: {
       userProfile: 730, // days
-      activityLogs: 90,  // days
+      activityLogs: 90, // days
       analyticsData: 365, // days
     },
     dataCategories: {
@@ -92,10 +95,10 @@ export const config = {
 export type Config = typeof config;
 
 // Helper function to check if we're in development
-export const isDev = () => config.environment === "development";
+export const isDev = () => config.environment === 'development';
 
 // Helper function to check if we're in production
-export const isProd = () => config.environment === "production";
+export const isProd = () => config.environment === 'production';
 
 // Helper function to check if a social provider is enabled
 export const isProviderEnabled = (provider: keyof AuthProviders) => {
@@ -103,17 +106,19 @@ export const isProviderEnabled = (provider: keyof AuthProviders) => {
 };
 
 // Helper function to get provider client ID
-export const getProviderClientId = (provider: Extract<keyof AuthProviders, 'google' | 'facebook'>) => {
+export const getProviderClientId = (
+  provider: Extract<keyof AuthProviders, 'google' | 'facebook'>,
+) => {
   const providerConfig = config.auth.providers[provider] as SocialProviderWithClientId;
   return providerConfig.clientId;
 };
 
 // Validate the configuration
 const validateConfig = () => {
-  const requiredKeys = ["supabase.url", "supabase.anonKey", "environment", "appUrl"];
-  
+  const requiredKeys = ['supabase.url', 'supabase.anonKey', 'environment', 'appUrl', 'sentry.dsn'];
+
   for (const key of requiredKeys) {
-    const value = key.split(".").reduce((obj, k) => obj?.[k], config as any);
+    const value = key.split('.').reduce((obj, k) => obj?.[k], config as any);
     if (!value) {
       throw new Error(`Missing required config key: ${key}`);
     }
@@ -122,15 +127,15 @@ const validateConfig = () => {
   // Validate enabled social providers have required configuration
   const providers = config.auth.providers;
   if (providers.google.enabled && !providers.google.clientId) {
-    throw new Error("Google authentication is enabled but clientId is missing");
+    throw new Error('Google authentication is enabled but clientId is missing');
   }
   if (providers.facebook.enabled && !providers.facebook.clientId) {
-    throw new Error("Facebook authentication is enabled but clientId is missing");
+    throw new Error('Facebook authentication is enabled but clientId is missing');
   }
 
   // Validate security settings
   if (!config.security.encryptionKey) {
-    throw new Error("Encryption key is required");
+    throw new Error('Encryption key is required');
   }
 };
 

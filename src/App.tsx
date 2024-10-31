@@ -5,13 +5,14 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider } from 'styled-components/native';
 
 import { ErrorBoundary } from './components/ErrorBoundary';
+import config from './config'; // Import config
 import { RootNavigator } from './navigation/RootNavigator';
 import { useStoreCleanup } from './store/hooks/useStoreCleanup';
 import { theme } from './theme';
 
 // Initialize Sentry for error monitoring
 Sentry.init({
-  dsn: 'https://your-sentry-dsn@o0.ingest.sentry.io/0', // Replace with your actual Sentry DSN
+  dsn: config.sentry.dsn, // Use DSN from config
   // You can add additional configuration options here
   enableAutoSessionTracking: true,
   tracesSampleRate: 1.0,
