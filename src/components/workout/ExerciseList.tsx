@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { FlatList, ListRenderItem, StyleSheet, View } from 'react-native';
 import { ChevronRight, Plus, Star } from 'react-native-feather';
 import styled from 'styled-components/native';
@@ -145,113 +145,139 @@ interface ExerciseListProps {
   testID?: string;
 }
 
-export const ExerciseList: React.FC<ExerciseListProps> = ({
-  exercises,
-  onSelectExercise,
-  onAddExercise,
-  onFavorite,
-  favorites = new Set(),
-  selectedMuscleGroups = new Set(),
-  onFilterChange,
-  emptyMessage = 'No exercises found',
-  testID,
-}) => {
-  const handleFilterToggle = (muscleGroup: MuscleGroup) => {
-    if (!onFilterChange) return;
+export const ExerciseList: React.FC<ExerciseListProps> = React.memo(
+  ({
+    exercises,
+    onSelectExercise,
+    onAddExercise,
+    onFavorite,
+    favorites = new Set<string>(),
+    selectedMuscleGroups = new Set<MuscleGroup>(),
+    onFilterChange,
+    emptyMessage = 'No exercises found',
+    testID,
+  }) => {
+    const handleFilterToggle = useCallback(
+      (muscleGroup: MuscleGroup) => {
+        if (!onFilterChange) return;
 
-    const newSelection = new Set(selectedMuscleGroups);
-    if (newSelection.has(muscleGroup)) {
-      newSelection.delete(muscleGroup);
-    } else {
-      newSelection.add(muscleGroup);
-    }
-    onFilterChange(newSelection);
-  };
+        const newSelection = new Set<MuscleGroup>(selectedMuscleGroups);
+        if (newSelection.has(muscleGroup)) {
+          newSelection.delete(muscleGroup);
+        } else {
+          newSelection.add(muscleGroup);
+        }
+        onFilterChange(newSelection);
+      },
+      [onFilterChange, selectedMuscleGroups],
+    );
 
-  const renderMuscleGroupFilter = () => (
-    <FilterContainer testID={`${testID}-filters`}>
-      {Object.values(MuscleGroup).map(group => (
-        <FilterButton
-          key={group}
-          isSelected={selectedMuscleGroups.has(group)}
-          onPress={() => handleFilterToggle(group)}
-          testID={`${testID}-filter-${group}`}
-        >
-          <FilterText isSelected={selectedMuscleGroups.has(group)}>
-            {group.replace('_', ' ')}
-          </FilterText>
-        </FilterButton>
-      ))}
-    </FilterContainer>
-  );
-
-  const renderExerciseItem: ListRenderItem<Exercise> = ({ item: exercise }) => (
-    <ExerciseItem
-      onPress={() => onSelectExercise?.(exercise)}
-      testID={`${testID}-item-${exercise.id}`}
-    >
-      <ItemHeader>
-        <ItemTitle numberOfLines={1}>{exercise.name}</ItemTitle>
-        <View style={styles.actionRow}>
-          {onFavorite && (
-            <ActionButton
-              onPress={() => onFavorite(exercise)}
-              testID={`${testID}-favorite-${exercise.id}`}
+    const renderMuscleGroupFilter = useCallback(
+      () => (
+        <FilterContainer testID={`${testID}-filters`}>
+          {Object.values(MuscleGroup).map(group => (
+            <FilterButton
+              key={group}
+              isSelected={selectedMuscleGroups.has(group)}
+              onPress={() => handleFilterToggle(group)}
+              testID={`${testID}-filter-${group}`}
             >
-              <Star
-                width={20}
-                height={20}
-                color={favorites.has(exercise.id) ? colors.error.default : colors.border.dark}
-                fill={favorites.has(exercise.id) ? colors.error.default : 'none'}
-              />
-            </ActionButton>
-          )}
-          {onSelectExercise && <ChevronRight width={20} height={20} color={colors.border.dark} />}
-        </View>
-      </ItemHeader>
+              <FilterText isSelected={selectedMuscleGroups.has(group)}>
+                {group.replace('_', ' ')}
+              </FilterText>
+            </FilterButton>
+          ))}
+        </FilterContainer>
+      ),
+      [handleFilterToggle, selectedMuscleGroups, testID],
+    );
 
-      <MuscleGroupsContainer>
-        {exercise.muscleGroups.map(group => (
-          <MuscleGroupTag key={group}>
-            <MuscleGroupText>{group.replace('_', ' ')}</MuscleGroupText>
-          </MuscleGroupTag>
-        ))}
-      </MuscleGroupsContainer>
-    </ExerciseItem>
-  );
+    const renderExerciseItem = useCallback<ListRenderItem<Exercise>>(
+      ({ item: exercise }) => (
+        <ExerciseItem
+          onPress={() => onSelectExercise?.(exercise)}
+          testID={`${testID}-item-${exercise.id}`}
+        >
+          <ItemHeader>
+            <ItemTitle numberOfLines={1}>{exercise.name}</ItemTitle>
+            <View style={styles.actionRow}>
+              {onFavorite && (
+                <ActionButton
+                  onPress={() => onFavorite(exercise)}
+                  testID={`${testID}-favorite-${exercise.id}`}
+                >
+                  <Star
+                    width={20}
+                    height={20}
+                    color={favorites.has(exercise.id) ? colors.error.default : colors.border.dark}
+                    fill={favorites.has(exercise.id) ? colors.error.default : 'none'}
+                  />
+                </ActionButton>
+              )}
+              {onSelectExercise && (
+                <ChevronRight width={20} height={20} color={colors.border.dark} />
+              )}
+            </View>
+          </ItemHeader>
 
-  if (exercises.length === 0) {
+          <MuscleGroupsContainer>
+            {exercise.muscleGroups.map(group => (
+              <MuscleGroupTag key={group}>
+                <MuscleGroupText>{group.replace('_', ' ')}</MuscleGroupText>
+              </MuscleGroupTag>
+            ))}
+          </MuscleGroupsContainer>
+        </ExerciseItem>
+      ),
+      [onSelectExercise, onFavorite, favorites, testID],
+    );
+
+    const keyExtractor = useCallback((item: Exercise) => item.id, []);
+
+    if (exercises.length === 0) {
+      return (
+        <Container testID={testID}>
+          {onFilterChange && renderMuscleGroupFilter()}
+          <EmptyState testID={`${testID}-empty`}>
+            <EmptyStateText>{emptyMessage}</EmptyStateText>
+            {onAddExercise && (
+              <ActionButton onPress={onAddExercise} testID={`${testID}-add-new`}>
+                <Plus width={24} height={24} color={colors.primary.default} />
+              </ActionButton>
+            )}
+          </EmptyState>
+        </Container>
+      );
+    }
+
     return (
       <Container testID={testID}>
         {onFilterChange && renderMuscleGroupFilter()}
-        <EmptyState testID={`${testID}-empty`}>
-          <EmptyStateText>{emptyMessage}</EmptyStateText>
-          {onAddExercise && (
-            <ActionButton onPress={onAddExercise} testID={`${testID}-add-new`}>
-              <Plus width={24} height={24} color={colors.primary.default} />
-            </ActionButton>
-          )}
-        </EmptyState>
+        <FlatList<Exercise>
+          data={exercises}
+          renderItem={renderExerciseItem}
+          keyExtractor={keyExtractor}
+          initialNumToRender={10}
+          maxToRenderPerBatch={5}
+          windowSize={5}
+          removeClippedSubviews
+          updateCellsBatchingPeriod={30}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.listContent}
+          testID={`${testID}-list`}
+        />
+        {onAddExercise && (
+          <ActionButton
+            onPress={onAddExercise}
+            style={styles.fabButton}
+            testID={`${testID}-add-fab`}
+          >
+            <Plus width={24} height={24} color={colors.background.default} />
+          </ActionButton>
+        )}
       </Container>
     );
-  }
+  },
+);
 
-  return (
-    <Container testID={testID}>
-      {onFilterChange && renderMuscleGroupFilter()}
-      <FlatList<Exercise>
-        data={exercises}
-        renderItem={renderExerciseItem}
-        keyExtractor={item => item.id}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.listContent}
-        testID={`${testID}-list`}
-      />
-      {onAddExercise && (
-        <ActionButton onPress={onAddExercise} style={styles.fabButton} testID={`${testID}-add-fab`}>
-          <Plus width={24} height={24} color={colors.background.default} />
-        </ActionButton>
-      )}
-    </Container>
-  );
-};
+ExerciseList.displayName = 'ExerciseList';

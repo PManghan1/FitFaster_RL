@@ -1,34 +1,38 @@
-# Updates
+### Integrate Sentry for Error Monitoring
 
-## Completed Steps
-- [x] Initial project setup with React Native and Expo
-- [x] Added TypeScript configuration
-- [x] Implemented basic navigation structure
-- [x] Set up Supabase client
-- [x] Created auth store with Zustand
-- [x] Implemented auth UI components
-- [x] Added NativeWind styling
-- [x] Set up Jest testing environment
-- [x] Fixed auth store tests by implementing proper mock store
-- [x] Standardized to npm package manager
-- [x] Fixed styled-components dependency issues
+**To find your Sentry DSN:**
 
-## Current Features
-- Basic authentication flow
-- Navigation structure
-- Type-safe state management
-- UI component library integration
-- Testing infrastructure
-- Proper styled-components integration
+1. **Log in to Sentry:**
+   - Visit [Sentry.io](https://sentry.io/) and log in to your account.
 
-## Next Steps
-1. Implement profile management features
-2. Add meal tracking functionality
-3. Create workout tracking features
-4. Implement supplement tracking
-5. Add progress visualization
-6. Develop settings screen
-7. Enhance error handling
-8. Add loading states
-9. Implement data persistence
-10. Add offline support
+2. **Navigate to Your Project:**
+   - From the dashboard, select the project you want to integrate with your application.
+
+3. **Access Project Settings:**
+   - In the project sidebar, click on **Settings**.
+
+4. **Locate Client Keys (DSN):**
+   - Under the **Client Keys (DSN)** section, you will find your DSN.
+   - Click on the **Show DSN** button if it's hidden.
+
+5. **Copy the DSN:**
+   - Copy the DSN value provided.
+
+**Important:**
+- **Keep Your DSN Secure:** Do not expose your DSN in public repositories or client-side code that can be accessed by end-users.
+- **Environment Variables:** Store your DSN in environment variables to keep it secure. For example, you can add it to your `.env` file:
+  ```env
+  SENTRY_DSN=your-sentry-dsn-here
+  ```
+- **Initialize Sentry in Your Application:**
+  - After obtaining the DSN, initialize Sentry in your application's entry point (e.g., `App.tsx`):
+    ```typescript
+    import * as Sentry from '@sentry/react-native';
+
+    Sentry.init({
+      dsn: process.env.SENTRY_DSN,
+      // Additional configuration options
+    });
+    ```
+
+By following these steps, you can successfully integrate Sentry into your application for enhanced error monitoring and reporting.

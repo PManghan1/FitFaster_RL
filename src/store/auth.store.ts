@@ -1,10 +1,12 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
+import { shallow } from 'zustand/shallow';
 
 import { supabase } from '../services/supabase';
 
 import type { AuthError, Session, User } from '@supabase/supabase-js';
 
+/** Auth State Interface */
 interface AuthState {
   user: User | null;
   session: Session | null;
@@ -13,7 +15,8 @@ interface AuthState {
   error: string | null;
 }
 
-interface AuthStore extends AuthState {
+/** Auth Actions Interface */
+interface AuthActions {
   initialize: () => Promise<void>;
   signIn: (
     email: string,
@@ -30,18 +33,23 @@ interface AuthStore extends AuthState {
   reset: () => void;
 }
 
+/** Auth Store Interface */
+export type AuthStore = AuthState & AuthActions;
+
 export const useAuthStore = create<AuthStore>()(
   devtools(
     set => ({
+      /** User State */
       user: null,
       session: null,
       isAuthenticated: false,
       isLoading: false,
       error: null,
 
+      /** Initialize Auth State */
       initialize: async () => {
+        set({ isLoading: true, error: null });
         try {
-          set({ isLoading: true, error: null });
           const { data, error } = await supabase.auth.getSession();
 
           if (error) throw error;
@@ -61,9 +69,10 @@ export const useAuthStore = create<AuthStore>()(
         }
       },
 
+      /** Sign In User */
       signIn: async (email: string, password: string) => {
+        set({ isLoading: true, error: null });
         try {
-          set({ isLoading: true, error: null });
           const { data, error } = await supabase.auth.signInWithPassword({
             email,
             password,
@@ -87,9 +96,10 @@ export const useAuthStore = create<AuthStore>()(
         }
       },
 
+      /** Sign Up User */
       signUp: async (email: string, password: string) => {
+        set({ isLoading: true, error: null });
         try {
-          set({ isLoading: true, error: null });
           const { data, error } = await supabase.auth.signUp({
             email,
             password,
@@ -113,9 +123,10 @@ export const useAuthStore = create<AuthStore>()(
         }
       },
 
+      /** Sign Out User */
       signOut: async () => {
+        set({ isLoading: true, error: null });
         try {
-          set({ isLoading: true, error: null });
           const { error } = await supabase.auth.signOut();
 
           if (error) throw error;
@@ -133,9 +144,10 @@ export const useAuthStore = create<AuthStore>()(
         }
       },
 
+      /** Reset Password */
       resetPassword: async (email: string) => {
+        set({ isLoading: true, error: null });
         try {
-          set({ isLoading: true, error: null });
           const { error } = await supabase.auth.resetPasswordForEmail(email);
 
           if (error) throw error;
@@ -147,8 +159,13 @@ export const useAuthStore = create<AuthStore>()(
         }
       },
 
+      /** Set Error */
       setError: (error: string | null) => set({ error }),
+
+      /** Clear Error */
       clearError: () => set({ error: null }),
+
+      /** Reset Auth State */
       reset: () =>
         set({
           user: null,
@@ -161,3 +178,30 @@ export const useAuthStore = create<AuthStore>()(
     { name: 'auth-store' },
   ),
 );
+
+/** Auth Store Selectors */
+export const useAuthState = () =>
+  useAuthStore(
+    state => ({
+      user: state.user,
+      isAuthenticated: state.isAuthenticated,
+      isLoading: state.isLoading,
+      error: state.error,
+    }),
+    shallow,
+  );
+
+export const useAuthActions = () =>
+  useAuthStore(
+    state => ({
+      initialize: state.initialize,
+      signIn: state.signIn,
+      signUp: state.signUp,
+      signOut: state.signOut,
+      resetPassword: state.resetPassword,
+      setError: state.setError,
+      clearError: state.clearError,
+      reset: state.reset,
+    }),
+    shallow,
+  );

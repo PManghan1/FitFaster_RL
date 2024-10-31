@@ -1,6 +1,7 @@
-import { createClient, Provider } from "@supabase/supabase-js";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import config from "../config";
+import { createClient, Provider } from '@supabase/supabase-js';
+import * as SecureStore from 'expo-secure-store';
+
+import config from '../config';
 
 // Simplified Database type until we generate the actual types from Supabase
 type Database = {
@@ -20,37 +21,53 @@ type Database = {
   };
 };
 
-// Initialize the Supabase client
-export const supabase = createClient<Database>(
-  config.supabase.url,
-  config.supabase.anonKey,
-  {
-    auth: {
-      storage: AsyncStorage,
-      autoRefreshToken: true,
-      persistSession: true,
-      detectSessionInUrl: false,
-    },
-  }
-);
+// Custom storage adapter using expo-secure-store
+const secureStore = {
+  async getItem(key: string): Promise<string | null> {
+    return await SecureStore.getItemAsync(key);
+  },
+  async setItem(key: string, value: string): Promise<void> {
+    await SecureStore.setItemAsync(key, value);
+  },
+  async removeItem(key: string): Promise<void> {
+    await SecureStore.deleteItemAsync(key);
+  },
+};
+
+// Initialize the Supabase client with secure storage
+export const supabase = createClient<Database>(config.supabase.url, config.supabase.anonKey, {
+  auth: {
+    storage: secureStore,
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false,
+  },
+});
 
 // Custom error class for Supabase errors
 export class SupabaseError extends Error {
-  constructor(message: string, public code?: string, public status?: number) {
+  constructor(
+    message: string,
+    public code?: string,
+    public status?: number,
+  ) {
     super(message);
-    this.name = "SupabaseError";
+    this.name = 'SupabaseError';
   }
 }
 
 // Auth helper functions with proper error handling and types
 export const getCurrentUser = async () => {
   try {
-    const { data: { user }, error } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
     if (error) throw new SupabaseError(error.message, error.name);
     return user;
   } catch (error) {
     if (config.isDevelopment) {
-      console.error("Error getting current user:", error);
+      console.error('Error getting current user:', error);
     }
     return null;
   }
@@ -58,12 +75,15 @@ export const getCurrentUser = async () => {
 
 export const getCurrentSession = async () => {
   try {
-    const { data: { session }, error } = await supabase.auth.getSession();
+    const {
+      data: { session },
+      error,
+    } = await supabase.auth.getSession();
     if (error) throw new SupabaseError(error.message, error.name);
     return session;
   } catch (error) {
     if (config.isDevelopment) {
-      console.error("Error getting current session:", error);
+      console.error('Error getting current session:', error);
     }
     return null;
   }
@@ -75,7 +95,7 @@ export const signOut = async () => {
     if (error) throw new SupabaseError(error.message, error.name);
   } catch (error) {
     if (config.isDevelopment) {
-      console.error("Error signing out:", error);
+      console.error('Error signing out:', error);
     }
     throw error;
   }
@@ -91,7 +111,7 @@ export const signInWithEmail = async (email: string, password: string) => {
     return data;
   } catch (error) {
     if (config.isDevelopment) {
-      console.error("Error signing in:", error);
+      console.error('Error signing in:', error);
     }
     throw error;
   }
@@ -119,11 +139,7 @@ export const signInWithSocialProvider = async (provider: Provider) => {
   }
 };
 
-export const signUpWithEmail = async (
-  email: string,
-  password: string,
-  fullName: string
-) => {
+export const signUpWithEmail = async (email: string, password: string, fullName: string) => {
   try {
     const { data, error } = await supabase.auth.signUp({
       email,
@@ -138,7 +154,7 @@ export const signUpWithEmail = async (
     return data;
   } catch (error) {
     if (config.isDevelopment) {
-      console.error("Error signing up:", error);
+      console.error('Error signing up:', error);
     }
     throw error;
   }
@@ -150,7 +166,7 @@ export const resetPassword = async (email: string) => {
     if (error) throw new SupabaseError(error.message, error.name);
   } catch (error) {
     if (config.isDevelopment) {
-      console.error("Error resetting password:", error);
+      console.error('Error resetting password:', error);
     }
     throw error;
   }
@@ -164,7 +180,7 @@ export const updatePassword = async (newPassword: string) => {
     if (error) throw new SupabaseError(error.message, error.name);
   } catch (error) {
     if (config.isDevelopment) {
-      console.error("Error updating password:", error);
+      console.error('Error updating password:', error);
     }
     throw error;
   }

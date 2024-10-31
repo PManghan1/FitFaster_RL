@@ -8,6 +8,7 @@ interface AuthInputProps extends Omit<TextInputProps, 'style'> {
   error?: string;
   label?: string;
   style?: ViewStyle;
+  testID?: string;
 }
 
 const styles = StyleSheet.create({
@@ -39,16 +40,30 @@ const styles = StyleSheet.create({
   },
 });
 
-export const AuthInput: React.FC<AuthInputProps> = ({ error, label, style, ...props }) => {
+export const AuthInput: React.FC<AuthInputProps> = ({ error, label, style, testID, ...props }) => {
   return (
-    <View style={styles.container}>
-      {label && <Text style={styles.label}>{label}</Text>}
+    <View style={styles.container} accessible testID={testID}>
+      {label && (
+        <Text style={styles.label} accessibilityRole="text">
+          {label}
+        </Text>
+      )}
       <TextInput
         style={[styles.input, error ? styles.inputError : styles.inputNormal, style]}
         placeholderTextColor={colors.border.dark}
+        accessibilityLabel={label}
+        accessibilityHint={error ? `Error: ${error}` : undefined}
+        accessible
+        testID={`${testID}-input`}
         {...props}
       />
-      {error && <Text style={styles.errorText}>{error}</Text>}
+      {error && (
+        <Text style={styles.errorText} accessibilityRole="alert">
+          {error}
+        </Text>
+      )}
     </View>
   );
 };
+
+AuthInput.displayName = 'AuthInput';

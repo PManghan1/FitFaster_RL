@@ -1,6 +1,29 @@
-import type { User } from '@supabase/supabase-js';
-import type { Exercise, WorkoutSession } from './workout';
 import type { ProgressMetrics } from './progress';
+import type { Exercise, WorkoutSession } from './workout';
+import type { User } from '@supabase/supabase-js';
+
+/** Error Details Interface */
+export interface ErrorDetails {
+  [key: string]: string | number | boolean | null | undefined;
+}
+
+/** User Preferences Interface */
+export interface UserPreferences {
+  theme: 'light' | 'dark';
+  notificationsEnabled: boolean;
+  language: string;
+}
+
+/** Filters Interface */
+export interface SearchFilters {
+  [key: string]: string | number | boolean | string[] | number[];
+}
+
+/** Webhook Payload Interface */
+export interface WebhookPayload {
+  event: string;
+  data: Record<string, unknown>;
+}
 
 // Generic API Response type
 export interface ApiResponse<T> {
@@ -35,38 +58,42 @@ export interface PaginatedResponse<T> {
 export interface ApiError {
   code: string;
   message: string;
-  details?: Record<string, any>;
+  details?: ErrorDetails;
   status: number;
 }
 
 // Auth API Responses
-export interface AuthResponse extends ApiResponse<{
-  user: User;
-  token: string;
-}> {}
+export interface AuthResponse
+  extends ApiResponse<{
+    user: User;
+    token: string;
+  }> {}
 
-export interface SignOutResponse extends ApiResponse<{
-  success: boolean;
-}> {}
+// Sign Out Response
+export interface SignOutResponse
+  extends ApiResponse<{
+    success: boolean;
+  }> {}
 
-// Profile API Responses
+// Profile Data
 export interface ProfileData {
   id: string;
   userId: string;
   displayName: string;
   bio?: string;
   avatarUrl?: string;
-  preferences: Record<string, any>;
+  preferences: UserPreferences;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface ProfileResponse extends ApiResponse<ProfileData> {}
 
-export interface UpdateProfileResponse extends ApiResponse<{
-  profile: ProfileData;
-  updated: string[];
-}> {}
+export interface UpdateProfileResponse
+  extends ApiResponse<{
+    profile: ProfileData;
+    updated: string[];
+  }> {}
 
 // Workout API Responses
 export interface WorkoutSessionResponse extends ApiResponse<WorkoutSession> {}
@@ -77,12 +104,13 @@ export interface ExerciseResponse extends ApiResponse<Exercise> {}
 
 export interface ExercisesResponse extends PaginatedResponse<Exercise> {}
 
-export interface WorkoutStatsResponse extends ApiResponse<{
-  totalSessions: number;
-  totalDuration: number;
-  totalVolume: number;
-  favoriteExercises: Exercise[];
-}> {}
+export interface WorkoutStatsResponse
+  extends ApiResponse<{
+    totalSessions: number;
+    totalDuration: number;
+    totalVolume: number;
+    favoriteExercises: Exercise[];
+  }> {}
 
 // Nutrition API Responses
 export interface NutritionData {
@@ -128,61 +156,66 @@ export interface MealsResponse extends PaginatedResponse<MealData> {}
 // Progress API Responses
 export interface ProgressResponse extends ApiResponse<ProgressMetrics> {}
 
-export interface ProgressHistoryResponse extends PaginatedResponse<{
-  date: string;
-  metrics: ProgressMetrics;
-}> {}
+export interface ProgressHistoryResponse
+  extends PaginatedResponse<{
+    date: string;
+    metrics: ProgressMetrics;
+  }> {}
 
 // Health Check Response
-export interface HealthCheckResponse extends ApiResponse<{
-  status: 'healthy' | 'degraded' | 'unhealthy';
-  version: string;
-  uptime: number;
-  services: {
-    database: 'up' | 'down';
-    cache: 'up' | 'down';
-    storage: 'up' | 'down';
-  };
-}> {}
+export interface HealthCheckResponse
+  extends ApiResponse<{
+    status: 'healthy' | 'degraded' | 'unhealthy';
+    version: string;
+    uptime: number;
+    services: {
+      database: 'up' | 'down';
+      cache: 'up' | 'down';
+      storage: 'up' | 'down';
+    };
+  }> {}
 
 // Batch Operation Responses
-export interface BatchOperationResponse<T> extends ApiResponse<{
-  successful: T[];
-  failed: Array<{
-    item: T;
-    error: ApiError;
-  }>;
-  summary: {
-    total: number;
-    succeeded: number;
-    failed: number;
-  };
-}> {}
+export interface BatchOperationResponse<T>
+  extends ApiResponse<{
+    successful: T[];
+    failed: Array<{
+      item: T;
+      error: ApiError;
+    }>;
+    summary: {
+      total: number;
+      succeeded: number;
+      failed: number;
+    };
+  }> {}
 
 // Search Responses
 export interface SearchResponse<T> extends PaginatedResponse<T> {
   metadata: PaginationMetadata & {
     query: string;
-    filters: Record<string, any>;
+    filters: SearchFilters;
   };
 }
 
 // File Upload Responses
-export interface FileUploadResponse extends ApiResponse<{
-  url: string;
-  fileId: string;
-  mimeType: string;
-  size: number;
-}> {}
+export interface FileUploadResponse
+  extends ApiResponse<{
+    url: string;
+    fileId: string;
+    mimeType: string;
+    size: number;
+  }> {}
 
 // Webhook Response
-export interface WebhookResponse extends ApiResponse<{
-  id: string;
-  event: string;
-  status: 'delivered' | 'failed';
-  attempts: number;
-  payload: Record<string, any>;
-}> {}
+export interface WebhookResponse
+  extends ApiResponse<{
+    id: string;
+    event: string;
+    status: 'delivered' | 'failed';
+    attempts: number;
+    payload: WebhookPayload;
+  }> {}
 
 // Rate Limit Response
 export interface RateLimitResponse extends ApiResponse<never> {
@@ -195,8 +228,9 @@ export interface RateLimitResponse extends ApiResponse<never> {
 }
 
 // Cache Operation Responses
-export interface CacheResponse<T> extends ApiResponse<{
-  data: T;
-  cached: boolean;
-  ttl: number;
-}> {}
+export interface CacheResponse<T>
+  extends ApiResponse<{
+    data: T;
+    cached: boolean;
+    ttl: number;
+  }> {}
