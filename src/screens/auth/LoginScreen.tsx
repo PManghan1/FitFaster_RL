@@ -1,23 +1,43 @@
-import React from "react";
-import { ActivityIndicator } from "react-native";
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { View, Text, TextInput, TouchableOpacity } from "../../components/styled";
-import { useAuthStore } from "../../store/auth.store";
-import { LoginFormData, loginSchema } from "../../types/auth";
+import { zodResolver } from '@hookform/resolvers/zod';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import React from 'react';
+import { Controller, useForm } from 'react-hook-form';
+import { ActivityIndicator, Text } from 'react-native';
+
+import {
+  Button,
+  ButtonText,
+  Container,
+  ContentContainer,
+  ErrorText,
+  FooterContainer,
+  FooterText,
+  Input,
+  InputContainer,
+  InputError,
+  LinkText,
+  Title,
+} from '../../components/auth/styles';
+import { useAuthStore } from '../../store/auth.store';
+import { LoginFormData, loginSchema } from '../../types/auth';
 
 type RootStackParamList = {
   Login: undefined;
   Register: undefined;
   ForgotPassword: undefined;
+  TwoFactorAuth: { email: string };
   Home: undefined;
 };
 
-type Props = NativeStackScreenProps<RootStackParamList, "Login">;
+type Props = NativeStackScreenProps<RootStackParamList, 'Login'>;
+
+interface FieldProps {
+  onChange: (value: string) => void;
+  value: string;
+}
 
 export const LoginScreen: React.FC<Props> = ({ navigation }) => {
-  const { signIn, isLoading, error } = useAuthStore();
+  const { signIn, isLoading, error, isTwoFactorRequired } = useAuthStore();
 
   const {
     control,
@@ -26,54 +46,41 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: "",
-      password: "",
+      email: '',
+      password: '',
     },
   });
 
   const onSubmit = async (data: LoginFormData) => {
     try {
-      const { error } = await signIn(data);
-      if (!error) {
-        navigation.replace("Home");
+      const result = await signIn(data.email, data.password);
+      if (!result.error) {
+        if (isTwoFactorRequired) {
+          navigation.navigate('TwoFactorAuth', { email: data.email });
+        } else {
+          navigation.replace('Home');
+        }
       }
     } catch (err) {
-      console.error("Login error:", err);
+      console.error('Login error:', err);
     }
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: 'white', padding: 16 }}>
-      <View style={{ flex: 1, justifyContent: 'center' }}>
-        <Text style={{ 
-          fontSize: 24,
-          fontWeight: 'bold',
-          textAlign: 'center',
-          marginBottom: 32,
-          color: '#2563EB'
-        }}>
-          Welcome Back
-        </Text>
+    <Container>
+      <ContentContainer>
+        <Title>
+          <Text>Welcome Back</Text>
+        </Title>
 
-        {error && (
-          <Text style={{ color: '#EF4444', textAlign: 'center', marginBottom: 16 }}>
-            {error}
-          </Text>
-        )}
+        {error && <ErrorText>{error}</ErrorText>}
 
         <Controller
           control={control}
           name="email"
-          render={({ field: { onChange, value } }) => (
-            <View style={{ marginBottom: 16 }}>
-              <TextInput
-                style={{
-                  borderWidth: 1,
-                  borderColor: '#D1D5DB',
-                  borderRadius: 8,
-                  padding: 16,
-                  fontSize: 16,
-                }}
+          render={({ field: { onChange, value } }: { field: FieldProps }) => (
+            <InputContainer hasError={!!errors.email}>
+              <Input
                 placeholder="Email"
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -81,82 +88,63 @@ export const LoginScreen: React.FC<Props> = ({ navigation }) => {
                 value={value}
                 editable={!isLoading}
               />
-              {errors.email && (
-                <Text style={{ color: '#EF4444', marginTop: 4 }}>
-                  {errors.email.message}
-                </Text>
-              )}
-            </View>
+              {errors.email && <InputError>{errors.email.message}</InputError>}
+            </InputContainer>
           )}
         />
 
         <Controller
           control={control}
           name="password"
-          render={({ field: { onChange, value } }) => (
-            <View style={{ marginBottom: 24 }}>
-              <TextInput
-                style={{
-                  borderWidth: 1,
-                  borderColor: '#D1D5DB',
-                  borderRadius: 8,
-                  padding: 16,
-                  fontSize: 16,
-                }}
+          render={({ field: { onChange, value } }: { field: FieldProps }) => (
+            <InputContainer hasError={!!errors.password}>
+              <Input
                 placeholder="Password"
                 secureTextEntry
                 onChangeText={onChange}
                 value={value}
                 editable={!isLoading}
               />
-              {errors.password && (
-                <Text style={{ color: '#EF4444', marginTop: 4 }}>
-                  {errors.password.message}
-                </Text>
-              )}
-            </View>
+              {errors.password && <InputError>{errors.password.message}</InputError>}
+            </InputContainer>
           )}
         />
 
-        <TouchableOpacity
-          style={{
-            backgroundColor: '#2563EB',
-            padding: 16,
-            borderRadius: 8,
-            marginBottom: 16,
-          }}
-          onPress={handleSubmit(onSubmit)}
-          disabled={isLoading}
-        >
+        <Button onPress={handleSubmit(onSubmit)} disabled={isLoading}>
           {isLoading ? (
             <ActivityIndicator color="white" />
           ) : (
-            <Text style={{ color: 'white', textAlign: 'center', fontSize: 18, fontWeight: 'bold' }}>
-              Sign In
-            </Text>
+            <ButtonText>
+              <Text>Sign In</Text>
+            </ButtonText>
           )}
-        </TouchableOpacity>
+        </Button>
 
-        <TouchableOpacity
-          style={{ marginBottom: 16 }}
-          onPress={() => navigation.navigate("ForgotPassword")}
+        <Button
+          variant="secondary"
+          onPress={() => navigation.navigate('ForgotPassword')}
           disabled={isLoading}
         >
-          <Text style={{ color: '#2563EB', textAlign: 'center' }}>
-            Forgot Password?
-          </Text>
-        </TouchableOpacity>
+          <ButtonText variant="secondary">
+            <Text>Forgot Password?</Text>
+          </ButtonText>
+        </Button>
 
-        <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
-          <Text style={{ color: '#4B5563' }}>Don't have an account? </Text>
-          <TouchableOpacity
-            onPress={() => navigation.navigate("Register")}
+        <FooterContainer>
+          <FooterText>
+            <Text>Don&apos;t have an account? </Text>
+          </FooterText>
+          <Button
+            variant="secondary"
+            onPress={() => navigation.navigate('Register')}
             disabled={isLoading}
           >
-            <Text style={{ color: '#2563EB', fontWeight: 'bold' }}>Sign Up</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </View>
+            <LinkText>
+              <Text>Sign Up</Text>
+            </LinkText>
+          </Button>
+        </FooterContainer>
+      </ContentContainer>
+    </Container>
   );
 };

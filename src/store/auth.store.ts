@@ -13,6 +13,7 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
+  isTwoFactorRequired: boolean;
 }
 
 /** Auth Actions Interface */
@@ -28,6 +29,7 @@ interface AuthActions {
   ) => Promise<{ user: User | null; session: Session | null; error?: AuthError }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  verifyTwoFactorCode: (email: string, code: string) => Promise<boolean>;
   setError: (error: string | null) => void;
   clearError: () => void;
   reset: () => void;
@@ -45,6 +47,7 @@ export const useAuthStore = create<AuthStore>()(
       isAuthenticated: false,
       isLoading: false,
       error: null,
+      isTwoFactorRequired: false,
 
       /** Initialize Auth State */
       initialize: async () => {
@@ -73,24 +76,85 @@ export const useAuthStore = create<AuthStore>()(
       signIn: async (email: string, password: string) => {
         set({ isLoading: true, error: null });
         try {
-          const { data, error } = await supabase.auth.signInWithPassword({
+          const { error } = await supabase.auth.signInWithPassword({
             email,
             password,
           });
 
           if (error) throw error;
 
-          set({
-            user: data.user,
-            session: data.session,
-            isAuthenticated: true,
+          // Generate and send 2FA code
+          const code = Math.floor(100000 + Math.random() * 900000).toString();
+          const expiresAt = new Date();
+          expiresAt.setMinutes(expiresAt.getMinutes() + 10);
+
+          // Save the code to the database
+          await supabase.from('two_factor_codes').insert({
+            email,
+            code,
+            expires_at: expiresAt.toISOString(),
           });
 
-          return { user: data.user, session: data.session };
+          // Set state to require 2FA verification
+          set({
+            isTwoFactorRequired: true,
+            isAuthenticated: false,
+            user: null,
+            session: null,
+          });
+
+          return { user: null, session: null };
         } catch (error) {
           const authError = error as AuthError;
           set({ error: authError.message });
           return { user: null, session: null, error: authError };
+        } finally {
+          set({ isLoading: false });
+        }
+      },
+
+      /** Verify Two-Factor Authentication Code */
+      verifyTwoFactorCode: async (email: string, code: string) => {
+        set({ isLoading: true, error: null });
+        try {
+          const now = new Date().toISOString();
+
+          // Get the code and check if it's valid and not expired
+          const { data, error } = await supabase
+            .from('two_factor_codes')
+            .select('*')
+            .eq('email', email)
+            .eq('code', code)
+            .gt('expires_at', now)
+            .single();
+
+          if (error || !data) {
+            set({ error: 'Invalid verification code.' });
+            return false;
+          }
+
+          // Delete the code after successful verification
+          await supabase.from('two_factor_codes').delete().eq('email', email);
+
+          // Retrieve the current session
+          const sessionResult = await supabase.auth.getSession();
+
+          if (sessionResult.error || !sessionResult.data.session) {
+            throw sessionResult.error || new Error('No active session found.');
+          }
+
+          set({
+            user: sessionResult.data.session.user,
+            session: sessionResult.data.session,
+            isAuthenticated: true,
+            isTwoFactorRequired: false,
+          });
+
+          return true;
+        } catch (error) {
+          const authError = error as AuthError;
+          set({ error: authError.message });
+          return false;
         } finally {
           set({ isLoading: false });
         }
@@ -135,6 +199,7 @@ export const useAuthStore = create<AuthStore>()(
             user: null,
             session: null,
             isAuthenticated: false,
+            isTwoFactorRequired: false,
           });
         } catch (error) {
           const authError = error as AuthError;
@@ -173,6 +238,7 @@ export const useAuthStore = create<AuthStore>()(
           isAuthenticated: false,
           isLoading: false,
           error: null,
+          isTwoFactorRequired: false,
         }),
     }),
     { name: 'auth-store' },
@@ -187,6 +253,7 @@ export const useAuthState = () =>
       isAuthenticated: state.isAuthenticated,
       isLoading: state.isLoading,
       error: state.error,
+      isTwoFactorRequired: state.isTwoFactorRequired,
     }),
     shallow,
   );
@@ -199,6 +266,7 @@ export const useAuthActions = () =>
       signUp: state.signUp,
       signOut: state.signOut,
       resetPassword: state.resetPassword,
+      verifyTwoFactorCode: state.verifyTwoFactorCode,
       setError: state.setError,
       clearError: state.clearError,
       reset: state.reset,

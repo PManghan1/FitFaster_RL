@@ -3,7 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 
 import config from '../config';
 
-// Simplified Database type until we generate the actual types from Supabase
+// Database type definition
 type Database = {
   public: {
     Tables: {
@@ -15,6 +15,20 @@ type Database = {
           full_name: string | null;
           avatar_url: string | null;
           email: string;
+        };
+      };
+      two_factor_codes: {
+        Row: {
+          id: string;
+          created_at: string;
+          email: string;
+          code: string;
+          expires_at: string;
+        };
+        Insert: {
+          email: string;
+          code: string;
+          expires_at?: string;
         };
       };
     };
