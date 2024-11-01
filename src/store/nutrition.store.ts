@@ -1,15 +1,10 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import { nutritionService } from '../services/nutrition';
-import {
-  FoodItem,
-  MealEntry,
-  NutritionGoal,
-  DailyNutrition,
-  MealType,
-} from '../types/nutrition';
 
-interface NutritionState {
+import { nutritionService } from '../services/nutrition';
+import { DailyNutrition, FoodItem, MealEntry, MealType, NutritionGoal } from '../types/nutrition';
+
+export interface NutritionState {
   // Current State
   currentDate: string;
   dailyNutrition: DailyNutrition | null;
@@ -34,17 +29,18 @@ interface NutritionState {
     mealType: MealType,
     servingIndex: number,
     servingAmount: number,
-    notes?: string
+    notes?: string,
   ) => Promise<void>;
   updateMealEntry: (
     entryId: string,
-    updates: Partial<Omit<MealEntry, 'id' | 'userId' | 'createdAt'>>
+    updates: Partial<Omit<MealEntry, 'id' | 'userId' | 'createdAt'>>,
   ) => Promise<void>;
   deleteMealEntry: (entryId: string) => Promise<void>;
   setNutritionGoal: (
     userId: string,
-    goal: Omit<NutritionGoal, 'id' | 'userId' | 'createdAt' | 'updatedAt'>
+    goal: Omit<NutritionGoal, 'id' | 'userId' | 'createdAt' | 'updatedAt'>,
   ) => Promise<void>;
+  addFoodItem: (foodItem: FoodItem) => void;
   reset: () => void;
 }
 
@@ -65,7 +61,7 @@ export const useNutritionStore = create<NutritionState>()(
     (set, get) => ({
       ...initialState,
 
-      setCurrentDate: (date) => {
+      setCurrentDate: date => {
         set({ currentDate: date });
       },
 
@@ -81,19 +77,21 @@ export const useNutritionStore = create<NutritionState>()(
         }
       },
 
-      searchFoodItems: async (query) => {
+      searchFoodItems: async query => {
         try {
           set({ isSearching: true, searchError: null });
           const results = await nutritionService.searchFoodItems(query);
           set({ searchResults: results });
         } catch (error) {
-          set({ searchError: error instanceof Error ? error.message : 'Failed to search food items' });
+          set({
+            searchError: error instanceof Error ? error.message : 'Failed to search food items',
+          });
         } finally {
           set({ isSearching: false });
         }
       },
 
-      selectFoodItem: (foodItem) => {
+      selectFoodItem: foodItem => {
         set({ selectedFoodItem: foodItem });
       },
 
@@ -137,7 +135,7 @@ export const useNutritionStore = create<NutritionState>()(
         }
       },
 
-      deleteMealEntry: async (entryId) => {
+      deleteMealEntry: async entryId => {
         try {
           set({ isLoading: true, error: null });
           await nutritionService.deleteMealEntry(entryId);
@@ -168,12 +166,18 @@ export const useNutritionStore = create<NutritionState>()(
         }
       },
 
+      addFoodItem: foodItem => {
+        set(state => ({
+          searchResults: [...state.searchResults, foodItem],
+        }));
+      },
+
       reset: () => {
         set(initialState);
       },
     }),
-    { name: 'nutrition-store' }
-  )
+    { name: 'nutrition-store' },
+  ),
 );
 
 // Selector hooks for common state combinations
