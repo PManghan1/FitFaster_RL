@@ -36,3 +36,16 @@
     ```
 
 By following these steps, you can successfully integrate Sentry into your application for enhanced error monitoring and reporting.
+
+### Updates
+
+- [x] Created `.env` file with required environment variables.
+
+### Next Steps
+
+- [ ] Populate `.env` with actual environment variable values.
+- [ ] Implement Sentry integration using the provided DSN.
+- [ ] Verify that all environment variables are correctly loaded.
+- [ ] Test authentication flows to ensure environment variables are functioning as expected.
+- [ ] Update any additional configuration files as needed based on environment variables.
+- [ ] Continue to monitor and update `Updates.md` with completed tasks and progress.
