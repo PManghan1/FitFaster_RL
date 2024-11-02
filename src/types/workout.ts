@@ -1,39 +1,45 @@
-import { z } from 'zod';
+export enum MuscleGroup {
+  CHEST = 'CHEST',
+  BACK = 'BACK',
+  SHOULDERS = 'SHOULDERS',
+  BICEPS = 'BICEPS',
+  TRICEPS = 'TRICEPS',
+  LEGS = 'LEGS',
+  CORE = 'CORE',
+}
 
-export const ExerciseTypeSchema = z.enum(['STRENGTH', 'CARDIO', 'FLEXIBILITY']);
-export type ExerciseType = z.infer<typeof ExerciseTypeSchema>;
+export enum ExerciseType {
+  STRENGTH = 'STRENGTH',
+  CARDIO = 'CARDIO',
+  FLEXIBILITY = 'FLEXIBILITY',
+}
 
-export const MuscleGroupSchema = z.enum([
-  'CHEST',
-  'BACK',
-  'SHOULDERS',
-  'BICEPS',
-  'TRICEPS',
-  'LEGS',
-  'CORE',
-]);
-export type MuscleGroup = z.infer<typeof MuscleGroupSchema>;
+export enum Difficulty {
+  BEGINNER = 'BEGINNER',
+  INTERMEDIATE = 'INTERMEDIATE',
+  ADVANCED = 'ADVANCED',
+}
 
 export interface Exercise {
   id: string;
   name: string;
-  type: ExerciseType;
+  description: string;
   muscleGroups: MuscleGroup[];
-  isCustom: boolean;
-  description?: string;
-  createdAt: string;
-  updatedAt?: string;
+  difficulty: Difficulty;
+  equipment: string[];
+  instructions: string[];
+  type: ExerciseType;
+  videoUrl: string | null;
 }
 
 export interface Set {
   id: string;
   exerciseId: string;
-  weight?: number;
   reps?: number;
+  weight?: number;
   duration?: number;
   distance?: number;
   completed: boolean;
-  notes?: string;
 }
 
 export interface ExerciseWithSets {
@@ -41,29 +47,57 @@ export interface ExerciseWithSets {
   sets: Set[];
 }
 
-export interface WorkoutSession {
+export interface WorkoutSet {
   id: string;
-  userId: string;
-  name: string;
-  exerciseData: ExerciseWithSets[];
-  date: string;
-  duration: number;
-  totalSets: number;
-  totalVolume: number;
-  createdAt: string;
-  updatedAt?: string;
-}
-
-export interface ExerciseHistory {
-  id: string;
-  userId: string;
   exerciseId: string;
-  sessionId: string;
-  personalBest: boolean;
-  weight?: number;
   reps?: number;
+  weight?: number;
   duration?: number;
   distance?: number;
-  notes?: string;
+  completed: boolean;
+}
+
+export interface Workout {
+  id: string;
+  name: string;
+  description: string;
+  sets: WorkoutSet[];
   createdAt: string;
+  updatedAt: string;
+  userId: string;
+}
+
+export interface WorkoutTemplate {
+  id: string;
+  name: string;
+  description: string;
+  exercises: {
+    exerciseId: string;
+    sets: number;
+    reps?: number;
+    duration?: number;
+    distance?: number;
+  }[];
+  userId: string;
+}
+
+export interface WorkoutProgress {
+  id: string;
+  workoutId: string;
+  date: string;
+  completed: boolean;
+  sets: WorkoutSet[];
+  notes?: string;
+  userId: string;
+}
+
+export interface WorkoutSession {
+  id: string;
+  name: string;
+  startTime: string;
+  endTime?: string;
+  exercises: ExerciseWithSets[];
+  notes?: string;
+  userId: string;
+  completed: boolean;
 }

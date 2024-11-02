@@ -1,7 +1,19 @@
 import '@testing-library/jest-native/extend-expect';
+import Reanimated from 'react-native-reanimated/mock';
+
+interface MockPerformance {
+  now: jest.Mock;
+  mark: jest.Mock;
+  measure: jest.Mock;
+  clearMarks: jest.Mock;
+  clearMeasures: jest.Mock;
+  getEntriesByName: jest.Mock;
+  getEntriesByType: jest.Mock;
+  getEntries: jest.Mock;
+}
 
 // Mock only the performance methods we actually use
-const mockPerformance = {
+const mockPerformance: MockPerformance = {
   now: jest.fn(() => Date.now()),
   mark: jest.fn(),
   measure: jest.fn(),
@@ -12,12 +24,14 @@ const mockPerformance = {
   getEntries: jest.fn(() => []),
 };
 
-// Use type assertion to satisfy TypeScript
-(global as any).performance = mockPerformance;
+// Set up performance mock
+Object.defineProperty(global, 'performance', {
+  value: mockPerformance,
+  writable: true,
+});
 
 // Mock the react-native-reanimated module
 jest.mock('react-native-reanimated', () => {
-  const Reanimated = require('react-native-reanimated/mock');
   Reanimated.default.call = () => {};
   return Reanimated;
 });
@@ -50,12 +64,19 @@ jest.mock('expo-constants', () => ({
 }));
 
 // Set up global mocks
-(global as any).fetch = jest.fn();
-global.console = {
-  ...console,
-  warn: jest.fn(),
-  error: jest.fn(),
-};
+Object.defineProperty(global, 'fetch', {
+  value: jest.fn(),
+  writable: true,
+});
+
+Object.defineProperty(global, 'console', {
+  value: {
+    ...console,
+    warn: jest.fn(),
+    error: jest.fn(),
+  },
+  writable: true,
+});
 
 // Reset all mocks before each test
 beforeEach(() => {

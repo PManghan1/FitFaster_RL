@@ -1,6 +1,7 @@
 import { ErrorInfo } from 'react';
-
+import * as Sentry from '@sentry/react-native';
 import { PerformanceMonitor } from '../utils/performance';
+import { analyticsService } from './analytics';
 
 export enum ErrorSeverity {
   LOW = 'low',
@@ -27,13 +28,22 @@ export interface ErrorDetails {
   additionalData?: Record<string, unknown>;
 }
 
+interface ErrorRecoveryStrategy {
+  retry?: boolean;
+  maxAttempts?: number;
+  fallback?: () => Promise<void>;
+  cleanup?: () => Promise<void>;
+}
+
 class ErrorReportingService {
   private static instance: ErrorReportingService;
   private readonly MAX_RETRY_ATTEMPTS = 3;
   private readonly RETRY_DELAY = 1000; // milliseconds
+  private errorPatterns: Map<string, number> = new Map(); // Track error frequencies
 
   private constructor() {
     // Private constructor to enforce singleton
+    setInterval(() => this.analyzeErrorPatterns(), 3600000); // Analyze patterns hourly
   }
 
   static getInstance(): ErrorReportingService {
@@ -60,17 +70,130 @@ class ErrorReportingService {
         });
       }
 
-      // TODO: Send to error reporting service (e.g., Sentry)
-      // await this.sendToErrorService(details);
+      // Track error pattern
+      const errorKey = `${details.category}:${details.error.message}`;
+      this.errorPatterns.set(errorKey, (this.errorPatterns.get(errorKey) || 0) + 1);
+
+      // Send to analytics
+      analyticsService.trackError(details.error, {
+        severity: details.severity,
+        category: details.category,
+        componentStack: details.errorInfo?.componentStack,
+        ...details.additionalData,
+      });
+
+      // Apply recovery strategy if available
+      const strategy = this.getRecoveryStrategy(details.category, details.error);
+      if (strategy) {
+        await this.applyRecoveryStrategy(strategy, details);
+      }
 
       // Log performance metrics
       const duration = PerformanceMonitor.end('error-reporting');
       if (duration > 1000) {
         console.warn(`Slow error reporting detected: ${duration}ms`);
       }
-    } catch (error) {
-      console.error('Failed to report error:', error);
+    } catch (_error) {
+      // We intentionally ignore errors in the error reporting service
+      // to prevent infinite loops, but we still want to log them in dev
+      if (__DEV__) {
+        console.error('Failed to report error:', _error);
+      }
     }
+  }
+
+  private getRecoveryStrategy(
+    category: ErrorCategory,
+    _error: Error // Intentionally unused but kept for future use
+  ): ErrorRecoveryStrategy | null {
+    switch (category) {
+      case ErrorCategory.NETWORK:
+        return {
+          retry: true,
+          maxAttempts: this.MAX_RETRY_ATTEMPTS,
+          cleanup: async () => {
+            // Clear any cached network states
+            await this.clearNetworkCache();
+          },
+        };
+      case ErrorCategory.AUTH:
+        return {
+          fallback: async () => {
+            // Redirect to login
+            await this.handleAuthError();
+          },
+        };
+      case ErrorCategory.DATA:
+        return {
+          retry: true,
+          maxAttempts: 2,
+          fallback: async () => {
+            // Load from cache or default state
+            await this.loadFallbackData();
+          },
+        };
+      default:
+        return null;
+    }
+  }
+
+  private async applyRecoveryStrategy(
+    strategy: ErrorRecoveryStrategy,
+    _details: ErrorDetails // Intentionally unused but kept for future use
+  ): Promise<void> {
+    try {
+      if (strategy.cleanup) {
+        await strategy.cleanup();
+      }
+
+      if (strategy.retry) {
+        // Implementation would depend on the specific operation that failed
+        // This is a placeholder for the retry logic
+        console.log('Retrying operation...');
+      }
+
+      if (strategy.fallback) {
+        await strategy.fallback();
+      }
+    } catch (_error) {
+      if (__DEV__) {
+        console.error('Recovery strategy failed:', _error);
+      }
+    }
+  }
+
+  private async clearNetworkCache(): Promise<void> {
+    // Implementation would depend on caching strategy
+    console.log('Clearing network cache...');
+  }
+
+  private async handleAuthError(): Promise<void> {
+    // Implementation would depend on auth setup
+    console.log('Handling auth error...');
+  }
+
+  private async loadFallbackData(): Promise<void> {
+    // Implementation would depend on data structure
+    console.log('Loading fallback data...');
+  }
+
+  private analyzeErrorPatterns(): void {
+    for (const [errorKey, count] of this.errorPatterns.entries()) {
+      if (count > 10) {
+        // Alert for frequently occurring errors
+        Sentry.addBreadcrumb({
+          category: 'error_patterns',
+          message: 'Frequent error detected',
+          data: {
+            error_key: errorKey,
+            count,
+            timeframe: '1h',
+          },
+        });
+      }
+    }
+    // Reset counters after analysis
+    this.errorPatterns.clear();
   }
 
   categorizeError(error: Error): ErrorCategory {
@@ -134,7 +257,7 @@ class ErrorReportingService {
 
   async retryOperation<T>(
     operation: () => Promise<T>,
-    maxAttempts: number = this.MAX_RETRY_ATTEMPTS,
+    maxAttempts: number = this.MAX_RETRY_ATTEMPTS
   ): Promise<T> {
     let lastError: Error | null = null;
 

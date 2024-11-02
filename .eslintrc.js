@@ -1,29 +1,39 @@
 module.exports = {
   root: true,
-  extends: ['universe/native', 'plugin:react/recommended', 'plugin:react-hooks/recommended'],
-  plugins: ['react', 'react-native', 'react-hooks'],
+  extends: [
+    'eslint:recommended',
+    'plugin:@typescript-eslint/recommended',
+    'plugin:react/recommended',
+    'plugin:react-hooks/recommended',
+    'plugin:react-native/all',
+  ],
+  parser: '@typescript-eslint/parser',
+  plugins: ['@typescript-eslint', 'react', 'react-hooks', 'react-native'],
   parserOptions: {
+    ecmaVersion: 2021,
+    sourceType: 'module',
     ecmaFeatures: {
       jsx: true,
     },
   },
-  rules: {
-    // React Native specific rules
-    'react-native/no-unused-styles': 'error',
-    'react-native/no-inline-styles': 'warn',
-    'react-native/no-raw-text': ['warn', { skip: ['Text'] }],
-
-    // React Hooks rules
-    'react-hooks/rules-of-hooks': 'error',
-    'react-hooks/exhaustive-deps': 'warn',
-
-    // React rules
-    'react/prop-types': 'off', // Since we use TypeScript
-    'react/react-in-jsx-scope': 'off', // Not needed in React 17+
+  env: {
+    es6: true,
+    node: true,
+    jest: true,
+    'react-native/react-native': true,
   },
   settings: {
     react: {
       version: 'detect',
     },
+  },
+  rules: {
+    'react/react-in-jsx-scope': 'off',
+    'react/prop-types': 'off',
+    '@typescript-eslint/explicit-module-boundary-types': 'off',
+    '@typescript-eslint/no-explicit-any': 'warn',
+    '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+    'react-native/no-inline-styles': 'off',
+    'react-native/no-raw-text': 'off',
   },
 };

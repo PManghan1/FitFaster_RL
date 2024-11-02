@@ -1,8 +1,13 @@
 import React from 'react';
-
-import { Text, TouchableOpacity, View } from '../components/styled';
+import { Text, TouchableOpacity, View } from 'react-native';
 import { useAuthStore } from '../store/auth.store';
 import { hasEmail } from '../types/auth';
+import { styled } from 'nativewind';
+
+// Style the components with NativeWind
+const StyledView = styled(View);
+const StyledText = styled(Text);
+const StyledTouchableOpacity = styled(TouchableOpacity);
 
 export const HomeScreen = () => {
   const { signOut, session } = useAuthStore();
@@ -11,58 +16,29 @@ export const HomeScreen = () => {
     session?.user && hasEmail(session.user) ? session.user.email : 'No email available';
 
   return (
-    <View style={{ flex: 1, backgroundColor: 'white', padding: 16 }}>
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <Text
-          style={{
-            fontSize: 24,
-            fontWeight: 'bold',
-            marginBottom: 16,
-            color: '#2563EB',
-          }}
-        >
+    <StyledView className="flex-1 bg-white p-4">
+      <StyledView className="flex-1 justify-center items-center">
+        <StyledText className="text-2xl font-bold mb-4 text-primary">
           Welcome to FitFaster
-        </Text>
+        </StyledText>
 
-        <Text
-          style={{
-            fontSize: 16,
-            color: '#4B5563',
-            marginBottom: 8,
-            textAlign: 'center',
-          }}
-        >
+        <StyledText className="text-base text-secondary mb-2 text-center">
           Logged in as: {userEmail}
-        </Text>
+        </StyledText>
 
         {session?.user?.user_metadata?.full_name && (
-          <Text
-            style={{
-              fontSize: 16,
-              color: '#4B5563',
-              marginBottom: 24,
-              textAlign: 'center',
-            }}
-          >
+          <StyledText className="text-base text-secondary mb-6 text-center">
             Name: {session.user.user_metadata.full_name}
-          </Text>
+          </StyledText>
         )}
 
-        <TouchableOpacity
-          style={{
-            backgroundColor: '#EF4444',
-            padding: 16,
-            borderRadius: 8,
-            marginTop: 24,
-            width: '100%',
-          }}
+        <StyledTouchableOpacity
+          className="bg-error px-4 py-4 rounded-lg mt-6 w-full"
           onPress={signOut}
         >
-          <Text style={{ color: 'white', textAlign: 'center', fontSize: 18, fontWeight: 'bold' }}>
-            Sign Out
-          </Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+          <StyledText className="text-white text-center text-lg font-bold">Sign Out</StyledText>
+        </StyledTouchableOpacity>
+      </StyledView>
+    </StyledView>
   );
 };

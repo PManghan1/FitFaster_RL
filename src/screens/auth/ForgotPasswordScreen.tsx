@@ -2,11 +2,17 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { ActivityIndicator } from 'react-native';
+import { ActivityIndicator, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { styled } from 'nativewind';
 
-import { Text, TextInput, TouchableOpacity, View } from '../../components/styled';
 import { useAuthStore } from '../../store/auth.store';
 import { ForgotPasswordFormData, forgotPasswordSchema } from '../../types/auth';
+
+// Style the components with NativeWind
+const StyledView = styled(View);
+const StyledText = styled(Text);
+const StyledTextInput = styled(TextInput);
+const StyledTouchableOpacity = styled(TouchableOpacity);
 
 type RootStackParamList = {
   Login: undefined;
@@ -43,89 +49,46 @@ export const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
 
   if (isEmailSent) {
     return (
-      <View style={{ flex: 1, backgroundColor: 'white', padding: 16 }}>
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <Text
-            style={{
-              fontSize: 24,
-              fontWeight: 'bold',
-              textAlign: 'center',
-              marginBottom: 16,
-              color: '#2563EB',
-            }}
-          >
+      <StyledView className="flex-1 bg-white p-4">
+        <StyledView className="flex-1 justify-center items-center">
+          <StyledText className="text-2xl font-bold text-center mb-4 text-primary">
             Check Your Email
-          </Text>
-          <Text
-            style={{
-              textAlign: 'center',
-              marginBottom: 32,
-              color: '#4B5563',
-              fontSize: 16,
-            }}
-          >
+          </StyledText>
+          <StyledText className="text-center mb-8 text-secondary text-base">
             We&apos;ve sent password reset instructions to your email address.
-          </Text>
-          <TouchableOpacity
-            style={{
-              backgroundColor: '#2563EB',
-              padding: 16,
-              borderRadius: 8,
-              width: '100%',
-            }}
+          </StyledText>
+          <StyledTouchableOpacity
+            className="bg-primary px-4 py-4 rounded-lg w-full"
             onPress={() => navigation.navigate('Login')}
           >
-            <Text style={{ color: 'white', textAlign: 'center', fontSize: 18, fontWeight: 'bold' }}>
+            <StyledText className="text-white text-center text-lg font-bold">
               Back to Login
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+            </StyledText>
+          </StyledTouchableOpacity>
+        </StyledView>
+      </StyledView>
     );
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: 'white', padding: 16 }}>
-      <View style={{ flex: 1, justifyContent: 'center' }}>
-        <Text
-          style={{
-            fontSize: 24,
-            fontWeight: 'bold',
-            textAlign: 'center',
-            marginBottom: 16,
-            color: '#2563EB',
-          }}
-        >
+    <StyledView className="flex-1 bg-white p-4">
+      <StyledView className="flex-1 justify-center">
+        <StyledText className="text-2xl font-bold text-center mb-4 text-primary">
           Reset Password
-        </Text>
-        <Text
-          style={{
-            textAlign: 'center',
-            marginBottom: 32,
-            color: '#4B5563',
-            fontSize: 16,
-          }}
-        >
+        </StyledText>
+        <StyledText className="text-center mb-8 text-secondary text-base">
           Enter your email address and we&apos;ll send you instructions to reset your password.
-        </Text>
+        </StyledText>
 
-        {error && (
-          <Text style={{ color: '#EF4444', textAlign: 'center', marginBottom: 16 }}>{error}</Text>
-        )}
+        {error && <StyledText className="text-error text-center mb-4">{error}</StyledText>}
 
         <Controller
           control={control}
           name="email"
           render={({ field: { onChange, value } }) => (
-            <View style={{ marginBottom: 24 }}>
-              <TextInput
-                style={{
-                  borderWidth: 1,
-                  borderColor: '#D1D5DB',
-                  borderRadius: 8,
-                  padding: 16,
-                  fontSize: 16,
-                }}
+            <StyledView className="mb-6">
+              <StyledTextInput
+                className="border border-border rounded-lg p-4 text-base"
                 placeholder="Email"
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -134,35 +97,30 @@ export const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
                 editable={!isLoading}
               />
               {errors.email && (
-                <Text style={{ color: '#EF4444', marginTop: 4 }}>{errors.email.message}</Text>
+                <StyledText className="text-error mt-1">{errors.email.message}</StyledText>
               )}
-            </View>
+            </StyledView>
           )}
         />
 
-        <TouchableOpacity
-          style={{
-            backgroundColor: '#2563EB',
-            padding: 16,
-            borderRadius: 8,
-            marginBottom: 16,
-          }}
+        <StyledTouchableOpacity
+          className="bg-primary px-4 py-4 rounded-lg mb-4"
           onPress={handleSubmit(onSubmit)}
           disabled={isLoading}
         >
           {isLoading ? (
             <ActivityIndicator color="white" />
           ) : (
-            <Text style={{ color: 'white', textAlign: 'center', fontSize: 18, fontWeight: 'bold' }}>
+            <StyledText className="text-white text-center text-lg font-bold">
               Send Reset Instructions
-            </Text>
+            </StyledText>
           )}
-        </TouchableOpacity>
+        </StyledTouchableOpacity>
 
-        <TouchableOpacity onPress={() => navigation.navigate('Login')} disabled={isLoading}>
-          <Text style={{ color: '#2563EB', textAlign: 'center' }}>Back to Login</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+        <StyledTouchableOpacity onPress={() => navigation.navigate('Login')} disabled={isLoading}>
+          <StyledText className="text-primary text-center">Back to Login</StyledText>
+        </StyledTouchableOpacity>
+      </StyledView>
+    </StyledView>
   );
 };

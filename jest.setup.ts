@@ -1,4 +1,5 @@
 import '@testing-library/jest-native/extend-expect';
+import Reanimated from 'react-native-reanimated/mock';
 
 // Mock the expo-constants module
 jest.mock('expo-constants', () => ({
@@ -12,7 +13,6 @@ jest.mock('expo-constants', () => ({
 
 // Mock the react-native-reanimated module
 jest.mock('react-native-reanimated', () => {
-  const Reanimated = require('react-native-reanimated/mock');
   Reanimated.default.call = () => {};
   return Reanimated;
 });

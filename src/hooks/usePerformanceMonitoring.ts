@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef } from 'react';
-
 import { MetricType, performanceMonitoring } from '../services/performance';
 
 interface PerformanceMonitoringOptions {
@@ -18,19 +17,20 @@ export const usePerformanceMonitoring = ({
   useEffect(() => {
     performanceMonitoring.measureScreenLoad(screenName);
 
-    return () => {
-      if (enableRenderTracking) {
-        const duration = performance.now() - renderStartTime.current;
+    if (enableRenderTracking) {
+      const startTime = renderStartTime.current;
+      return () => {
+        const duration = performance.now() - startTime;
         performanceMonitoring.measureRender(componentName, duration);
-      }
-    };
+      };
+    }
   }, [screenName, componentName, enableRenderTracking]);
 
   const measureApiCall = useCallback(
     async <T>(
       promise: Promise<T>,
       name: string,
-      metadata?: Record<string, unknown>,
+      metadata?: Record<string, unknown>
     ): Promise<T> => {
       return performanceMonitoring.measureApiCall(promise, name, {
         screenName,
@@ -38,7 +38,7 @@ export const usePerformanceMonitoring = ({
         ...metadata,
       });
     },
-    [screenName, componentName],
+    [screenName, componentName]
   );
 
   const measureInteraction = useCallback(
@@ -49,7 +49,7 @@ export const usePerformanceMonitoring = ({
         ...metadata,
       });
     },
-    [screenName, componentName],
+    [screenName, componentName]
   );
 
   const getMetrics = useCallback(() => {

@@ -1,108 +1,161 @@
-import { fireEvent, render } from '@testing-library/react-native';
 import React from 'react';
-
+import { render, fireEvent } from '@testing-library/react-native';
 import { ExerciseLibraryScreen } from '../../screens/ExerciseLibraryScreen';
-import type { MuscleGroup } from '../../types/workout';
-import { mockExercises } from '../utils/test-data';
+import { useOfflineSync } from '../../hooks/useOfflineSync';
+import type { Exercise } from '../../types/workout';
+import { MuscleGroup, ExerciseType, Difficulty } from '../../types/workout';
 
-// Mock the entire module
-jest.mock('../../store/workout.store', () => ({
-  useExerciseLibrary: jest.fn(),
-}));
+jest.mock('../../hooks/useOfflineSync');
 
-// Import the mocked module
-const workoutStore = jest.requireMock('../../store/workout.store');
+const mockExercises: Exercise[] = [
+  {
+    id: '1',
+    name: 'Push-up',
+    description: 'Basic push-up exercise',
+    muscleGroups: [MuscleGroup.CHEST, MuscleGroup.SHOULDERS, MuscleGroup.TRICEPS],
+    difficulty: Difficulty.BEGINNER,
+    equipment: [],
+    instructions: ['Start in plank position', 'Lower body', 'Push back up'],
+    type: ExerciseType.STRENGTH,
+    videoUrl: null,
+  },
+  {
+    id: '2',
+    name: 'Squat',
+    description: 'Basic squat exercise',
+    muscleGroups: [MuscleGroup.LEGS],
+    difficulty: Difficulty.BEGINNER,
+    equipment: [],
+    instructions: ['Stand with feet shoulder-width apart', 'Lower body', 'Stand back up'],
+    type: ExerciseType.STRENGTH,
+    videoUrl: null,
+  },
+];
+
+const mockNavigation = {
+  navigate: jest.fn(),
+  dispatch: jest.fn(),
+  reset: jest.fn(),
+  goBack: jest.fn(),
+  isFocused: jest.fn(() => true),
+  canGoBack: jest.fn(() => true),
+  getId: jest.fn(),
+  getParent: jest.fn(),
+  getState: jest.fn(),
+  addListener: jest.fn(() => () => {}),
+  removeListener: jest.fn(),
+  setParams: jest.fn(),
+  setOptions: jest.fn(),
+  replace: jest.fn(),
+  push: jest.fn(),
+  pop: jest.fn(),
+  popToTop: jest.fn(),
+};
 
 describe('ExerciseLibraryScreen', () => {
-  const mockStore = {
-    exercises: mockExercises,
-    searchResults: mockExercises,
-    isSearching: false,
-    searchExercises: jest.fn(async (query: string, muscleGroups: MuscleGroup[]) => {
-      // Mock implementation
-    }),
-  };
-
   beforeEach(() => {
     jest.clearAllMocks();
-    (workoutStore.useExerciseLibrary as jest.Mock).mockReturnValue(mockStore);
-  });
-
-  describe('Exercise List Display', () => {
-    it('should render all exercises when no filters are applied', () => {
-      const { getByText } = render(<ExerciseLibraryScreen />);
-
-      expect(getByText('Bench Press')).toBeTruthy();
-      expect(getByText('Running')).toBeTruthy();
-    });
-
-    it('should display exercise descriptions', () => {
-      const { getByText } = render(<ExerciseLibraryScreen />);
-
-      expect(getByText('Barbell bench press for chest development')).toBeTruthy();
-      expect(getByText('Outdoor or treadmill running')).toBeTruthy();
+    (useOfflineSync as jest.Mock).mockReturnValue({
+      data: mockExercises,
+      isLoading: false,
+      error: null,
     });
   });
 
-  describe('Search Functionality', () => {
-    it('should update search term when user types in search input', () => {
-      const mockSearchExercises = jest.fn();
-      const customStore = {
-        ...mockStore,
-        searchExercises: mockSearchExercises,
-      };
-      (workoutStore.useExerciseLibrary as jest.Mock).mockReturnValue(customStore);
+  it('renders correctly', () => {
+    const { getByTestId, getByText, getByLabelText } = render(
+      <ExerciseLibraryScreen navigation={mockNavigation} />
+    );
 
-      const { getByPlaceholderText } = render(<ExerciseLibraryScreen />);
-      const searchInput = getByPlaceholderText('Search exercises...');
+    expect(getByTestId('exercise-search-input')).toBeTruthy();
+    expect(getByLabelText('Search exercises')).toBeTruthy();
+    expect(getByTestId('exercise-list')).toBeTruthy();
+    expect(getByText('Push-up')).toBeTruthy();
+    expect(getByText('Squat')).toBeTruthy();
+  });
 
-      fireEvent.changeText(searchInput, 'bench');
-      expect(mockSearchExercises).toHaveBeenCalledWith('bench', []);
+  it('filters exercises based on search query', () => {
+    const { getByTestId, getByText, queryByText } = render(
+      <ExerciseLibraryScreen navigation={mockNavigation} />
+    );
+
+    const searchInput = getByTestId('exercise-search-input');
+    fireEvent.changeText(searchInput, 'push');
+
+    expect(getByText('Push-up')).toBeTruthy();
+    expect(queryByText('Squat')).toBeNull();
+  });
+
+  it('filters exercises based on muscle group', () => {
+    const { getByTestId, getByText, queryByText } = render(
+      <ExerciseLibraryScreen navigation={mockNavigation} />
+    );
+
+    const searchInput = getByTestId('exercise-search-input');
+    fireEvent.changeText(searchInput, 'legs');
+
+    expect(queryByText('Push-up')).toBeNull();
+    expect(getByText('Squat')).toBeTruthy();
+  });
+
+  it('shows loading state', () => {
+    (useOfflineSync as jest.Mock).mockReturnValue({
+      data: [],
+      isLoading: true,
+      error: null,
     });
 
-    it('should display only filtered exercises based on search term', () => {
-      const filteredResults = [mockExercises[0]];
-      const customStore = {
-        ...mockStore,
-        searchResults: filteredResults,
-      };
-      (workoutStore.useExerciseLibrary as jest.Mock).mockReturnValue(customStore);
+    const { getByText } = render(<ExerciseLibraryScreen navigation={mockNavigation} />);
 
-      const { getByText, queryByText } = render(<ExerciseLibraryScreen />);
+    expect(getByText('Loading exercises...')).toBeTruthy();
+  });
 
-      expect(getByText('Bench Press')).toBeTruthy();
-      expect(queryByText('Running')).toBeNull();
+  it('shows empty state when no exercises are available', () => {
+    (useOfflineSync as jest.Mock).mockReturnValue({
+      data: [],
+      isLoading: false,
+      error: null,
+    });
+
+    const { getByText } = render(<ExerciseLibraryScreen navigation={mockNavigation} />);
+
+    expect(getByText('No exercises available')).toBeTruthy();
+  });
+
+  it('shows no results message when search has no matches', () => {
+    const { getByTestId, getByText } = render(
+      <ExerciseLibraryScreen navigation={mockNavigation} />
+    );
+
+    const searchInput = getByTestId('exercise-search-input');
+    fireEvent.changeText(searchInput, 'xyz');
+
+    expect(getByText('No exercises found matching your search')).toBeTruthy();
+  });
+
+  it('navigates to exercise details when exercise is pressed', () => {
+    const { getByTestId } = render(<ExerciseLibraryScreen navigation={mockNavigation} />);
+
+    fireEvent.press(getByTestId('exercise-item-1'));
+
+    expect(mockNavigation.navigate).toHaveBeenCalledWith('WorkoutDetails', {
+      exercise: mockExercises[0],
     });
   });
 
-  describe('Muscle Group Filtering', () => {
-    it('should filter exercises by selected muscle group', () => {
-      const filteredResults = [mockExercises[0]];
-      const customStore = {
-        ...mockStore,
-        searchResults: filteredResults,
-      };
-      (workoutStore.useExerciseLibrary as jest.Mock).mockReturnValue(customStore);
+  it('displays muscle groups for each exercise', () => {
+    const { getByText } = render(<ExerciseLibraryScreen navigation={mockNavigation} />);
 
-      const { getByText, queryByText } = render(<ExerciseLibraryScreen />);
-
-      expect(getByText('Bench Press')).toBeTruthy();
-      expect(queryByText('Running')).toBeNull();
+    mockExercises[0].muscleGroups.forEach(group => {
+      expect(getByText(group)).toBeTruthy();
     });
+  });
 
-    it('should update selected muscle group when filter is changed', () => {
-      const mockSearchExercises = jest.fn();
-      const customStore = {
-        ...mockStore,
-        searchExercises: mockSearchExercises,
-      };
-      (workoutStore.useExerciseLibrary as jest.Mock).mockReturnValue(customStore);
+  it('has proper accessibility labels', () => {
+    const { getByLabelText } = render(<ExerciseLibraryScreen navigation={mockNavigation} />);
 
-      const { getByText } = render(<ExerciseLibraryScreen />);
-      const chestFilter = getByText('Chest');
-
-      fireEvent.press(chestFilter);
-      expect(mockSearchExercises).toHaveBeenCalledWith('', ['CHEST']);
-    });
+    expect(getByLabelText('Search exercises')).toBeTruthy();
+    expect(getByLabelText('Push-up exercise')).toBeTruthy();
+    expect(getByLabelText('Squat exercise')).toBeTruthy();
   });
 });

@@ -1,122 +1,147 @@
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import React, { useEffect, useState } from 'react';
-import { View } from 'react-native';
-import { Search } from 'react-native-feather';
-import styled from 'styled-components/native';
+import React, { useState, useCallback, useMemo } from 'react';
+import {
+  View,
+  Text,
+  FlatList,
+  TextInput,
+  Pressable,
+  ActivityIndicator,
+  ListRenderItem,
+} from 'react-native';
+import { styled } from 'nativewind';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { Exercise } from '../types/workout';
+import { useOfflineSync } from '../hooks/useOfflineSync';
 
-import { ExerciseList } from '../components/workout/ExerciseList';
-import { AppStackParamList } from '../navigation/AppNavigator';
-import { useExerciseLibrary } from '../store/workout.store';
-import { Exercise, MuscleGroup } from '../types/workout';
+const StyledView = styled(View);
+const StyledText = styled(Text);
+const StyledTextInput = styled(TextInput);
+const StyledPressable = styled(Pressable);
 
-const Container = styled.SafeAreaView`
-  flex: 1;
-  background-color: #f9fafb;
-`;
+type ExerciseStackParamList = {
+  ExerciseLibrary: undefined;
+  WorkoutDetails: { exercise: Exercise };
+};
 
-const SearchContainer = styled.View`
-  padding: 16px;
-  background-color: white;
-  border-bottom-width: 1px;
-  border-bottom-color: #e5e7eb;
-`;
+type ExerciseLibraryScreenProps = {
+  navigation: NativeStackNavigationProp<ExerciseStackParamList, 'ExerciseLibrary'>;
+};
 
-const SearchInput = styled.TextInput`
-  background-color: #f3f4f6;
-  border-radius: 8px;
-  padding: 8px 16px;
-  padding-left: 40px;
-  font-size: 16px;
-  color: #1f2937;
-`;
-
-const SearchIcon = styled(View)`
-  position: absolute;
-  left: 28px;
-  top: 26px;
-`;
-
-const LoadingContainer = styled.View`
-  flex: 1;
-  justify-content: center;
-  align-items: center;
-`;
-
-const LoadingText = styled.Text`
-  font-size: 16px;
-  color: #6b7280;
-  margin-top: 8px;
-`;
-
-const ErrorText = styled.Text`
-  color: #ef4444;
-  text-align: center;
-  margin: 16px;
-`;
-
-type ExerciseLibraryScreenNavigationProp = NativeStackNavigationProp<
-  AppStackParamList,
-  'ExerciseLibrary'
->;
-
-export const ExerciseLibraryScreen: React.FC = () => {
-  const navigation = useNavigation<ExerciseLibraryScreenNavigationProp>();
-  const { exercises, searchResults, isSearching, error, searchExercises } = useExerciseLibrary();
+export const ExerciseLibraryScreen: React.FC<ExerciseLibraryScreenProps> = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedMuscleGroups, setSelectedMuscleGroups] = useState<Set<MuscleGroup>>(new Set());
 
-  useEffect(() => {
-    const delayedSearch = setTimeout(() => {
-      searchExercises(searchQuery, Array.from(selectedMuscleGroups));
-    }, 300);
+  const {
+    data: exercises = [],
+    isLoading,
+    error,
+  } = useOfflineSync<Exercise[]>({
+    key: 'exercises',
+  });
 
-    return () => clearTimeout(delayedSearch);
-  }, [searchQuery, selectedMuscleGroups, searchExercises]);
+  const filteredExercises = useMemo(() => {
+    if (!searchQuery.trim()) return exercises;
 
-  const handleExerciseSelect = (exercise: Exercise) => {
-    navigation.navigate('Workout', { selectedExercise: exercise });
-  };
+    const query = searchQuery.toLowerCase();
+    return exercises.filter(
+      exercise =>
+        exercise.name.toLowerCase().includes(query) ||
+        exercise.description.toLowerCase().includes(query) ||
+        exercise.muscleGroups.some(group => group.toLowerCase().includes(query))
+    );
+  }, [exercises, searchQuery]);
 
-  const handleFilterChange = (muscleGroups: Set<MuscleGroup>) => {
-    setSelectedMuscleGroups(muscleGroups);
-  };
+  const handleExercisePress = useCallback(
+    (exercise: Exercise) => {
+      navigation.navigate('WorkoutDetails', { exercise });
+    },
+    [navigation]
+  );
 
-  const displayedExercises =
-    searchQuery || selectedMuscleGroups.size > 0 ? searchResults : exercises;
+  const renderExerciseItem: ListRenderItem<Exercise> = useCallback(
+    ({ item: exercise }) => (
+      <StyledPressable
+        className="p-4 bg-white mb-2 rounded-lg shadow-sm"
+        testID={`exercise-item-${exercise.id}`}
+        onPress={() => handleExercisePress(exercise)}
+        accessibilityRole="button"
+        accessibilityLabel={`${exercise.name} exercise`}
+      >
+        <StyledText className="text-lg font-semibold text-gray-800">{exercise.name}</StyledText>
+        <StyledText className="text-sm text-gray-600 mt-1">{exercise.description}</StyledText>
+        <StyledView className="flex-row mt-2 flex-wrap">
+          {exercise.muscleGroups.map(group => (
+            <StyledText
+              key={group}
+              className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded mr-2 mb-1"
+            >
+              {group}
+            </StyledText>
+          ))}
+        </StyledView>
+      </StyledPressable>
+    ),
+    [handleExercisePress]
+  );
+
+  if (isLoading) {
+    return (
+      <StyledView className="flex-1 items-center justify-center bg-gray-50">
+        <ActivityIndicator size="large" color="#3B82F6" />
+        <StyledText className="mt-4 text-gray-600">Loading exercises...</StyledText>
+      </StyledView>
+    );
+  }
+
+  if (error) {
+    return (
+      <StyledView className="flex-1 items-center justify-center bg-gray-50">
+        <StyledText className="text-red-500 text-lg">Failed to load exercises</StyledText>
+        <StyledText className="mt-2 text-gray-600">Please try again later</StyledText>
+      </StyledView>
+    );
+  }
 
   return (
-    <Container>
-      <SearchContainer>
-        <SearchIcon>
-          <Search width={20} height={20} color="#6B7280" />
-        </SearchIcon>
-        <SearchInput
-          placeholder="Search exercises..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          autoCapitalize="none"
-          autoCorrect={false}
-          testID="exercise-search-input"
-        />
-      </SearchContainer>
+    <StyledView className="flex-1 bg-gray-50 p-4">
+      <StyledTextInput
+        className="bg-white px-4 py-3 rounded-lg mb-4 text-gray-800"
+        placeholder="Search exercises..."
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        testID="exercise-search-input"
+        accessibilityLabel="Search exercises"
+        accessibilityHint="Enter text to search for exercises"
+        returnKeyType="search"
+        clearButtonMode="while-editing"
+      />
 
-      {error ? (
-        <ErrorText>{error}</ErrorText>
-      ) : isSearching ? (
-        <LoadingContainer>
-          <LoadingText>Loading exercises...</LoadingText>
-        </LoadingContainer>
+      {exercises.length === 0 ? (
+        <StyledView className="flex-1 items-center justify-center">
+          <StyledText className="text-gray-600 text-lg">No exercises available</StyledText>
+        </StyledView>
+      ) : filteredExercises.length === 0 ? (
+        <StyledView className="flex-1 items-center justify-center">
+          <StyledText className="text-gray-600 text-lg">
+            No exercises found matching your search
+          </StyledText>
+        </StyledView>
       ) : (
-        <ExerciseList
-          exercises={displayedExercises}
-          onSelectExercise={handleExerciseSelect}
-          selectedMuscleGroups={selectedMuscleGroups}
-          onFilterChange={handleFilterChange}
-          emptyMessage={searchQuery ? 'No exercises found' : 'No exercises available'}
-          testID="exercise-library"
+        <FlatList<Exercise>
+          data={filteredExercises}
+          renderItem={renderExerciseItem}
+          keyExtractor={item => item.id}
+          showsVerticalScrollIndicator={false}
+          testID="exercise-list"
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: 16 }}
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          removeClippedSubviews={true}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
         />
       )}
-    </Container>
+    </StyledView>
   );
 };

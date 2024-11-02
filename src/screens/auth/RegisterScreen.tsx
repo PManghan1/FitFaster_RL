@@ -2,11 +2,17 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { ActivityIndicator } from 'react-native';
+import { ActivityIndicator, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { styled } from 'nativewind';
 
-import { Text, TextInput, TouchableOpacity, View } from '../../components/styled';
 import { useAuthStore } from '../../store/auth.store';
 import { RegisterFormData, registerSchema } from '../../types/auth';
+
+// Style the components with NativeWind
+const StyledView = styled(View);
+const StyledText = styled(Text);
+const StyledTextInput = styled(TextInput);
+const StyledTouchableOpacity = styled(TouchableOpacity);
 
 type RootStackParamList = {
   Login: undefined;
@@ -36,7 +42,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
 
   const onSubmit = async (data: RegisterFormData) => {
     try {
-      const { error } = await signUp(data);
+      const { error } = await signUp(data.email, data.password);
       if (!error) {
         navigation.replace('Home');
       }
@@ -46,46 +52,30 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: 'white', padding: 16 }}>
-      <View style={{ flex: 1, justifyContent: 'center' }}>
-        <Text
-          style={{
-            fontSize: 24,
-            fontWeight: 'bold',
-            textAlign: 'center',
-            marginBottom: 32,
-            color: '#2563EB',
-          }}
-        >
+    <StyledView className="flex-1 bg-white p-4">
+      <StyledView className="flex-1 justify-center">
+        <StyledText className="text-2xl font-bold text-center mb-8 text-primary">
           Create Account
-        </Text>
+        </StyledText>
 
-        {error && (
-          <Text style={{ color: '#EF4444', textAlign: 'center', marginBottom: 16 }}>{error}</Text>
-        )}
+        {error && <StyledText className="text-error text-center mb-4">{error}</StyledText>}
 
         <Controller
           control={control}
           name="fullName"
           render={({ field: { onChange, value } }) => (
-            <View style={{ marginBottom: 16 }}>
-              <TextInput
-                style={{
-                  borderWidth: 1,
-                  borderColor: '#D1D5DB',
-                  borderRadius: 8,
-                  padding: 16,
-                  fontSize: 16,
-                }}
+            <StyledView className="mb-4">
+              <StyledTextInput
+                className="border border-border rounded-lg p-4 text-base"
                 placeholder="Full Name"
                 onChangeText={onChange}
                 value={value}
                 editable={!isLoading}
               />
               {errors.fullName && (
-                <Text style={{ color: '#EF4444', marginTop: 4 }}>{errors.fullName.message}</Text>
+                <StyledText className="text-error mt-1">{errors.fullName.message}</StyledText>
               )}
-            </View>
+            </StyledView>
           )}
         />
 
@@ -93,15 +83,9 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
           control={control}
           name="email"
           render={({ field: { onChange, value } }) => (
-            <View style={{ marginBottom: 16 }}>
-              <TextInput
-                style={{
-                  borderWidth: 1,
-                  borderColor: '#D1D5DB',
-                  borderRadius: 8,
-                  padding: 16,
-                  fontSize: 16,
-                }}
+            <StyledView className="mb-4">
+              <StyledTextInput
+                className="border border-border rounded-lg p-4 text-base"
                 placeholder="Email"
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -110,9 +94,9 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
                 editable={!isLoading}
               />
               {errors.email && (
-                <Text style={{ color: '#EF4444', marginTop: 4 }}>{errors.email.message}</Text>
+                <StyledText className="text-error mt-1">{errors.email.message}</StyledText>
               )}
-            </View>
+            </StyledView>
           )}
         />
 
@@ -120,15 +104,9 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
           control={control}
           name="password"
           render={({ field: { onChange, value } }) => (
-            <View style={{ marginBottom: 16 }}>
-              <TextInput
-                style={{
-                  borderWidth: 1,
-                  borderColor: '#D1D5DB',
-                  borderRadius: 8,
-                  padding: 16,
-                  fontSize: 16,
-                }}
+            <StyledView className="mb-4">
+              <StyledTextInput
+                className="border border-border rounded-lg p-4 text-base"
                 placeholder="Password"
                 secureTextEntry
                 onChangeText={onChange}
@@ -136,9 +114,9 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
                 editable={!isLoading}
               />
               {errors.password && (
-                <Text style={{ color: '#EF4444', marginTop: 4 }}>{errors.password.message}</Text>
+                <StyledText className="text-error mt-1">{errors.password.message}</StyledText>
               )}
-            </View>
+            </StyledView>
           )}
         />
 
@@ -146,15 +124,9 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
           control={control}
           name="confirmPassword"
           render={({ field: { onChange, value } }) => (
-            <View style={{ marginBottom: 24 }}>
-              <TextInput
-                style={{
-                  borderWidth: 1,
-                  borderColor: '#D1D5DB',
-                  borderRadius: 8,
-                  padding: 16,
-                  fontSize: 16,
-                }}
+            <StyledView className="mb-6">
+              <StyledTextInput
+                className="border border-border rounded-lg p-4 text-base"
                 placeholder="Confirm Password"
                 secureTextEntry
                 onChangeText={onChange}
@@ -162,40 +134,33 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
                 editable={!isLoading}
               />
               {errors.confirmPassword && (
-                <Text style={{ color: '#EF4444', marginTop: 4 }}>
+                <StyledText className="text-error mt-1">
                   {errors.confirmPassword.message}
-                </Text>
+                </StyledText>
               )}
-            </View>
+            </StyledView>
           )}
         />
 
-        <TouchableOpacity
-          style={{
-            backgroundColor: '#2563EB',
-            padding: 16,
-            borderRadius: 8,
-            marginBottom: 16,
-          }}
+        <StyledTouchableOpacity
+          className="bg-primary px-4 py-4 rounded-lg mb-4"
           onPress={handleSubmit(onSubmit)}
           disabled={isLoading}
         >
           {isLoading ? (
             <ActivityIndicator color="white" />
           ) : (
-            <Text style={{ color: 'white', textAlign: 'center', fontSize: 18, fontWeight: 'bold' }}>
-              Sign Up
-            </Text>
+            <StyledText className="text-white text-center text-lg font-bold">Sign Up</StyledText>
           )}
-        </TouchableOpacity>
+        </StyledTouchableOpacity>
 
-        <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
-          <Text style={{ color: '#4B5563' }}>Already have an account? </Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Login')} disabled={isLoading}>
-            <Text style={{ color: '#2563EB', fontWeight: 'bold' }}>Sign In</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </View>
+        <StyledView className="flex-row justify-center items-center">
+          <StyledText className="text-secondary">Already have an account? </StyledText>
+          <StyledTouchableOpacity onPress={() => navigation.navigate('Login')} disabled={isLoading}>
+            <StyledText className="text-primary font-bold">Sign In</StyledText>
+          </StyledTouchableOpacity>
+        </StyledView>
+      </StyledView>
+    </StyledView>
   );
 };

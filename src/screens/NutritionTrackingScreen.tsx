@@ -1,22 +1,17 @@
 import React, { useCallback, useEffect } from 'react';
-import { Alert, ScrollView, Text, View } from 'react-native';
-import styled from 'styled-components/native';
+import { Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { styled } from 'nativewind';
 
-import { ActionButton, ActionButtonText } from '../components/common/styled';
 import { usePerformanceMonitoring } from '../hooks/usePerformanceMonitoring';
 import { analyticsService } from '../services/analytics';
 import { nutritionService } from '../services/nutrition';
 import { MetricType } from '../services/performance';
 
-const Container = styled(View)`
-  flex: 1;
-  background-color: ${({ theme }) => theme.colors.background.light};
-`;
-
-const Content = styled(ScrollView)`
-  flex: 1;
-  padding: ${({ theme }) => theme.spacing.md}px;
-`;
+// Style the components with NativeWind
+const StyledView = styled(View);
+const StyledScrollView = styled(ScrollView);
+const StyledTouchableOpacity = styled(TouchableOpacity);
+const StyledText = styled(Text);
 
 export const NutritionTrackingScreen: React.FC = () => {
   const performanceMonitor = usePerformanceMonitoring({
@@ -32,7 +27,7 @@ export const NutritionTrackingScreen: React.FC = () => {
         performanceMetrics: {
           renderTime: performanceMonitor.getAverageMetric(
             MetricType.RENDER,
-            'NutritionTrackingScreen',
+            'NutritionTrackingScreen'
           ),
         },
       });
@@ -67,7 +62,7 @@ export const NutritionTrackingScreen: React.FC = () => {
           carbs: 50,
           fat: 20,
         }),
-        'log_meal',
+        'log_meal'
       );
 
       analyticsService.trackNutrition('meal', {
@@ -112,7 +107,7 @@ export const NutritionTrackingScreen: React.FC = () => {
         nutritionService.logSupplement({
           name: 'Test Supplement',
         }),
-        'log_supplement',
+        'log_supplement'
       );
 
       analyticsService.trackNutrition('supplement', {
@@ -130,34 +125,37 @@ export const NutritionTrackingScreen: React.FC = () => {
   }, [performanceMonitor]);
 
   return (
-    <Container>
-      <Content>
-        <ActionButton
+    <StyledView className="flex-1 bg-background-light">
+      <StyledScrollView className="flex-1 p-4">
+        <StyledTouchableOpacity
+          className="bg-primary flex-row items-center justify-center rounded-lg p-4 mb-4"
           onPress={() => performanceMonitor.measureInteraction('press_log_meal', handleMealLog)}
         >
-          <ActionButtonText>
-            <Text>Log Meal</Text>
-          </ActionButtonText>
-        </ActionButton>
+          <StyledText className="text-background font-bold text-base text-center">
+            Log Meal
+          </StyledText>
+        </StyledTouchableOpacity>
 
-        <ActionButton
+        <StyledTouchableOpacity
+          className="bg-primary flex-row items-center justify-center rounded-lg p-4 mb-4"
           onPress={() => performanceMonitor.measureInteraction('press_scan_food', handleFoodScan)}
         >
-          <ActionButtonText>
-            <Text>Scan Food</Text>
-          </ActionButtonText>
-        </ActionButton>
+          <StyledText className="text-background font-bold text-base text-center">
+            Scan Food
+          </StyledText>
+        </StyledTouchableOpacity>
 
-        <ActionButton
+        <StyledTouchableOpacity
+          className="bg-primary flex-row items-center justify-center rounded-lg p-4 mb-4"
           onPress={() =>
             performanceMonitor.measureInteraction('press_log_supplement', handleSupplementLog)
           }
         >
-          <ActionButtonText>
-            <Text>Log Supplement</Text>
-          </ActionButtonText>
-        </ActionButton>
-      </Content>
-    </Container>
+          <StyledText className="text-background font-bold text-base text-center">
+            Log Supplement
+          </StyledText>
+        </StyledTouchableOpacity>
+      </StyledScrollView>
+    </StyledView>
   );
 };
