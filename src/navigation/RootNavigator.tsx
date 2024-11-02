@@ -1,14 +1,14 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
 
-import { ForgotPasswordScreen } from '../screens/auth/ForgotPasswordScreen';
-import { LoginScreen } from '../screens/auth/LoginScreen';
-import { RegisterScreen } from '../screens/auth/RegisterScreen';
 import { ExerciseLibraryScreen } from '../screens/ExerciseLibraryScreen';
 import { HomeScreen } from '../screens/HomeScreen';
 import ProgressScreen from '../screens/ProgressScreen';
 import { WorkoutDetailsScreen } from '../screens/WorkoutDetailsScreen';
 import { WorkoutScreen } from '../screens/WorkoutScreen';
+import { ForgotPasswordScreen } from '../screens/auth/ForgotPasswordScreen';
+import { LoginScreen } from '../screens/auth/LoginScreen';
+import { RegisterScreen } from '../screens/auth/RegisterScreen';
 import { colors } from '../theme';
 
 export type RootStackParamList = {

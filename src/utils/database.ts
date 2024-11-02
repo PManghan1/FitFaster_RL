@@ -2,6 +2,7 @@ import { PostgrestResponse } from '@supabase/supabase-js';
 import { AES, enc } from 'crypto-js';
 
 import config from '../config';
+import { PerformanceMonitor } from './performance';
 import {
   ConsentRecord,
   DecryptedHealthData,
@@ -10,8 +11,6 @@ import {
   PrivacySettings,
 } from '../types/profile';
 
-import { PerformanceMonitor } from './performance';
-
 interface QueryMetrics {
   queryTime: number;
   cacheHit: boolean;
@@ -19,7 +18,7 @@ interface QueryMetrics {
   timestamp: number;
 }
 
-type DecryptedDataValue = string | number | boolean | null | Record<string, unknown>;
+type DecryptedDataValue = string | number | boolean | null | Record<string, unknown> | string[];
 type DecryptedDataRecord = Record<string, DecryptedDataValue>;
 
 export class DatabaseError extends Error {
@@ -145,7 +144,7 @@ export const decryptHealthData = (data: EncryptedHealthData): DecryptedHealthDat
     updated_at: data.updated_at,
     encrypted: true,
     ...decryptedData,
-  };
+  } as DecryptedHealthData;
 };
 
 /**

@@ -1,5 +1,6 @@
 import { PostgrestError } from '@supabase/supabase-js';
 
+import { supabase } from './supabase';
 import {
   ConsentPurpose,
   ConsentRecord,
@@ -20,8 +21,6 @@ import {
   isPrivacySettings,
   isProfile,
 } from '../utils/database';
-
-import { supabase } from './supabase';
 
 interface DatabaseResult<T> {
   data: T | null;

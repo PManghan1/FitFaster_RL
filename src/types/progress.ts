@@ -3,11 +3,11 @@ export interface ProgressMetrics {
   currentStreak: number;
   weeklyCount: number;
   totalVolume: number;
-  mostUsedExercises: Array<{
+  mostUsedExercises: {
     exerciseId: string;
     name: string;
     count: number;
-  }>;
+  }[];
 }
 
 export interface WorkoutHistoryItem {

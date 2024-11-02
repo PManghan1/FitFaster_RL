@@ -24,9 +24,13 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.0",
+    "@hookform/resolvers": "^3.9.1",
     "@react-navigation/native": "^6.1.9",
     "@react-navigation/native-stack": "^6.9.17",
     "@sentry/react-native": "^6.1.0",
+    "@supabase/supabase-js": "^2.46.1",
+    "@types/crypto-js": "^4.2.2",
+    "crypto-js": "^4.2.0",
     "expo": "~51.0.0",
     "expo-barcode-scanner": "~13.0.1",
     "expo-constants": "~16.0.0",
@@ -41,12 +45,14 @@
     "nativewind": "^2.0.11",
     "react": "18.2.0",
     "react-dom": "18.2.0",
+    "react-hook-form": "^7.53.1",
     "react-native": "0.73.10",
     "react-native-feather": "^1.1.2",
     "react-native-reanimated": "~3.6.2",
     "react-native-safe-area-context": "4.8.2",
     "react-native-screens": "~3.29.0",
     "styled-components": "^6.1.8",
+    "zod": "^3.23.8",
     "zustand": "^4.5.0"
   },
   "devDependencies": {

@@ -12,7 +12,7 @@ interface BiometricSupport {
 export class BiometricService {
   private static instance: BiometricService;
   private supportedTypes: LocalAuthentication.AuthenticationType[] = [];
-  
+
   private constructor() {}
 
   public static getInstance(): BiometricService {
@@ -35,7 +35,9 @@ export class BiometricService {
       let biometryType: BiometricType | null = null;
       if (this.supportedTypes.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)) {
         biometryType = 'fingerprint';
-      } else if (this.supportedTypes.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) {
+      } else if (
+        this.supportedTypes.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)
+      ) {
         biometryType = 'facial';
       } else if (this.supportedTypes.includes(LocalAuthentication.AuthenticationType.IRIS)) {
         biometryType = 'iris';
@@ -48,12 +50,14 @@ export class BiometricService {
     }
   }
 
-  async authenticate(options: {
-    promptMessage?: string;
-    fallbackLabel?: string;
-    cancelLabel?: string;
-    disableDeviceFallback?: boolean;
-  } = {}): Promise<boolean> {
+  async authenticate(
+    options: {
+      promptMessage?: string;
+      fallbackLabel?: string;
+      cancelLabel?: string;
+      disableDeviceFallback?: boolean;
+    } = {},
+  ): Promise<boolean> {
     try {
       const support = await this.checkSupport();
       if (!support.available || !support.enrolled) {

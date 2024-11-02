@@ -38,7 +38,7 @@ describe('SocialAuthButton', () => {
 
   it('shows loading indicator when isLoading is true', () => {
     const { UNSAFE_getByType } = render(
-      <SocialAuthButton provider="google" onPress={mockOnPress} isLoading={true} />,
+      <SocialAuthButton provider="google" onPress={mockOnPress} isLoading />,
     );
 
     expect(UNSAFE_getByType(ActivityIndicator)).toBeTruthy();
@@ -46,7 +46,7 @@ describe('SocialAuthButton', () => {
 
   it('disables button when isLoading is true', () => {
     const { getByText } = render(
-      <SocialAuthButton provider="google" onPress={mockOnPress} isLoading={true} />,
+      <SocialAuthButton provider="google" onPress={mockOnPress} isLoading />,
     );
 
     fireEvent.press(getByText('Continue with Google'));

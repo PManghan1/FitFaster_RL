@@ -1,6 +1,7 @@
+import type { User } from '@supabase/supabase-js';
+
 import type { ProgressMetrics } from './progress';
 import type { Exercise, WorkoutSession } from './workout';
-import type { User } from '@supabase/supabase-js';
 
 /** Error Details Interface */
 export interface ErrorDetails {
@@ -179,10 +180,10 @@ export interface HealthCheckResponse
 export interface BatchOperationResponse<T>
   extends ApiResponse<{
     successful: T[];
-    failed: Array<{
+    failed: {
       item: T;
       error: ApiError;
-    }>;
+    }[];
     summary: {
       total: number;
       succeeded: number;

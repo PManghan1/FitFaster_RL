@@ -4,7 +4,7 @@ import '@testing-library/jest-native';
 // Mock expo-modules-core
 jest.mock('expo-modules-core', () => ({
   NativeModulesProxy: {},
-  EventEmitter: jest.fn()
+  EventEmitter: jest.fn(),
 }));
 
 // Mock react-native-reanimated
@@ -12,11 +12,11 @@ jest.mock('react-native-reanimated', () => {
   const mockReanimated = {
     default: {
       call: () => {},
-      createAnimatedComponent: (component) => component,
+      createAnimatedComponent: component => component,
       event: () => {},
       Value: jest.fn(),
-      Node: jest.fn()
-    }
+      Node: jest.fn(),
+    },
   };
   return mockReanimated;
 });
@@ -48,7 +48,7 @@ jest.mock('react-native-gesture-handler', () => ({
   BorderlessButton: 'BorderlessButton',
   FlatList: 'FlatList',
   gestureHandlerRootHOC: jest.fn(),
-  Directions: {}
+  Directions: {},
 }));
 
 // Mock @react-navigation/native
@@ -56,18 +56,18 @@ jest.mock('@react-navigation/native', () => ({
   ...jest.requireActual('@react-navigation/native'),
   useNavigation: () => ({
     navigate: jest.fn(),
-    goBack: jest.fn()
+    goBack: jest.fn(),
   }),
   useRoute: () => ({
-    params: {}
-  })
+    params: {},
+  }),
 }));
 
 // Mock react-native-safe-area-context
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: ({ children }) => children,
   SafeAreaView: ({ children }) => children,
-  useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 })
+  useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }),
 }));
 
 // Mock AsyncStorage
@@ -75,7 +75,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(),
   getItem: jest.fn(),
   removeItem: jest.fn(),
-  clear: jest.fn()
+  clear: jest.fn(),
 }));
 
 // Mock react-native-feather
@@ -87,18 +87,18 @@ jest.mock('react-native-feather', () => ({
   Info: 'Info',
   Play: 'Play',
   Pause: 'Pause',
-  RotateCcw: 'RotateCcw'
+  RotateCcw: 'RotateCcw',
 }));
 
 // Mock react-native components
 jest.mock('react-native', () => ({
   Platform: {
-    select: jest.fn(obj => obj.default)
+    select: jest.fn(obj => obj.default),
   },
   StyleSheet: {
     create: jest.fn(),
     compose: jest.fn(),
-    flatten: jest.fn()
+    flatten: jest.fn(),
   },
   View: 'View',
   Text: 'Text',
@@ -111,8 +111,8 @@ jest.mock('react-native', () => ({
     createAnimatedComponent: jest.fn(),
     timing: jest.fn(),
     spring: jest.fn(),
-    Value: jest.fn()
-  }
+    Value: jest.fn(),
+  },
 }));
 
 // Setup global test utilities

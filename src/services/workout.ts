@@ -1,8 +1,7 @@
-import { Exercise, ExerciseWithSets, Set, WorkoutSession } from '../types/workout';
-
 import { analyticsService } from './analytics';
 import { performanceMonitoring } from './performance';
 import { supabase } from './supabase';
+import { Exercise, ExerciseWithSets, Set, WorkoutSession } from '../types/workout';
 
 export class WorkoutService {
   private static instance: WorkoutService;

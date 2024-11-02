@@ -2,7 +2,6 @@ import { nutritionService } from './nutrition';
 import { profileService } from './profile';
 import { progressService } from './progress';
 import { workoutService } from './workout';
-
 import type { DailyNutrition, FoodItem, MealEntry } from '../types/nutrition';
 import type {
   ConsentPurpose,

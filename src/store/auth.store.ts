@@ -1,10 +1,9 @@
+import type { AuthError, Session, User } from '@supabase/supabase-js';
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { shallow } from 'zustand/shallow';
 
 import { supabase } from '../services/supabase';
-
-import type { AuthError, Session, User } from '@supabase/supabase-js';
 
 /** Auth State Interface */
 interface AuthState {

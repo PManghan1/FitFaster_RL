@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
 
 interface MealSectionProps {
   mealType: MealType;
-  entries: Array<MealEntry & { food: FoodItem }>;
+  entries: (MealEntry & { food: FoodItem })[];
   totals: Nutrients;
   onEditEntry?: (entry: MealEntry) => void;
   onDeleteEntry?: (entry: MealEntry) => void;

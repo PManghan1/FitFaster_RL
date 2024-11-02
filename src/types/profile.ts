@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from 'zod';
 
 // Essential Profile Data
 export const essentialProfileSchema = z.object({
@@ -8,8 +8,8 @@ export const essentialProfileSchema = z.object({
   created_at: z.string().datetime(),
   updated_at: z.string().datetime(),
   phone_number: z.string().optional(),
-  preferred_language: z.string().default("en"),
-  timezone: z.string().default("UTC"),
+  preferred_language: z.string().default('en'),
+  timezone: z.string().default('UTC'),
 });
 
 // Health-Related Data (Special Category)
@@ -23,7 +23,9 @@ export const healthDataSchema = z.object({
   allergies: z.union([z.string(), z.array(z.string())]).optional(),
   medications: z.union([z.string(), z.array(z.string())]).optional(),
   fitness_goals: z.array(z.string()).optional(),
-  activity_level: z.enum(["SEDENTARY", "LIGHT", "MODERATE", "VERY_ACTIVE", "EXTRA_ACTIVE"]).optional(),
+  activity_level: z
+    .enum(['SEDENTARY', 'LIGHT', 'MODERATE', 'VERY_ACTIVE', 'EXTRA_ACTIVE'])
+    .optional(),
   created_at: z.string().datetime(),
   updated_at: z.string().datetime(),
   encrypted: z.boolean().default(true),
@@ -31,12 +33,12 @@ export const healthDataSchema = z.object({
 
 // Consent Records
 export const consentPurpose = z.enum([
-  "ESSENTIAL_DATA_PROCESSING",
-  "HEALTH_DATA_PROCESSING",
-  "MARKETING_COMMUNICATIONS",
-  "THIRD_PARTY_SHARING",
-  "ANALYTICS",
-  "PERSONALIZATION",
+  'ESSENTIAL_DATA_PROCESSING',
+  'HEALTH_DATA_PROCESSING',
+  'MARKETING_COMMUNICATIONS',
+  'THIRD_PARTY_SHARING',
+  'ANALYTICS',
+  'PERSONALIZATION',
 ]);
 
 export const consentRecordSchema = z.object({
@@ -53,21 +55,14 @@ export const consentRecordSchema = z.object({
 });
 
 // Data Processing Logs
-export const dataAccessType = z.enum([
-  "READ",
-  "WRITE",
-  "UPDATE",
-  "DELETE",
-  "EXPORT",
-  "SHARE",
-]);
+export const dataAccessType = z.enum(['READ', 'WRITE', 'UPDATE', 'DELETE', 'EXPORT', 'SHARE']);
 
 export const processingLogSchema = z.object({
   id: z.string().uuid(),
   user_id: z.string().uuid(),
   timestamp: z.string().datetime(),
   access_type: dataAccessType,
-  data_category: z.enum(["ESSENTIAL", "HEALTH", "CONSENT"]),
+  data_category: z.enum(['ESSENTIAL', 'HEALTH', 'CONSENT']),
   purpose: z.string(),
   processor: z.string(),
   success: z.boolean(),
@@ -104,14 +99,16 @@ export type ConsentPurpose = z.infer<typeof consentPurpose>;
 export type DataAccessType = z.infer<typeof dataAccessType>;
 
 // Helper type for encrypted health data
-export interface EncryptedHealthData extends Omit<HealthData, 'medical_conditions' | 'allergies' | 'medications'> {
+export interface EncryptedHealthData
+  extends Omit<HealthData, 'medical_conditions' | 'allergies' | 'medications'> {
   medical_conditions?: string;
   allergies?: string;
   medications?: string;
 }
 
 // Helper type for decrypted health data
-export interface DecryptedHealthData extends Omit<HealthData, 'medical_conditions' | 'allergies' | 'medications'> {
+export interface DecryptedHealthData
+  extends Omit<HealthData, 'medical_conditions' | 'allergies' | 'medications'> {
   medical_conditions?: string[];
   allergies?: string[];
   medications?: string[];

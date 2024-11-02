@@ -22,7 +22,7 @@ export const workoutSchema = z.object({
       sets: z.number(),
       reps: z.number(),
       weight: z.number().optional(),
-    })
+    }),
   ),
 });
 

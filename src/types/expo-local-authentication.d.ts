@@ -2,7 +2,7 @@ declare module 'expo-local-authentication' {
   export enum AuthenticationType {
     FINGERPRINT = 1,
     FACIAL_RECOGNITION = 2,
-    IRIS = 3
+    IRIS = 3,
   }
 
   export interface LocalAuthenticationOptions {
@@ -22,6 +22,8 @@ declare module 'expo-local-authentication' {
   export function hasHardwareAsync(): Promise<boolean>;
   export function supportedAuthenticationTypesAsync(): Promise<AuthenticationType[]>;
   export function isEnrolledAsync(): Promise<boolean>;
-  export function authenticateAsync(options?: LocalAuthenticationOptions): Promise<AuthenticationResult>;
+  export function authenticateAsync(
+    options?: LocalAuthenticationOptions,
+  ): Promise<AuthenticationResult>;
   export function cancelAuthenticate(): void;
 }

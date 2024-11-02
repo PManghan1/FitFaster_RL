@@ -13,7 +13,7 @@ describe('MealSection', () => {
         userId: 'user1',
         createdAt: new Date().toISOString(),
         foodId: 'food1',
-        mealType: mealType,
+        mealType,
         servingIndex: 0,
         servingAmount: 100,
         notes: 'Delicious',

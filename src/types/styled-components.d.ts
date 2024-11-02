@@ -18,7 +18,7 @@ declare module 'styled-components/native' {
   export interface StyledFunction<Props = unknown, Style = unknown> {
     (
       strings: TemplateStringsArray,
-      ...interpolations: Array<Interpolation<Props>>
+      ...interpolations: Interpolation<Props>[]
     ): StyledComponent<Props>;
     attrs<Attrs extends object>(
       attrs: Attrs | ((props: Props) => Attrs),
@@ -56,6 +56,6 @@ declare module 'styled-components/native' {
 
   export const css: (
     strings: TemplateStringsArray,
-    ...interpolations: Array<Interpolation>
-  ) => Array<Interpolation>;
+    ...interpolations: Interpolation[]
+  ) => Interpolation[];
 }

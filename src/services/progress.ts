@@ -1,8 +1,7 @@
+import { workoutService } from './workout';
 import { ProgressMetrics, WorkoutHistoryItem } from '../types/progress';
 import { WorkoutSummary } from '../types/workout';
 import { DatabaseError } from '../utils/supabase';
-
-import { workoutService } from './workout';
 
 class ProgressService {
   async getProgressMetrics(userId: string): Promise<ProgressMetrics> {

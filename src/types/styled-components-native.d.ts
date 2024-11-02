@@ -56,6 +56,6 @@ declare module 'styled-components/native' {
 
   export const css: (
     strings: TemplateStringsArray,
-    ...interpolations: Array<Interpolation>
-  ) => Array<Interpolation>;
+    ...interpolations: Interpolation[]
+  ) => Interpolation[];
 }
