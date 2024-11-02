@@ -62,49 +62,49 @@ const ActionButtonText = styled(Text)`
   margin-left: ${theme.spacing.sm}px;
 `;
 
-const AddExerciseButton = styled(TouchableOpacity)`
+const FloatingActionButton = styled(TouchableOpacity)`
   position: absolute;
-  bottom: 24px;
-  right: 24px;
-  width: 56px;
-  height: 56px;
-  border-radius: 28px;
+  bottom: ${theme.spacing.xl}px;
+  right: ${theme.spacing.xl}px;
+  width: ${theme.spacing.xl * 2}px;
+  height: ${theme.spacing.xl * 2}px;
+  border-radius: ${theme.spacing.xl}px;
   background-color: ${theme.colors.primary.default};
   align-items: center;
   justify-content: center;
   elevation: 5;
 `;
 
-const ExerciseCard = styled(View)`
-  background-color: white;
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 12px;
-  shadow-color: #000;
+const Card = styled(View)`
+  background-color: ${theme.colors.background.default};
+  border-radius: ${theme.borderRadius.lg}px;
+  padding: ${theme.spacing.md}px;
+  margin-bottom: ${theme.spacing.md}px;
+  shadow-color: ${theme.colors.text.dark};
   shadow-offset: 0px 2px;
   shadow-opacity: 0.1;
   shadow-radius: 3px;
   elevation: 3;
 `;
 
-const ExerciseName = styled(Text)`
-  font-size: 16px;
+const CardTitle = styled(Text)`
+  font-size: ${theme.typography.fontSize.md}px;
   font-weight: 600;
-  color: #1f2937;
-  margin-bottom: 8px;
+  color: ${theme.colors.text.default};
+  margin-bottom: ${theme.spacing.sm}px;
 `;
 
-const SetRow = styled(View)`
+const ListRow = styled(View)`
   flex-direction: row;
   justify-content: space-between;
-  padding: 8px 0;
+  padding: ${theme.spacing.sm}px 0;
   border-bottom-width: 1px;
-  border-bottom-color: #e5e7eb;
+  border-bottom-color: ${theme.colors.border.light};
 `;
 
-const SetText = styled(Text)`
-  font-size: 14px;
-  color: #4b5563;
+const ListText = styled(Text)`
+  font-size: ${theme.typography.fontSize.sm}px;
+  color: ${theme.colors.text.light};
 `;
 
 const ModalHeader = styled(View)`
@@ -127,7 +127,7 @@ const ModalContainer = styled(View)`
   background-color: ${theme.colors.background.default};
 `;
 
-const CloseButton = styled(TouchableOpacity)`
+const IconButton = styled(TouchableOpacity)`
   padding: ${theme.spacing.sm}px;
 `;
 
@@ -258,20 +258,20 @@ const WorkoutScreenComponent: React.FC = () => {
 
       <Content>
         {currentWorkout.exerciseData.map(exerciseData => (
-          <ExerciseCard key={exerciseData.exercise.id}>
-            <ExerciseName>{exerciseData.exercise.name}</ExerciseName>
+          <Card key={exerciseData.exercise.id}>
+            <CardTitle>{exerciseData.exercise.name}</CardTitle>
             {exerciseData.sets.map((set, index) => (
-              <SetRow key={set.id}>
-                <SetText>Set {index + 1}</SetText>
-                <SetText>
+              <ListRow key={set.id}>
+                <ListText>Set {index + 1}</ListText>
+                <ListText>
                   {set.weight ? `${set.weight}kg × ` : ''}
                   {set.reps ? `${set.reps} reps` : ''}
                   {set.duration ? `${formatDuration(set.duration)}` : ''}
                   {set.distance ? `${set.distance}m` : ''}
-                </SetText>
-              </SetRow>
+                </ListText>
+              </ListRow>
             ))}
-          </ExerciseCard>
+          </Card>
         ))}
 
         {currentExercise && <SetInput exercise={currentExercise} onSave={handleSetComplete} />}
@@ -283,17 +283,17 @@ const WorkoutScreenComponent: React.FC = () => {
         </ActionButton>
       </ActionBar>
 
-      <AddExerciseButton onPress={() => setIsModalVisible(true)}>
-        <Plus width={24} height={24} color="white" />
-      </AddExerciseButton>
+      <FloatingActionButton onPress={() => setIsModalVisible(true)}>
+        <Plus width={24} height={24} color={theme.colors.background.default} />
+      </FloatingActionButton>
 
       <Modal visible={isModalVisible} animationType="slide" presentationStyle="pageSheet">
         <ModalContainer>
           <ModalHeader>
             <ModalTitle>Select Exercise</ModalTitle>
-            <CloseButton onPress={() => setIsModalVisible(false)}>
+            <IconButton onPress={() => setIsModalVisible(false)}>
               <X width={24} height={24} color={theme.colors.text.light} />
-            </CloseButton>
+            </IconButton>
           </ModalHeader>
           <ExerciseList
             exercises={[]}
