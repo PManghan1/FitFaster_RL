@@ -168,7 +168,7 @@ const WorkoutScreenComponent: React.FC = () => {
       await startWorkout('user-id', 'New Workout');
       performance.measureApiCall(Promise.resolve(), 'start_workout', { userId: 'user-id' });
     } catch (error) {
-      Alert.alert('Error', 'Failed to start workout');
+      Alert.alert('Error', `Failed to start workout: ${(error as Error).message}`);
     }
   }, [startWorkout, performance]);
 
@@ -178,7 +178,7 @@ const WorkoutScreenComponent: React.FC = () => {
       performance.measureApiCall(Promise.resolve(), 'end_workout');
       navigation.goBack();
     } catch (error) {
-      Alert.alert('Error', 'Failed to end workout');
+      Alert.alert('Error', `Failed to end workout: ${(error as Error).message}`);
     }
   }, [endWorkout, navigation, performance]);
 
@@ -206,7 +206,7 @@ const WorkoutScreenComponent: React.FC = () => {
         });
         startRestTimer(90);
       } catch (error) {
-        Alert.alert('Error', 'Failed to save set');
+        Alert.alert('Error', `Failed to save set: ${(error as Error).message}`);
       }
     },
     [currentExercise, addSet, startRestTimer, performance],
