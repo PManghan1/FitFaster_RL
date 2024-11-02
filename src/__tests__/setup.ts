@@ -1,102 +1,68 @@
 import '@testing-library/jest-native/extend-expect';
-import { View } from 'react-native';
 
-// Mock timers
-jest.useFakeTimers();
-
-// Mock performance API
+// Mock only the performance methods we actually use
 const mockPerformance = {
   now: jest.fn(() => Date.now()),
   mark: jest.fn(),
   measure: jest.fn(),
-  getEntriesByName: jest.fn(),
-  getEntriesByType: jest.fn(),
   clearMarks: jest.fn(),
   clearMeasures: jest.fn(),
-  timeOrigin: Date.now(),
-  toJSON: jest.fn(),
-  eventCounts: {
-    size: 0,
-    [Symbol.iterator]: jest.fn(),
-    entries: jest.fn(),
-    forEach: jest.fn(),
-    get: jest.fn(),
-    has: jest.fn(),
-    keys: jest.fn(),
-    values: jest.fn(),
-  },
-  navigation: {
-    type: 0,
-    redirectCount: 0,
-    timing: {},
-    toJSON: jest.fn(),
-  },
-  onresourcetimingbufferfull: null,
-  timing: {},
-  memory: {},
+  getEntriesByName: jest.fn(() => []),
+  getEntriesByType: jest.fn(() => []),
+  getEntries: jest.fn(() => []),
 };
 
-global.performance = mockPerformance as unknown as Performance;
+// Use type assertion to satisfy TypeScript
+(global as any).performance = mockPerformance;
 
-// Mock Sentry
-jest.mock('@sentry/react-native', () => ({
-  init: jest.fn(),
-  captureException: jest.fn(),
-  addBreadcrumb: jest.fn(),
-}));
-
-// Mock Supabase
-jest.mock('@supabase/supabase-js', () => ({
-  createClient: jest.fn(() => ({
-    auth: {
-      getUser: jest.fn(),
-    },
-    from: jest.fn(() => ({
-      insert: jest.fn(),
-      update: jest.fn(),
-      select: jest.fn(),
-      eq: jest.fn(),
-    })),
-  })),
-}));
-
-// Mock react-native-reanimated
+// Mock the react-native-reanimated module
 jest.mock('react-native-reanimated', () => {
-  const Reanimated = {
-    View,
-    default: {
-      call: jest.fn(),
-    },
-  };
+  const Reanimated = require('react-native-reanimated/mock');
+  Reanimated.default.call = () => {};
   return Reanimated;
 });
 
-// Mock react-native-gesture-handler
-jest.mock('react-native-gesture-handler', () => ({
-  Swipeable: View,
-  DrawerLayout: View,
-  State: {},
-  ScrollView: View,
-  Slider: View,
-  Switch: View,
-  TextInput: View,
-  ToolbarAndroid: View,
-  ViewPagerAndroid: View,
-  DrawerLayoutAndroid: View,
-  WebView: View,
-  NativeViewGestureHandler: View,
-  TapGestureHandler: View,
-  FlingGestureHandler: View,
-  ForceTouchGestureHandler: View,
-  LongPressGestureHandler: View,
-  PanGestureHandler: View,
-  PinchGestureHandler: View,
-  RotationGestureHandler: View,
-  RawButton: View,
-  BaseButton: View,
-  RectButton: View,
-  BorderlessButton: View,
-  FlatList: View,
-  gestureHandlerRootHOC: jest.fn(),
-  Directions: {},
+// Mock the expo-secure-store module
+jest.mock('expo-secure-store', () => ({
+  getItemAsync: jest.fn(),
+  setItemAsync: jest.fn(),
+  deleteItemAsync: jest.fn(),
 }));
+
+// Mock the @sentry/react-native module
+jest.mock('@sentry/react-native', () => ({
+  init: jest.fn(),
+  captureException: jest.fn(),
+  captureMessage: jest.fn(),
+  addBreadcrumb: jest.fn(),
+  setUser: jest.fn(),
+  withScope: jest.fn(),
+}));
+
+// Mock the expo-constants module
+jest.mock('expo-constants', () => ({
+  manifest: {
+    extra: {
+      supabaseUrl: 'mock-url',
+      supabaseAnonKey: 'mock-key',
+    },
+  },
+}));
+
+// Set up global mocks
+(global as any).fetch = jest.fn();
+global.console = {
+  ...console,
+  warn: jest.fn(),
+  error: jest.fn(),
+};
+
+// Reset all mocks before each test
+beforeEach(() => {
+  jest.clearAllMocks();
+});
+
+// Clean up after all tests
+afterAll(() => {
+  jest.resetAllMocks();
+});
