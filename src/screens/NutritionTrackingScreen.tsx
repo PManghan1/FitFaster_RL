@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect } from 'react';
-import { Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, View } from 'react-native';
 import styled from 'styled-components/native';
 
+import { ActionButton, ActionButtonText } from '../components/common/styled';
 import { usePerformanceMonitoring } from '../hooks/usePerformanceMonitoring';
 import { analyticsService } from '../services/analytics';
 import { nutritionService } from '../services/nutrition';
 import { MetricType } from '../services/performance';
-import { NutritionLogEntry } from '../types/nutrition';
 
 const Container = styled(View)`
   flex: 1;
@@ -15,21 +15,7 @@ const Container = styled(View)`
 
 const Content = styled(ScrollView)`
   flex: 1;
-  padding: 16px;
-`;
-
-const ActionButton = styled(TouchableOpacity)`
-  background-color: ${({ theme }) => theme.colors.primary.default};
-  padding: 16px;
-  border-radius: 8px;
-  margin-bottom: 16px;
-`;
-
-const ButtonText = styled(Text)`
-  color: white;
-  text-align: center;
-  font-weight: 700;
-  font-size: 16px;
+  padding: ${({ theme }) => theme.spacing.md}px;
 `;
 
 export const NutritionTrackingScreen: React.FC = () => {
@@ -149,13 +135,13 @@ export const NutritionTrackingScreen: React.FC = () => {
         <ActionButton
           onPress={() => performanceMonitor.measureInteraction('press_log_meal', handleMealLog)}
         >
-          <ButtonText>Log Meal</ButtonText>
+          <ActionButtonText>Log Meal</ActionButtonText>
         </ActionButton>
 
         <ActionButton
           onPress={() => performanceMonitor.measureInteraction('press_scan_food', handleFoodScan)}
         >
-          <ButtonText>Scan Food</ButtonText>
+          <ActionButtonText>Scan Food</ActionButtonText>
         </ActionButton>
 
         <ActionButton
@@ -163,7 +149,7 @@ export const NutritionTrackingScreen: React.FC = () => {
             performanceMonitor.measureInteraction('press_log_supplement', handleSupplementLog)
           }
         >
-          <ButtonText>Log Supplement</ButtonText>
+          <ActionButtonText>Log Supplement</ActionButtonText>
         </ActionButton>
       </Content>
     </Container>

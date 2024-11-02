@@ -2,12 +2,14 @@ import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, DevSettings, Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, DevSettings, Modal, ScrollView, Text, View } from 'react-native';
 import { Plus, X } from 'react-native-feather';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import styled from 'styled-components/native';
 
 import {
+  ActionButton,
+  ActionButtonText,
   Card,
   CardTitle,
   FloatingActionButton,
@@ -55,22 +57,6 @@ const ActionBar = styled(View)`
   background-color: ${theme.colors.background.default};
   border-top-width: 1px;
   border-top-color: ${theme.colors.border.default};
-`;
-
-const ActionButton = styled(TouchableOpacity)`
-  background-color: ${theme.colors.primary.default};
-  padding: ${theme.spacing.md}px;
-  border-radius: ${theme.borderRadius.md}px;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-`;
-
-const ActionButtonText = styled(Text)`
-  color: ${theme.colors.background.default};
-  text-align: center;
-  font-weight: 700;
-  margin-left: ${theme.spacing.sm}px;
 `;
 
 type WorkoutScreenNavigationProp = NativeStackNavigationProp<AppStackParamList, 'Workout'>;

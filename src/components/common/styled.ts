@@ -71,3 +71,20 @@ export const ModalTitle = styled(Text)`
   font-weight: 700;
   color: ${theme.colors.text.default};
 `;
+
+export const ActionButton = styled(TouchableOpacity)`
+  background-color: ${theme.colors.primary.default};
+  padding: ${theme.spacing.md}px;
+  border-radius: ${theme.borderRadius.md}px;
+  margin-bottom: ${theme.spacing.md}px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+`;
+
+export const ActionButtonText = styled(Text)`
+  color: ${theme.colors.background.default};
+  text-align: center;
+  font-weight: 700;
+  font-size: ${theme.typography.fontSize.md}px;
+`;
