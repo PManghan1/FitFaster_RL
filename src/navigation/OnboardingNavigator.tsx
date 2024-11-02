@@ -1,46 +1,39 @@
 import React from 'react';
-import { View } from 'react-native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { styled } from 'nativewind';
-import { WelcomeScreen } from '../screens/onboarding/WelcomeScreen';
-import { OnboardingGoalsScreen } from '../screens/onboarding/OnboardingGoalsScreen';
+import { createStackNavigator } from '@react-navigation/stack';
+import { OnboardingStackParamList } from '../types/onboarding';
 
-const StyledView = styled(View);
+// Import existing screens
+import WelcomeScreen from '../screens/onboarding/WelcomeScreen';
+import OnboardingGoalsScreen from '../screens/onboarding/OnboardingGoalsScreen';
 
-export type OnboardingStackParamList = {
-  Welcome: undefined;
-  OnboardingGoals: undefined;
-  // Add other onboarding screens here as needed
-};
+// Import new screens (we'll create these next)
+import HealthMetricsScreen from '../screens/onboarding/HealthMetricsScreen';
+import FitnessLevelScreen from '../screens/onboarding/FitnessLevelScreen';
+import GoalTimeframesScreen from '../screens/onboarding/GoalTimeframesScreen';
+import UserConsentScreen from '../screens/onboarding/UserConsentScreen';
+import DietaryPreferencesScreen from '../screens/onboarding/DietaryPreferencesScreen';
+import ActivityLevelScreen from '../screens/onboarding/ActivityLevelScreen';
 
-const Stack = createNativeStackNavigator<OnboardingStackParamList>();
+const Stack = createStackNavigator<OnboardingStackParamList>();
 
-export const OnboardingNavigator = () => {
+const OnboardingNavigator: React.FC = () => {
   return (
-    <StyledView className="flex-1" testID="onboarding-navigator">
-      <Stack.Navigator
-        screenOptions={{
-          headerShown: false,
-          gestureEnabled: false, // Prevent back gesture during onboarding
-          animation: 'slide_from_right',
-        }}
-        initialRouteName="Welcome"
-      >
-        <Stack.Screen
-          name="Welcome"
-          component={WelcomeScreen}
-          options={{
-            gestureEnabled: false,
-          }}
-        />
-        <Stack.Screen
-          name="OnboardingGoals"
-          component={OnboardingGoalsScreen}
-          options={{
-            gestureEnabled: false,
-          }}
-        />
-      </Stack.Navigator>
-    </StyledView>
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
+        cardStyle: { backgroundColor: '#ffffff' },
+      }}
+    >
+      <Stack.Screen name="Welcome" component={WelcomeScreen} />
+      <Stack.Screen name="HealthMetrics" component={HealthMetricsScreen} />
+      <Stack.Screen name="FitnessLevel" component={FitnessLevelScreen} />
+      <Stack.Screen name="GoalTimeframes" component={GoalTimeframesScreen} />
+      <Stack.Screen name="UserConsent" component={UserConsentScreen} />
+      <Stack.Screen name="DietaryPreferences" component={DietaryPreferencesScreen} />
+      <Stack.Screen name="ActivityLevel" component={ActivityLevelScreen} />
+      <Stack.Screen name="OnboardingGoals" component={OnboardingGoalsScreen} />
+    </Stack.Navigator>
   );
 };
+
+export default OnboardingNavigator;

@@ -1,146 +1,151 @@
 # FitFaster
 
-A comprehensive fitness tracking application built with React Native, focusing on performance, security, and user experience.
+A comprehensive fitness tracking application built with React Native (Expo), TypeScript, and modern development practices.
 
-## Technical Stack
+## Tech Stack
 
 - **Frontend Framework**: React Native (Expo)
 - **Language**: TypeScript
 - **State Management**: Zustand
-- **Backend/Database**: Supabase
-- **Styling**: NativeWind
+- **Database**: Supabase
+- **Styling**: NativeWind (TailwindCSS)
 - **Navigation**: React Navigation
 - **Testing**: Jest + React Native Testing Library
 
-## Architecture
-
-The project follows a feature-based structure with clean architecture principles:
+## Project Structure
 
 ```
-/src
-  /components      # Reusable UI components
-  /screens         # Screen components
-  /navigation      # Navigation configuration
-  /hooks          # Custom React hooks
-  /services       # API and business logic
-  /store          # State management
-  /types          # TypeScript definitions
-  /utils          # Utility functions
-  /constants      # Constants and configuration
+src/
+├── components/         # Reusable UI components
+│   ├── analytics/     # Analytics-related components
+│   ├── auth/          # Authentication components
+│   ├── common/        # Shared components
+│   ├── nutrition/     # Nutrition tracking components
+│   ├── onboarding/    # Onboarding flow components
+│   └── privacy/       # Privacy-related components
+├── screens/           # Application screens
+│   ├── auth/          # Authentication screens
+│   ├── onboarding/    # Onboarding flow screens
+│   └── ...           # Other main app screens
+├── navigation/        # Navigation configuration
+├── hooks/            # Custom React hooks
+├── services/         # API and business logic
+├── store/            # Zustand state management
+├── types/            # TypeScript type definitions
+├── utils/            # Utility functions
+├── validation/       # Schema validation
+└── __tests__/        # Test files
 ```
 
 ## Features
 
-### Authentication
-- Email-based authentication
-- Social authentication integration
-- Two-factor authentication
-- Secure password recovery
-- Biometric authentication support
+### Enhanced Onboarding Flow
+1. Welcome Screen
+   - Initial app introduction
+   - Basic user information collection
 
-### Nutrition Tracking
-- Meal logging and tracking
-- Barcode scanner for food items
-- Portion size selection
-- Nutritional information display
-- Daily nutrition summaries
+2. Health Metrics Screen
+   - Height, weight, age collection
+   - Gender selection
+   - Medical conditions (optional)
+   - Medications (optional)
 
-### Workout Management
-- Exercise library
-- Workout timer
-- Set and rep tracking
-- Exercise selection interface
-- Workout history
+3. Fitness Level Screen
+   - Experience level assessment
+   - Weekly activity frequency
+   - Typical exercises selection
+   - Preferred workout times
 
-### Progress Tracking
-- Progress visualization
-- Performance metrics
-- Data analytics
+4. Goal Timeframes Screen
+   - Primary fitness goal selection
+   - Target date setting
+   - Weekly commitment hours
+   - Milestone creation
 
-### Privacy & Security
-- Data sensitivity indicators
-- Privacy consent management
-- Secure input handling
-- Security badges
-- Privacy notices
+5. User Consent Screen
+   - Health data collection consent
+   - Third-party sharing preferences
+   - Marketing communications opt-in
+   - Terms and privacy policy acceptance
 
-## Setup & Installation
+6. Dietary Preferences Screen
+   - Diet type selection
+   - Food allergies and restrictions
+   - Meal frequency preferences
+   - Supplement usage tracking
+   - Meal preparation style
 
-1. Clone the repository
+7. Activity Level Screen
+   - Daily activity assessment
+   - Occupation type
+   - Transportation mode
+   - Weekend activity patterns
+
+### Core Features (In Development)
+- Nutrition tracking with barcode scanning
+- Workout logging and progress tracking
+- Supplement intake management
+- Analytics and progress visualization
+- Offline support
+- Social sharing capabilities
+
+## Getting Started
+
+1. Clone the repository:
+```bash
+git clone [repository-url]
+cd fitfaster
+```
+
 2. Install dependencies:
 ```bash
 npm install
 ```
-3. Copy `.env.example` to `.env` and configure environment variables
-4. Start the development server:
+
+3. Start the development server:
 ```bash
 npm start
 ```
 
-## Development
-
-### Type Safety
-- Strict TypeScript configuration
-- No 'any' types allowed
-- Branded types for type-safe identifiers
-
-### Testing
-- Unit tests with Jest
-- Integration tests
-- E2E tests with Detox
-- Performance testing
-
-### Performance Optimization
-- Performance monitoring hooks
-- API performance tracking
-- State management optimization
-- Error boundaries implementation
-
-### Code Quality
-- ESLint configuration
-- Prettier formatting
-- Strict type checking
-- Error handling patterns
-
-## Security Features
-
-- Two-factor authentication
-- Biometric authentication
-- Secure data storage
-- Privacy-first approach
-- Data sensitivity management
-
-## Testing
-
-Run tests using:
-
+4. Run on your preferred platform:
 ```bash
-# Unit and integration tests
-npm test
+# iOS
+npm run ios
 
-# E2E tests
-npm run e2e
+# Android
+npm run android
 
-# Performance tests
-npm run test:perf
+# Web
+npm run web
 ```
 
-## Error Handling
+## Development Guidelines
 
-The application implements comprehensive error handling:
-- Global error boundaries
-- Component-level error fallbacks
-- Service-level error management
-- Type-safe error handling
+### Code Style
+- Follow TypeScript best practices
+- Use functional components
+- Implement proper error handling
+- Write comprehensive tests
+- Use proper type definitions (no 'any' types)
 
-## Performance Monitoring
+### Testing
+- Unit tests for components and utilities
+- Integration tests for critical paths
+- E2E tests for main user flows
+- Run tests: `npm test`
 
-Built-in performance monitoring includes:
-- API call tracking
-- State updates monitoring
-- Performance metrics collection
-- Optimization suggestions
+### State Management
+- Use Zustand for global state
+- Implement proper state persistence
+- Handle offline scenarios
+
+## Contributing
+
+1. Create a feature branch
+2. Implement changes with tests
+3. Submit a pull request
+4. Ensure CI passes
 
 ## License
 
-See [LICENSE](LICENSE) file for details.
+[License details here]

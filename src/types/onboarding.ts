@@ -1,60 +1,91 @@
-export type UnitSystem = 'metric' | 'imperial';
+import { z } from 'zod';
 
-export type Gender = 'male' | 'female' | 'non_binary' | 'prefer_not_to_say' | 'other';
+// Health Metrics Schema
+export const healthMetricsSchema = z.object({
+  height: z.number().min(100).max(300), // cm
+  weight: z.number().min(30).max(300), // kg
+  age: z.number().min(13).max(120),
+  gender: z.enum(['male', 'female', 'other', 'prefer_not_to_say']),
+  medicalConditions: z.array(z.string()).optional(),
+  medications: z.array(z.string()).optional(),
+});
 
-export interface BasicUserInfo {
-  name: string;
-  age: number;
-  gender: Gender;
-  height: number;
-  weight: number;
-  unitSystem: UnitSystem;
-}
+// Fitness Level Schema
+export const fitnessLevelSchema = z.object({
+  experienceLevel: z.enum(['beginner', 'intermediate', 'advanced']),
+  weeklyActivityFrequency: z.number().min(0).max(7),
+  typicalExercises: z.array(z.string()),
+  injuryHistory: z.array(z.string()).optional(),
+  preferredWorkoutTime: z.enum(['morning', 'afternoon', 'evening', 'flexible']),
+});
 
-export interface OnboardingState {
-  currentStep: number;
-  totalSteps: number;
-  basicInfo?: BasicUserInfo;
-  isCompleted: boolean;
-}
+// Goal Timeframes Schema
+export const goalTimeframesSchema = z.object({
+  primaryGoal: z.enum(['weight_loss', 'muscle_gain', 'maintenance', 'general_fitness']),
+  targetDate: z.date(),
+  weeklyCommitmentHours: z.number().min(1).max(30),
+  milestones: z.array(
+    z.object({
+      description: z.string(),
+      targetDate: z.date(),
+    })
+  ),
+});
 
-// Validation ranges
-export const VALIDATION_RANGES = {
-  age: {
-    min: 13,
-    max: 120,
-  },
-  height: {
-    metric: {
-      min: 100, // cm
-      max: 250,
-    },
-    imperial: {
-      min: 39, // inches
-      max: 98,
-    },
-  },
-  weight: {
-    metric: {
-      min: 30, // kg
-      max: 300,
-    },
-    imperial: {
-      min: 66, // lbs
-      max: 660,
-    },
-  },
-} as const;
+// User Consent Schema
+export const userConsentSchema = z.object({
+  healthDataCollection: z.boolean(),
+  thirdPartySharing: z.boolean(),
+  marketingCommunications: z.boolean(),
+  termsAccepted: z.boolean(),
+  privacyPolicyAccepted: z.boolean(),
+  dataRetentionAcknowledged: z.boolean(),
+});
 
-export const GENDER_OPTIONS: { label: string; value: Gender }[] = [
-  { label: 'Male', value: 'male' },
-  { label: 'Female', value: 'female' },
-  { label: 'Non-binary', value: 'non_binary' },
-  { label: 'Prefer not to say', value: 'prefer_not_to_say' },
-  { label: 'Other', value: 'other' },
-];
+// Dietary Preferences Schema
+export const dietaryPreferencesSchema = z.object({
+  dietType: z.enum(['omnivore', 'vegetarian', 'vegan', 'pescatarian', 'keto', 'paleo']),
+  allergies: z.array(z.string()),
+  restrictions: z.array(z.string()),
+  preferredMeals: z.number().min(1).max(6),
+  supplementUse: z.boolean(),
+  mealPrepPreference: z.enum(['meal_prep', 'daily_cooking', 'mixed']),
+});
 
-export const UNIT_SYSTEM_OPTIONS: { label: string; value: UnitSystem }[] = [
-  { label: 'Metric (kg, cm)', value: 'metric' },
-  { label: 'Imperial (lbs, ft/in)', value: 'imperial' },
-];
+// Activity Level Schema
+export const activityLevelSchema = z.object({
+  dailyActivityLevel: z.enum(['sedentary', 'lightly_active', 'moderately_active', 'very_active']),
+  occupation: z.enum(['desk_job', 'light_physical', 'heavy_physical', 'other']),
+  transportationMode: z.enum(['car', 'public_transport', 'bicycle', 'walking', 'mixed']),
+  weekendActivityLevel: z.enum(['less_active', 'same_as_weekday', 'more_active']),
+});
+
+// Type definitions
+export type HealthMetrics = z.infer<typeof healthMetricsSchema>;
+export type FitnessLevel = z.infer<typeof fitnessLevelSchema>;
+export type GoalTimeframes = z.infer<typeof goalTimeframesSchema>;
+export type UserConsent = z.infer<typeof userConsentSchema>;
+export type DietaryPreferences = z.infer<typeof dietaryPreferencesSchema>;
+export type ActivityLevel = z.infer<typeof activityLevelSchema>;
+
+// Combined Onboarding Data
+export type OnboardingData = {
+  healthMetrics: HealthMetrics;
+  fitnessLevel: FitnessLevel;
+  goalTimeframes: GoalTimeframes;
+  userConsent: UserConsent;
+  dietaryPreferences: DietaryPreferences;
+  activityLevel: ActivityLevel;
+};
+
+// Navigation types
+export type OnboardingStackParamList = {
+  Welcome: undefined;
+  HealthMetrics: undefined;
+  FitnessLevel: undefined;
+  GoalTimeframes: undefined;
+  UserConsent: undefined;
+  DietaryPreferences: undefined;
+  ActivityLevel: undefined;
+  OnboardingGoals: undefined;
+};
