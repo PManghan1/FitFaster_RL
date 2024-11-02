@@ -1,248 +1,152 @@
-import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { StatusBar } from 'expo-status-bar';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Alert, DevSettings, Modal, ScrollView, Text, View } from 'react-native';
-import { Plus, X } from 'react-native-feather';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Alert, ScrollView, View } from 'react-native';
 import styled from 'styled-components/native';
 
-import {
-  ActionButton,
-  ActionButtonText,
-  Card,
-  CardTitle,
-  FloatingActionButton,
-  IconButton,
-  ListRow,
-  ListText,
-  ModalContainer,
-  ModalHeader,
-  ModalTitle,
-} from '../components/common/styled';
-import { withErrorBoundary } from '../components/hoc/withErrorBoundary';
-import { ExerciseList, SetInput, WorkoutErrorFallback, WorkoutTimer } from '../components/workout';
+import { ExerciseList } from '../components/workout/ExerciseList';
+import { ExerciseSelectionSheet } from '../components/workout/ExerciseSelectionSheet';
+import { SetInput } from '../components/workout/SetInput';
+import { WorkoutTimer } from '../components/workout/WorkoutTimer';
 import { usePerformanceMonitoring } from '../hooks/usePerformanceMonitoring';
-import { AppStackParamList } from '../navigation/AppNavigator';
+import { analyticsService } from '../services/analytics';
+import { workoutService } from '../services/workout';
 import { useWorkoutStore } from '../store/workout.store';
-import { theme } from '../theme';
-import { Exercise, MuscleGroup, Set as WorkoutSet } from '../types/workout';
-import { formatDuration } from '../utils/time';
+import { Exercise, Set } from '../types/workout';
 
-const Container = styled(SafeAreaView)`
+const Container = styled(View)`
   flex: 1;
-  background-color: ${theme.colors.background.light};
-`;
-
-const Header = styled(View)`
-  padding: ${theme.spacing.md}px;
-  background-color: ${theme.colors.background.default};
-  border-bottom-width: 1px;
-  border-bottom-color: ${theme.colors.border.default};
-`;
-
-const HeaderText = styled(Text)`
-  font-size: ${theme.typography.fontSize.lg}px;
-  font-weight: 700;
-  color: ${theme.colors.text.default};
+  background-color: ${({ theme }) => theme.colors.background.light};
 `;
 
 const Content = styled(ScrollView)`
   flex: 1;
-  padding: ${theme.spacing.md}px;
+  padding: ${({ theme }) => theme.spacing.md}px;
 `;
 
-const ActionBar = styled(View)`
-  padding: ${theme.spacing.md}px;
-  background-color: ${theme.colors.background.default};
-  border-top-width: 1px;
-  border-top-color: ${theme.colors.border.default};
-`;
+export const WorkoutScreen: React.FC = () => {
+  const { currentWorkout, currentExercise, selectExercise, addSet } = useWorkoutStore();
+  const [showExerciseSheet, setShowExerciseSheet] = useState(false);
 
-type WorkoutScreenNavigationProp = NativeStackNavigationProp<AppStackParamList, 'Workout'>;
-type WorkoutScreenRouteProp = RouteProp<AppStackParamList, 'Workout'>;
-
-type WorkoutSetInput = Omit<WorkoutSet, 'id' | 'exerciseId' | 'completed'>;
-
-const WorkoutScreenComponent: React.FC = () => {
-  const navigation = useNavigation<WorkoutScreenNavigationProp>();
-  const route = useRoute<WorkoutScreenRouteProp>();
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [selectedMuscleGroups, setSelectedMuscleGroups] = useState<MuscleGroup[]>([]);
-
-  const {
-    currentWorkout,
-    currentExercise,
-    restTimer,
-    isActive,
-    startWorkout,
-    endWorkout,
-    selectExercise,
-    addSet,
-    startRestTimer,
-    stopRestTimer,
-  } = useWorkoutStore();
-
-  const performance = usePerformanceMonitoring({
+  const performanceMonitor = usePerformanceMonitoring({
     screenName: 'WorkoutScreen',
     componentName: 'WorkoutScreen',
     enableRenderTracking: true,
   });
 
   useEffect(() => {
-    if (route.params?.selectedExercise) {
-      performance.measureInteraction('select_exercise', () => {
-        if (route.params?.selectedExercise) {
-          selectExercise(route.params.selectedExercise);
-          navigation.setParams({ selectedExercise: undefined });
-        }
+    performanceMonitor.measureInteraction('screen_load', () => {
+      analyticsService.trackScreenView('Workout', {
+        workoutId: currentWorkout?.id,
+        exerciseCount: currentWorkout?.exerciseData.length,
       });
-    }
-  }, [route.params?.selectedExercise, selectExercise, navigation, performance]);
-
-  const handleStartWorkout = useCallback(async () => {
-    try {
-      await startWorkout('user-id', 'New Workout');
-      performance.measureApiCall(Promise.resolve(), 'start_workout', { userId: 'user-id' });
-    } catch (error) {
-      Alert.alert('Error', `Failed to start workout: ${(error as Error).message}`);
-    }
-  }, [startWorkout, performance]);
-
-  const handleEndWorkout = useCallback(async () => {
-    try {
-      await endWorkout();
-      performance.measureApiCall(Promise.resolve(), 'end_workout');
-      navigation.goBack();
-    } catch (error) {
-      Alert.alert('Error', `Failed to end workout: ${(error as Error).message}`);
-    }
-  }, [endWorkout, navigation, performance]);
+    });
+  }, [currentWorkout?.id, currentWorkout?.exerciseData.length, performanceMonitor]);
 
   const handleExerciseSelect = useCallback(
-    (exercise: Exercise) => {
-      performance.measureInteraction('select_exercise_from_list', () => {
-        selectExercise(exercise);
-        setIsModalVisible(false);
-      });
-    },
-    [selectExercise, performance],
-  );
-
-  const handleSetComplete = useCallback(
-    async (setData: WorkoutSetInput) => {
-      if (!currentExercise) return;
+    async (exercise: Exercise) => {
+      if (!currentWorkout) return;
 
       try {
-        await addSet(currentExercise.id, {
-          ...setData,
-          completed: false,
+        await performanceMonitor.measureApiCall(
+          workoutService.addExercise(currentWorkout.id, exercise),
+          'add_exercise',
+        );
+
+        selectExercise(exercise);
+
+        analyticsService.trackWorkout('add_exercise', {
+          exerciseId: exercise.id,
+          exerciseName: exercise.name,
+          workoutId: currentWorkout.id,
         });
-        performance.measureApiCall(Promise.resolve(), 'add_set', {
-          exerciseId: currentExercise.id,
-        });
-        startRestTimer(90);
+
+        setShowExerciseSheet(false);
       } catch (error) {
-        Alert.alert('Error', `Failed to save set: ${(error as Error).message}`);
+        analyticsService.trackError(error as Error, {
+          operation: 'add_exercise',
+          screen: 'Workout',
+        });
+        Alert.alert('Error', 'Failed to add exercise');
       }
     },
-    [currentExercise, addSet, startRestTimer, performance],
+    [currentWorkout, performanceMonitor, selectExercise],
   );
 
-  const handleRestComplete = useCallback(() => {
-    performance.measureInteraction('complete_rest', () => {
-      stopRestTimer();
-    });
-  }, [stopRestTimer, performance]);
+  const handleSetSave = useCallback(
+    (setData: Omit<Set, 'id' | 'exerciseId' | 'completed'>) => {
+      if (!currentWorkout || !currentExercise) return;
 
-  if (!currentWorkout || !isActive) {
+      try {
+        workoutService
+          .addSet(currentWorkout.id, currentExercise.id, {
+            ...setData,
+            exerciseId: currentExercise.id,
+            completed: true,
+          })
+          .then(() => {
+            addSet(currentExercise.id, {
+              ...setData,
+              completed: true,
+            });
+
+            analyticsService.trackWorkout('add_set', {
+              sessionId: currentWorkout.id,
+              exerciseId: currentExercise.id,
+              weight: setData.weight,
+              reps: setData.reps,
+            });
+          })
+          .catch(error => {
+            analyticsService.trackError(error as Error, {
+              operation: 'add_set',
+              screen: 'Workout',
+            });
+            Alert.alert('Error', 'Failed to save set');
+          });
+      } catch (error) {
+        analyticsService.trackError(error as Error, {
+          operation: 'add_set',
+          screen: 'Workout',
+        });
+        Alert.alert('Error', 'Failed to save set');
+      }
+    },
+    [currentWorkout, currentExercise, addSet],
+  );
+
+  const exercises = currentWorkout?.exerciseData.map(data => data.exercise) || [];
+
+  if (currentExercise && currentExercise.type === 'STRENGTH') {
     return (
       <Container>
-        <StatusBar style="dark" />
-        <ActionBar>
-          <ActionButton onPress={handleStartWorkout}>
-            <ActionButtonText>Start Workout</ActionButtonText>
-          </ActionButton>
-        </ActionBar>
+        <Content>
+          <WorkoutTimer />
+          <ExerciseList
+            exercises={exercises}
+            onSelectExercise={handleExerciseSelect}
+            onAddExercise={() => setShowExerciseSheet(true)}
+            testID="workout-exercise-list"
+          />
+          <SetInput exercise={currentExercise} onSave={handleSetSave} testID="workout-set-input" />
+        </Content>
+        {showExerciseSheet && (
+          <ExerciseSelectionSheet onClose={() => setShowExerciseSheet(false)} />
+        )}
       </Container>
     );
   }
 
   return (
     <Container>
-      <StatusBar style="dark" />
-
-      <Header>
-        <HeaderText>{currentWorkout.name || 'Current Workout'}</HeaderText>
-        {restTimer !== null && (
-          <WorkoutTimer
-            initialTime={restTimer}
-            onComplete={handleRestComplete}
-            presets={[30, 60, 90, 120]}
-            label="Rest Timer"
-          />
-        )}
-      </Header>
-
       <Content>
-        {currentWorkout.exerciseData.map(exerciseData => (
-          <Card key={exerciseData.exercise.id}>
-            <CardTitle>{exerciseData.exercise.name}</CardTitle>
-            {exerciseData.sets.map((set, index) => (
-              <ListRow key={set.id}>
-                <ListText>Set {index + 1}</ListText>
-                <ListText>
-                  {set.weight ? `${set.weight}kg × ` : ''}
-                  {set.reps ? `${set.reps} reps` : ''}
-                  {set.duration ? `${formatDuration(set.duration)}` : ''}
-                  {set.distance ? `${set.distance}m` : ''}
-                </ListText>
-              </ListRow>
-            ))}
-          </Card>
-        ))}
-
-        {currentExercise && <SetInput exercise={currentExercise} onSave={handleSetComplete} />}
+        <WorkoutTimer />
+        <ExerciseList
+          exercises={exercises}
+          onSelectExercise={handleExerciseSelect}
+          onAddExercise={() => setShowExerciseSheet(true)}
+          testID="workout-exercise-list"
+        />
       </Content>
-
-      <ActionBar>
-        <ActionButton onPress={handleEndWorkout}>
-          <ActionButtonText>End Workout</ActionButtonText>
-        </ActionButton>
-      </ActionBar>
-
-      <FloatingActionButton onPress={() => setIsModalVisible(true)}>
-        <Plus width={24} height={24} color={theme.colors.background.default} />
-      </FloatingActionButton>
-
-      <Modal visible={isModalVisible} animationType="slide" presentationStyle="pageSheet">
-        <ModalContainer>
-          <ModalHeader>
-            <ModalTitle>Select Exercise</ModalTitle>
-            <IconButton onPress={() => setIsModalVisible(false)}>
-              <X width={24} height={24} color={theme.colors.text.light} />
-            </IconButton>
-          </ModalHeader>
-          <ExerciseList
-            exercises={[]}
-            onSelectExercise={handleExerciseSelect}
-            selectedMuscleGroups={new Set(selectedMuscleGroups)}
-            onFilterChange={groups => setSelectedMuscleGroups(Array.from(groups))}
-          />
-        </ModalContainer>
-      </Modal>
+      {showExerciseSheet && <ExerciseSelectionSheet onClose={() => setShowExerciseSheet(false)} />}
     </Container>
   );
 };
-
-export const WorkoutScreen = withErrorBoundary(WorkoutScreenComponent, {
-  fallback: (
-    <WorkoutErrorFallback
-      onRetry={() => {
-        if (__DEV__) {
-          DevSettings.reload();
-        }
-      }}
-    />
-  ),
-});

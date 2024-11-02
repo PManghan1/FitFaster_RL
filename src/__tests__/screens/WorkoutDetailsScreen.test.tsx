@@ -1,11 +1,16 @@
-import { fireEvent, render } from '@testing-library/react-native';
+import { render } from '@testing-library/react-native';
 import React from 'react';
 
 import { WorkoutDetailsScreen } from '../../screens/WorkoutDetailsScreen';
-import { useWorkoutDetails } from '../../store/workout.store';
-import { mockSet, mockWorkout } from '../utils/test-data';
+import type { WorkoutSession } from '../../types/workout';
+import { mockWorkout } from '../utils/test-data';
 
-jest.mock('../../store/workout.store');
+// Mock the entire module
+jest.mock('../../store/workout.store', () => ({
+  useWorkoutDetails: jest.fn(),
+}));
+
+// Mock navigation
 jest.mock('@react-navigation/native', () => ({
   useRoute: () => ({
     params: { workoutId: '1' },
@@ -15,19 +20,22 @@ jest.mock('@react-navigation/native', () => ({
   }),
 }));
 
+// Import the mocked module
+const workoutStore = jest.requireMock('../../store/workout.store');
+
 describe('WorkoutDetailsScreen', () => {
   const defaultMockStore = {
     workout: mockWorkout,
     loading: false,
     error: null,
-    updateSet: jest.fn(),
-    addSet: jest.fn(),
-    removeSet: jest.fn(),
+    loadWorkout: jest.fn(async (workoutId: string) => {
+      // Mock implementation
+    }),
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (useWorkoutDetails as jest.Mock).mockReturnValue(defaultMockStore);
+    workoutStore.useWorkoutDetails.mockReturnValue(defaultMockStore);
   });
 
   describe('Rendering States', () => {
@@ -40,7 +48,7 @@ describe('WorkoutDetailsScreen', () => {
     });
 
     it('should display loading indicator when loading', () => {
-      (useWorkoutDetails as jest.Mock).mockReturnValue({
+      workoutStore.useWorkoutDetails.mockReturnValue({
         ...defaultMockStore,
         workout: null,
         loading: true,
@@ -52,7 +60,7 @@ describe('WorkoutDetailsScreen', () => {
 
     it('should display error message when error occurs', () => {
       const errorMessage = 'Failed to load workout';
-      (useWorkoutDetails as jest.Mock).mockReturnValue({
+      workoutStore.useWorkoutDetails.mockReturnValue({
         ...defaultMockStore,
         workout: null,
         error: errorMessage,
@@ -63,50 +71,31 @@ describe('WorkoutDetailsScreen', () => {
     });
   });
 
-  describe('Set Management', () => {
-    it('should handle set completion toggle', () => {
-      const mockUpdateSet = jest.fn();
-      (useWorkoutDetails as jest.Mock).mockReturnValue({
+  describe('Workout Loading', () => {
+    it('should load workout on mount', () => {
+      const mockLoadWorkout = jest.fn();
+      workoutStore.useWorkoutDetails.mockReturnValue({
         ...defaultMockStore,
-        updateSet: mockUpdateSet,
+        loadWorkout: mockLoadWorkout,
       });
 
-      const { getByTestId } = render(<WorkoutDetailsScreen />);
-      const setCheckbox = getByTestId('set-1-checkbox');
-
-      fireEvent.press(setCheckbox);
-      expect(mockUpdateSet).toHaveBeenCalledWith({
-        ...mockSet,
-        completed: true,
-      });
+      render(<WorkoutDetailsScreen />);
+      expect(mockLoadWorkout).toHaveBeenCalledWith('1');
     });
 
-    it('should handle adding new sets', () => {
-      const mockAddSet = jest.fn();
-      (useWorkoutDetails as jest.Mock).mockReturnValue({
+    it('should handle workout updates', () => {
+      const updatedWorkout: WorkoutSession = {
+        ...mockWorkout,
+        name: 'Updated Workout',
+      };
+
+      workoutStore.useWorkoutDetails.mockReturnValue({
         ...defaultMockStore,
-        addSet: mockAddSet,
+        workout: updatedWorkout,
       });
 
-      const { getByTestId } = render(<WorkoutDetailsScreen />);
-      const addSetButton = getByTestId('add-set-button');
-
-      fireEvent.press(addSetButton);
-      expect(mockAddSet).toHaveBeenCalled();
-    });
-
-    it('should handle removing sets', () => {
-      const mockRemoveSet = jest.fn();
-      (useWorkoutDetails as jest.Mock).mockReturnValue({
-        ...defaultMockStore,
-        removeSet: mockRemoveSet,
-      });
-
-      const { getByTestId } = render(<WorkoutDetailsScreen />);
-      const removeSetButton = getByTestId('remove-set-1-button');
-
-      fireEvent.press(removeSetButton);
-      expect(mockRemoveSet).toHaveBeenCalledWith(mockSet.id);
+      const { getByText } = render(<WorkoutDetailsScreen />);
+      expect(getByText('Updated Workout')).toBeTruthy();
     });
   });
 });

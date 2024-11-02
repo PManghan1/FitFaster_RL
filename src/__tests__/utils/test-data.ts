@@ -1,4 +1,4 @@
-import { Exercise, Set, Workout } from '../../types/workout';
+import type { Exercise, ExerciseWithSets, Set, WorkoutSession } from '../../types/workout';
 
 export const mockExercise: Exercise = {
   id: '1',
@@ -18,11 +18,20 @@ export const mockSet: Set = {
   completed: false,
 };
 
-export const mockWorkout: Workout = {
-  id: '1',
-  name: 'Monday Workout',
-  exercises: [mockExercise],
+export const mockExerciseWithSets: ExerciseWithSets = {
+  exercise: mockExercise,
   sets: [mockSet],
+};
+
+export const mockWorkout: WorkoutSession = {
+  id: '1',
+  userId: 'user-1',
+  name: 'Monday Workout',
+  exerciseData: [mockExerciseWithSets],
+  date: new Date().toISOString(),
+  duration: 3600, // 1 hour in seconds
+  totalSets: 1,
+  totalVolume: 1000,
   createdAt: new Date().toISOString(),
 };
 

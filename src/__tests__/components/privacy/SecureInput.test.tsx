@@ -133,7 +133,7 @@ describe('SecureInput', () => {
 
     fireEvent(input, 'focus');
     // Check for focused styles
-    expect(input.parent.props.style).toContainEqual(
+    expect(input.parent?.props.style).toContainEqual(
       expect.objectContaining({
         borderColor: '#3B82F6',
       }),
@@ -141,7 +141,7 @@ describe('SecureInput', () => {
 
     fireEvent(input, 'blur');
     // Check for unfocused styles
-    expect(input.parent.props.style).toContainEqual(
+    expect(input.parent?.props.style).toContainEqual(
       expect.objectContaining({
         borderColor: '#D1D5DB',
       }),
@@ -183,7 +183,7 @@ describe('SecureInput', () => {
     fireEvent.changeText(input, 'test');
 
     expect(getByText('Minimum 5 characters required')).toBeTruthy();
-    expect(input.parent.props.style).toContainEqual(
+    expect(input.parent?.props.style).toContainEqual(
       expect.objectContaining({
         borderColor: '#EF4444',
       }),

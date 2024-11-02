@@ -13,7 +13,7 @@ interface BarcodeScannerProps {
 const BarcodeScannerComponent: React.FC<BarcodeScannerProps> = ({ onScanSuccess }) => {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [scanned, setScanned] = useState<boolean>(false);
-  const addFoodItem = useNutritionStore(state => state.addFoodItem);
+  const { addMeal, setLoading, setError } = useNutritionStore();
 
   useEffect(() => {
     const getBarCodeScannerPermissions = async () => {
@@ -26,21 +26,26 @@ const BarcodeScannerComponent: React.FC<BarcodeScannerProps> = ({ onScanSuccess 
 
   const handleBarCodeScanned = async ({ data }: { type: string; data: string }) => {
     setScanned(true);
+    setLoading(true);
     try {
-      const foodItem = await nutritionService.fetchFoodItemByBarcode(data);
-      if (foodItem) {
-        addFoodItem(foodItem);
-        Alert.alert('Success', `${foodItem.name} added to your meal.`);
-        onScanSuccess();
-      } else {
-        Alert.alert(
-          'Item Not Found',
-          'The scanned barcode was not found. Please enter the food item manually.',
-        );
-      }
+      await nutritionService.scanFood(data);
+      const timestamp = new Date().toISOString();
+      addMeal({
+        id: Date.now().toString(),
+        userId: 'current-user', // This will be set by the service
+        type: 'meal',
+        name: 'Scanned Food Item',
+        timestamp,
+        createdAt: timestamp,
+      });
+      Alert.alert('Success', 'Food item added to your meal.');
+      onScanSuccess();
     } catch (error) {
       console.error('Barcode scanning error:', error);
+      setError('An error occurred while scanning the barcode. Please try again.');
       Alert.alert('Error', 'An error occurred while scanning the barcode. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 

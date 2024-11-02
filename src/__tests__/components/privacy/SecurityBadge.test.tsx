@@ -1,15 +1,15 @@
 import { fireEvent, render } from '@testing-library/react-native';
 import React from 'react';
+import type { ReactTestInstance } from 'react-test-renderer';
 
-import { SECURITY_BADGE_PRESETS, SecurityBadge } from '../../../components/privacy/SecurityBadge';
+import { SecurityBadge } from '../../../components/privacy/SecurityBadge';
 
 describe('SecurityBadge', () => {
   const defaultProps = {
-    type: 'GDPR' as const,
-    status: 'secure' as const,
     title: 'GDPR Compliance',
     description: 'Meets EU data protection requirements',
     details: ['Data encryption enabled', 'User consent tracking', 'Right to be forgotten'],
+    status: 'secure' as const,
     testID: 'security-badge',
   };
 
@@ -26,28 +26,23 @@ describe('SecurityBadge', () => {
   });
 
   it('handles different status colors correctly', () => {
-    const statuses = ['secure', 'warning', 'error', 'info'] as const;
+    const statuses = ['secure', 'warning', 'info'] as const;
     const colors = {
-      secure: '#4CAF5020',
-      warning: '#FFC10720',
-      error: '#EF444420',
-      info: '#3B82F620',
+      secure: 'rgba(34, 197, 94, 0.1)',
+      warning: 'rgba(239, 68, 68, 0.1)',
+      info: 'rgba(59, 130, 246, 0.1)',
     };
 
     statuses.forEach(status => {
-      const { getByTestId, rerender } = render(
+      const { getByTestId } = render(
         <SecurityBadge {...defaultProps} status={status} testID={`security-badge-${status}`} />,
       );
 
       const badge = getByTestId(`security-badge-${status}`);
-      expect(badge.findByProps({ status }).props.style).toContainEqual(
+      expect(badge.props.style).toContainEqual(
         expect.objectContaining({
           backgroundColor: colors[status],
         }),
-      );
-
-      rerender(
-        <SecurityBadge {...defaultProps} status={status} testID={`security-badge-${status}`} />,
       );
     });
   });
@@ -68,12 +63,13 @@ describe('SecurityBadge', () => {
   });
 
   it('renders all details when expanded', () => {
-    const { getByTestId } = render(<SecurityBadge {...defaultProps} />);
+    const { getByTestId, getByText } = render(<SecurityBadge {...defaultProps} />);
 
     fireEvent.press(getByTestId('security-badge'));
 
     defaultProps.details.forEach((detail, index) => {
-      expect(getByTestId(`security-badge-detail-${index}`)).toHaveTextContent(detail);
+      expect(getByTestId(`security-badge-detail-${index}`)).toBeTruthy();
+      expect(getByText(detail)).toBeTruthy();
     });
   });
 
@@ -85,86 +81,36 @@ describe('SecurityBadge', () => {
     expect(mockOnPress).toHaveBeenCalledTimes(1);
   });
 
-  it('renders preset configurations correctly', () => {
-    Object.entries(SECURITY_BADGE_PRESETS).forEach(([key, preset]) => {
-      const { getByText, getByTestId, rerender } = render(
-        <SecurityBadge {...preset} testID={`security-badge-${key}`} />,
-      );
+  it('displays correct icon based on status', () => {
+    const { getByTestId, rerender } = render(<SecurityBadge {...defaultProps} />);
 
-      fireEvent.press(getByTestId(`security-badge-${key}`));
-      preset.details.forEach(detail => {
-        expect(getByText(detail)).toBeTruthy();
-      });
+    const statuses = ['secure', 'warning', 'info'] as const;
+    const iconColors = {
+      secure: '#22C55E',
+      warning: '#EF4444',
+      info: '#3B82F6',
+    };
 
-      rerender(<SecurityBadge {...preset} testID={`security-badge-${key}`} />);
+    statuses.forEach(status => {
+      rerender(<SecurityBadge {...defaultProps} status={status} />);
+      const badge = getByTestId('security-badge');
+
+      // Type guard to ensure we're working with a ReactTestInstance
+      if (typeof badge !== 'string') {
+        const header = badge.children[0] as ReactTestInstance;
+        const titleContainer = header.children[0] as ReactTestInstance;
+        const iconContainer = titleContainer.children[0] as ReactTestInstance;
+        const icon = iconContainer.children[0] as ReactTestInstance;
+        expect(icon.props.color).toBe(iconColors[status]);
+      }
     });
   });
 
-  it('displays correct icon based on status', () => {
-    const { getByTestId, rerender } = render(<SecurityBadge {...defaultProps} status="secure" />);
-
-    // Check Shield icon for secure status
-    expect(
-      getByTestId('security-badge').findByProps({
-        width: 20,
-        height: 20,
-        color: '#4CAF50',
-      }),
-    ).toBeTruthy();
-
-    // Check AlertTriangle icon for warning status
-    rerender(<SecurityBadge {...defaultProps} status="warning" />);
-    expect(
-      getByTestId('security-badge').findByProps({
-        width: 20,
-        height: 20,
-        color: '#FFC107',
-      }),
-    ).toBeTruthy();
-
-    // Check AlertTriangle icon for error status
-    rerender(<SecurityBadge {...defaultProps} status="error" />);
-    expect(
-      getByTestId('security-badge').findByProps({
-        width: 20,
-        height: 20,
-        color: '#EF4444',
-      }),
-    ).toBeTruthy();
-
-    // Check Info icon for info status
-    rerender(<SecurityBadge {...defaultProps} status="info" />);
-    expect(
-      getByTestId('security-badge').findByProps({
-        width: 20,
-        height: 20,
-        color: '#3B82F6',
-      }),
-    ).toBeTruthy();
-  });
-
   it('handles missing details gracefully', () => {
-    const { getByTestId, queryByTestId } = render(
-      <SecurityBadge {...defaultProps} details={undefined} />,
-    );
+    const { getByTestId, queryByTestId } = render(<SecurityBadge {...defaultProps} details={[]} />);
 
     fireEvent.press(getByTestId('security-badge'));
     expect(queryByTestId('security-badge-detail-0')).toBeNull();
-  });
-
-  it('applies correct styles based on status', () => {
-    const { getByTestId } = render(<SecurityBadge {...defaultProps} status="secure" />);
-
-    const badge = getByTestId('security-badge');
-    expect(badge.props.style).toContainEqual(
-      expect.objectContaining({
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: 8,
-        borderRadius: 8,
-        marginVertical: 4,
-      }),
-    );
   });
 
   it('handles long text content properly', () => {

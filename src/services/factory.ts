@@ -2,7 +2,7 @@ import { nutritionService } from './nutrition';
 import { profileService } from './profile';
 import { progressService } from './progress';
 import { workoutService } from './workout';
-import type { DailyNutrition, FoodItem, MealEntry } from '../types/nutrition';
+import type { NutritionLogEntry } from '../types/nutrition';
 import type {
   ConsentPurpose,
   ConsentRecord,
@@ -11,32 +11,21 @@ import type {
   PrivacySettings,
 } from '../types/profile';
 import type { ProgressMetrics, WorkoutHistoryItem } from '../types/progress';
-import type { Exercise, Set, WorkoutSession, WorkoutSummary } from '../types/workout';
+import type { Exercise, Set, WorkoutSession } from '../types/workout';
 
 export interface WorkoutService {
-  getExercise(id: string): Promise<Exercise>;
-  searchExercises(query: string, muscleGroups?: string[]): Promise<Exercise[]>;
-  createExercise(exercise: Partial<Exercise>): Promise<Exercise>;
-  startWorkoutSession(userId: string, name?: string): Promise<WorkoutSession>;
-  addSetToSession(
-    userId: string,
-    sessionId: string,
-    exerciseId: string,
-    setData: Partial<Set>,
-  ): Promise<Set>;
-  updateSessionDuration(sessionId: string, duration: number): Promise<void>;
-  getWorkoutHistory(userId: string): Promise<WorkoutSummary[]>;
+  startWorkout(userId: string, name: string): Promise<WorkoutSession>;
+  endWorkout(sessionId: string): Promise<void>;
+  addExercise(sessionId: string, exercise: Exercise): Promise<void>;
+  addSet(sessionId: string, exerciseId: string, set: Omit<Set, 'id'>): Promise<void>;
 }
 
 export interface NutritionService {
-  getFoodItem(id: string): Promise<FoodItem>;
-  searchFoodItems(query: string): Promise<FoodItem[]>;
-  createFoodItem(foodItem: Partial<FoodItem>): Promise<FoodItem>;
-  getMealEntries(userId: string, date: string): Promise<MealEntry[]>;
-  addMealEntry(entry: Partial<MealEntry>): Promise<MealEntry>;
-  updateMealEntry(id: string, updates: Partial<MealEntry>): Promise<MealEntry>;
-  deleteMealEntry(id: string): Promise<void>;
-  getDailyNutrition(userId: string, date: string): Promise<DailyNutrition>;
+  logMeal(data: Omit<NutritionLogEntry, 'id' | 'userId' | 'timestamp' | 'type'>): Promise<void>;
+  logSupplement(
+    data: Omit<NutritionLogEntry, 'id' | 'userId' | 'timestamp' | 'type'>,
+  ): Promise<void>;
+  scanFood(barcode: string): Promise<void>;
 }
 
 export interface ProgressService {

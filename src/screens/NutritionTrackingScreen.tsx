@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect } from 'react';
-import { Alert, ScrollView, View } from 'react-native';
+import { Alert, ScrollView, Text, View } from 'react-native';
 import styled from 'styled-components/native';
 
 import { ActionButton, ActionButtonText } from '../components/common/styled';
@@ -135,13 +135,17 @@ export const NutritionTrackingScreen: React.FC = () => {
         <ActionButton
           onPress={() => performanceMonitor.measureInteraction('press_log_meal', handleMealLog)}
         >
-          <ActionButtonText>Log Meal</ActionButtonText>
+          <ActionButtonText>
+            <Text>Log Meal</Text>
+          </ActionButtonText>
         </ActionButton>
 
         <ActionButton
           onPress={() => performanceMonitor.measureInteraction('press_scan_food', handleFoodScan)}
         >
-          <ActionButtonText>Scan Food</ActionButtonText>
+          <ActionButtonText>
+            <Text>Scan Food</Text>
+          </ActionButtonText>
         </ActionButton>
 
         <ActionButton
@@ -149,7 +153,9 @@ export const NutritionTrackingScreen: React.FC = () => {
             performanceMonitor.measureInteraction('press_log_supplement', handleSupplementLog)
           }
         >
-          <ActionButtonText>Log Supplement</ActionButtonText>
+          <ActionButtonText>
+            <Text>Log Supplement</Text>
+          </ActionButtonText>
         </ActionButton>
       </Content>
     </Container>

@@ -11,3 +11,26 @@ export interface NutritionLogEntry {
   createdAt: string;
   updatedAt?: string;
 }
+
+export interface Nutrients {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
+
+export interface Serving {
+  amount: number;
+  unit: string;
+  nutrients: Nutrients;
+}
+
+export interface FoodItem {
+  id: string;
+  name: string;
+  brand?: string;
+  servings: Record<string, Serving>;
+  defaultServing: string;
+  createdAt: string;
+  updatedAt?: string;
+}

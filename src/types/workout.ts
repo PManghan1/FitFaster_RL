@@ -1,9 +1,9 @@
 import { z } from 'zod';
 
-export const ExerciseType = z.enum(['STRENGTH', 'CARDIO', 'FLEXIBILITY']);
-export type ExerciseType = z.infer<typeof ExerciseType>;
+export const ExerciseTypeSchema = z.enum(['STRENGTH', 'CARDIO', 'FLEXIBILITY']);
+export type ExerciseType = z.infer<typeof ExerciseTypeSchema>;
 
-export const MuscleGroup = z.enum([
+export const MuscleGroupSchema = z.enum([
   'CHEST',
   'BACK',
   'SHOULDERS',
@@ -12,7 +12,7 @@ export const MuscleGroup = z.enum([
   'LEGS',
   'CORE',
 ]);
-export type MuscleGroup = z.infer<typeof MuscleGroup>;
+export type MuscleGroup = z.infer<typeof MuscleGroupSchema>;
 
 export interface Exercise {
   id: string;
