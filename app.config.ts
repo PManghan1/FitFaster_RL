@@ -1,7 +1,6 @@
-import { ConfigContext, ExpoConfig } from 'expo/config';
+import { ExpoConfig } from 'expo/config';
 
-export default ({ config }: ConfigContext): ExpoConfig => ({
-  ...config,
+const config: ExpoConfig = {
   name: 'FitFaster',
   slug: 'fitfaster',
   version: '1.0.0',
@@ -13,44 +12,49 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     resizeMode: 'contain',
     backgroundColor: '#ffffff',
   },
+  updates: {
+    fallbackToCacheTimeout: 0,
+    url: 'https://u.expo.dev/your-project-id',
+  },
   assetBundlePatterns: ['**/*'],
   ios: {
     supportsTablet: true,
     bundleIdentifier: 'com.yourcompany.fitfaster',
-    infoPlist: {
-      NSFaceIDUsageDescription: 'This app uses Face ID to securely authenticate you.',
-      NSCameraUsageDescription:
-        'This app uses the camera for scanning QR codes and taking progress photos.',
-      NSPhotoLibraryUsageDescription:
-        'This app uses the photo library for storing progress photos.',
-    },
   },
   android: {
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
-      backgroundColor: '#ffffff',
+      backgroundColor: '#FFFFFF',
     },
     package: 'com.yourcompany.fitfaster',
-    permissions: [
-      'USE_BIOMETRIC',
-      'USE_FINGERPRINT',
-      'CAMERA',
-      'READ_EXTERNAL_STORAGE',
-      'WRITE_EXTERNAL_STORAGE',
-    ],
   },
-  plugins: [
-    [
-      'expo-local-authentication',
-      {
-        faceIDPermission: 'Allow FitFaster to use Face ID to authenticate you.',
-      },
-    ],
-  ],
+  web: {
+    favicon: './assets/favicon.png',
+  },
   extra: {
     eas: {
       projectId: 'your-project-id',
     },
   },
-  owner: 'your-expo-account',
-});
+  plugins: [
+    'expo-router',
+    [
+      'expo-barcode-scanner',
+      {
+        cameraPermission: 'Allow $(PRODUCT_NAME) to access camera.',
+      },
+    ],
+    [
+      'expo-local-authentication',
+      {
+        faceIDPermission: 'Allow $(PRODUCT_NAME) to use Face ID.',
+      },
+    ],
+  ],
+  runtimeVersion: {
+    policy: 'sdkVersion',
+  },
+  sdkVersion: '51.0.0',
+};
+
+export default config;

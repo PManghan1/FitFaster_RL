@@ -33,6 +33,7 @@ interface WorkoutDetailsState {
   loadWorkout: (workoutId: string) => Promise<void>;
 }
 
+// Main workout store
 export const useWorkoutStore = create<WorkoutState>(set => ({
   currentWorkout: null,
   currentExercise: null,
@@ -124,7 +125,8 @@ export const useWorkoutStore = create<WorkoutState>(set => ({
   setLoading: (loading: boolean) => set({ isLoading: loading }),
 }));
 
-export const useExerciseLibrary = create<ExerciseLibraryState>((set, get) => ({
+// Exercise library store
+export const useExerciseLibrary = create<ExerciseLibraryState>(set => ({
   exercises: [],
   searchResults: [],
   isSearching: false,
@@ -133,10 +135,10 @@ export const useExerciseLibrary = create<ExerciseLibraryState>((set, get) => ({
     try {
       // Simulated API call
       await new Promise(resolve => setTimeout(resolve, 500));
-      const exercises = get().exercises;
+      const filteredExercises = [] as Exercise[];
       const searchTerm = query.toLowerCase();
 
-      const results = exercises.filter(exercise => {
+      const results = filteredExercises.filter(exercise => {
         const matchesQuery = !searchTerm || exercise.name.toLowerCase().includes(searchTerm);
         const matchesMuscleGroups =
           !muscleGroups.length || exercise.muscleGroups.some(group => muscleGroups.includes(group));
@@ -151,6 +153,7 @@ export const useExerciseLibrary = create<ExerciseLibraryState>((set, get) => ({
   },
 }));
 
+// Workout details store
 export const useWorkoutDetails = create<WorkoutDetailsState>(set => ({
   workout: null,
   loading: false,
@@ -178,3 +181,6 @@ export const useWorkoutDetails = create<WorkoutDetailsState>(set => ({
     }
   },
 }));
+
+// Export current workout hook for convenience
+export const useCurrentWorkout = useWorkoutStore;

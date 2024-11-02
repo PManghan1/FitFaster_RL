@@ -36,6 +36,7 @@ const HeaderText = styled(Text)`
 
 const Content = styled(ScrollView)`
   flex: 1;
+  padding: ${theme.spacing.md}px;
 `;
 
 const ActionBar = styled(View)`
@@ -152,12 +153,10 @@ const WorkoutScreenComponent: React.FC = () => {
   });
 
   useEffect(() => {
-    // Handle selected exercise from ExerciseLibrary
     if (route.params?.selectedExercise) {
       performance.measureInteraction('select_exercise', () => {
         if (route.params?.selectedExercise) {
           selectExercise(route.params.selectedExercise);
-          // Clear the param to prevent re-selection on screen focus
           navigation.setParams({ selectedExercise: undefined });
         }
       });
@@ -177,7 +176,6 @@ const WorkoutScreenComponent: React.FC = () => {
     try {
       await endWorkout();
       performance.measureApiCall(Promise.resolve(), 'end_workout');
-      // Navigate back or to summary
       navigation.goBack();
     } catch (error) {
       Alert.alert('Error', 'Failed to end workout');
@@ -206,8 +204,7 @@ const WorkoutScreenComponent: React.FC = () => {
         performance.measureApiCall(Promise.resolve(), 'add_set', {
           exerciseId: currentExercise.id,
         });
-        // Start rest timer with default time based on exercise type
-        startRestTimer(90); // Using default STRENGTH rest time
+        startRestTimer(90);
       } catch (error) {
         Alert.alert('Error', 'Failed to save set');
       }
