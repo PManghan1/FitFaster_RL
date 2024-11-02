@@ -122,6 +122,15 @@ const ModalTitle = styled(Text)`
   color: ${theme.colors.text.default};
 `;
 
+const ModalContainer = styled(View)`
+  flex: 1;
+  background-color: ${theme.colors.background.default};
+`;
+
+const CloseButton = styled(TouchableOpacity)`
+  padding: ${theme.spacing.sm}px;
+`;
+
 type WorkoutScreenNavigationProp = NativeStackNavigationProp<AppStackParamList, 'Workout'>;
 type WorkoutScreenRouteProp = RouteProp<AppStackParamList, 'Workout'>;
 
@@ -279,12 +288,12 @@ const WorkoutScreenComponent: React.FC = () => {
       </AddExerciseButton>
 
       <Modal visible={isModalVisible} animationType="slide" presentationStyle="pageSheet">
-        <View style={{ flex: 1, backgroundColor: theme.colors.background.default }}>
+        <ModalContainer>
           <ModalHeader>
             <ModalTitle>Select Exercise</ModalTitle>
-            <TouchableOpacity onPress={() => setIsModalVisible(false)} style={{ padding: 8 }}>
+            <CloseButton onPress={() => setIsModalVisible(false)}>
               <X width={24} height={24} color={theme.colors.text.light} />
-            </TouchableOpacity>
+            </CloseButton>
           </ModalHeader>
           <ExerciseList
             exercises={[]}
@@ -292,7 +301,7 @@ const WorkoutScreenComponent: React.FC = () => {
             selectedMuscleGroups={new Set(selectedMuscleGroups)}
             onFilterChange={groups => setSelectedMuscleGroups(Array.from(groups))}
           />
-        </View>
+        </ModalContainer>
       </Modal>
     </Container>
   );
