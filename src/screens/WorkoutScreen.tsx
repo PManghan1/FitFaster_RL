@@ -7,6 +7,17 @@ import { Plus, X } from 'react-native-feather';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import styled from 'styled-components/native';
 
+import {
+  Card,
+  CardTitle,
+  FloatingActionButton,
+  IconButton,
+  ListRow,
+  ListText,
+  ModalContainer,
+  ModalHeader,
+  ModalTitle,
+} from '../components/common/styled';
 import { withErrorBoundary } from '../components/hoc/withErrorBoundary';
 import { ExerciseList, SetInput, WorkoutErrorFallback, WorkoutTimer } from '../components/workout';
 import { usePerformanceMonitoring } from '../hooks/usePerformanceMonitoring';
@@ -60,75 +71,6 @@ const ActionButtonText = styled(Text)`
   text-align: center;
   font-weight: 700;
   margin-left: ${theme.spacing.sm}px;
-`;
-
-const FloatingActionButton = styled(TouchableOpacity)`
-  position: absolute;
-  bottom: ${theme.spacing.xl}px;
-  right: ${theme.spacing.xl}px;
-  width: ${theme.spacing.xl * 2}px;
-  height: ${theme.spacing.xl * 2}px;
-  border-radius: ${theme.spacing.xl}px;
-  background-color: ${theme.colors.primary.default};
-  align-items: center;
-  justify-content: center;
-  elevation: 5;
-`;
-
-const Card = styled(View)`
-  background-color: ${theme.colors.background.default};
-  border-radius: ${theme.borderRadius.lg}px;
-  padding: ${theme.spacing.md}px;
-  margin-bottom: ${theme.spacing.md}px;
-  shadow-color: ${theme.colors.text.dark};
-  shadow-offset: 0px 2px;
-  shadow-opacity: 0.1;
-  shadow-radius: 3px;
-  elevation: 3;
-`;
-
-const CardTitle = styled(Text)`
-  font-size: ${theme.typography.fontSize.md}px;
-  font-weight: 600;
-  color: ${theme.colors.text.default};
-  margin-bottom: ${theme.spacing.sm}px;
-`;
-
-const ListRow = styled(View)`
-  flex-direction: row;
-  justify-content: space-between;
-  padding: ${theme.spacing.sm}px 0;
-  border-bottom-width: 1px;
-  border-bottom-color: ${theme.colors.border.light};
-`;
-
-const ListText = styled(Text)`
-  font-size: ${theme.typography.fontSize.sm}px;
-  color: ${theme.colors.text.light};
-`;
-
-const ModalHeader = styled(View)`
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-  padding: ${theme.spacing.md}px;
-  border-bottom-width: 1px;
-  border-bottom-color: ${theme.colors.border.default};
-`;
-
-const ModalTitle = styled(Text)`
-  font-size: ${theme.typography.fontSize.lg}px;
-  font-weight: 700;
-  color: ${theme.colors.text.default};
-`;
-
-const ModalContainer = styled(View)`
-  flex: 1;
-  background-color: ${theme.colors.background.default};
-`;
-
-const IconButton = styled(TouchableOpacity)`
-  padding: ${theme.spacing.sm}px;
 `;
 
 type WorkoutScreenNavigationProp = NativeStackNavigationProp<AppStackParamList, 'Workout'>;
