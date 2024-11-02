@@ -1,20 +1,19 @@
-/// <reference types="react" />
-/// <reference types="react-native" />
+import type { ImageSourcePropType } from 'react-native';
+import type { SvgProps } from 'react-native-svg';
 
 declare module '*.png' {
-  const value: any;
-  export = value;
+  const content: ImageSourcePropType;
+  export default content;
 }
 
 declare module '*.jpg' {
-  const value: any;
-  export = value;
+  const content: ImageSourcePropType;
+  export default content;
 }
 
 declare module '*.svg' {
-  import React from 'react';
-  import { SvgProps } from 'react-native-svg';
-  const content: React.FC<SvgProps>;
+  import type { FC } from 'react';
+  const content: FC<SvgProps>;
   export default content;
 }
 

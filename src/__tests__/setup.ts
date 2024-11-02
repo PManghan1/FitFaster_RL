@@ -1,155 +1,102 @@
-import '@testing-library/react-native';
 import '@testing-library/jest-native/extend-expect';
-import 'react-native-gesture-handler/jestSetup';
+import { View } from 'react-native';
 
-// Mock config
-jest.mock('../config', () => ({
-  __esModule: true,
-  default: {
-    auth: {
-      providers: {
-        google: {
-          enabled: false,
-          clientId: null,
-        },
-        facebook: {
-          enabled: false,
-          clientId: null,
-        },
-        apple: {
-          enabled: false,
-          clientId: null,
-        },
-      },
-      passwordMinLength: 8,
-      passwordRequireNumbers: true,
-      passwordRequireSymbols: true,
-    },
-    api: {
-      baseUrl: 'http://localhost:3000',
-      timeout: 5000,
-    },
-    supabase: {
-      url: 'mock-supabase-url',
-      anonKey: 'mock-supabase-key',
-    },
-  },
-  validateConfig: () => true,
-}));
+// Mock timers
+jest.useFakeTimers();
 
-// Mock theme constants
-jest.mock('../constants/theme', () => ({
-  SPACING: {
-    xs: 4,
-    sm: 8,
-    md: 16,
-    lg: 24,
-    xl: 32,
+// Mock performance API
+const mockPerformance = {
+  now: jest.fn(() => Date.now()),
+  mark: jest.fn(),
+  measure: jest.fn(),
+  getEntriesByName: jest.fn(),
+  getEntriesByType: jest.fn(),
+  clearMarks: jest.fn(),
+  clearMeasures: jest.fn(),
+  timeOrigin: Date.now(),
+  toJSON: jest.fn(),
+  eventCounts: {
+    size: 0,
+    [Symbol.iterator]: jest.fn(),
+    entries: jest.fn(),
+    forEach: jest.fn(),
+    get: jest.fn(),
+    has: jest.fn(),
+    keys: jest.fn(),
+    values: jest.fn(),
   },
-  FONT_SIZE: {
-    xs: 12,
-    sm: 14,
-    md: 16,
-    lg: 18,
-    xl: 24,
-    xxl: 32,
+  navigation: {
+    type: 0,
+    redirectCount: 0,
+    timing: {},
+    toJSON: jest.fn(),
   },
-  COLORS: {
-    primary: {
-      default: '#007AFF',
-      light: '#4DA2FF',
-      dark: '#0055B3',
-    },
-    background: {
-      default: '#FFFFFF',
-      secondary: '#F5F5F5',
-      tertiary: '#E5E5E5',
-    },
-    text: {
-      default: '#000000',
-      light: '#666666',
-      lighter: '#999999',
-      error: '#FF3B30',
-    },
-    border: {
-      default: '#E5E5E5',
-      light: '#F5F5F5',
-    },
-    error: {
-      default: '#FF3B30',
-      light: '#FFD7D5',
-    },
-    success: {
-      default: '#34C759',
-      light: '#D1F2D9',
-    },
-  },
-}));
-
-// Mock AsyncStorage
-const mockAsyncStorage = {
-  getItem: jest.fn(),
-  setItem: jest.fn(),
-  removeItem: jest.fn(),
-  clear: jest.fn(),
-  getAllKeys: jest.fn(),
-  multiGet: jest.fn(),
-  multiSet: jest.fn(),
-  multiRemove: jest.fn(),
+  onresourcetimingbufferfull: null,
+  timing: {},
+  memory: {},
 };
 
-jest.mock('@react-native-async-storage/async-storage', () => mockAsyncStorage);
+global.performance = mockPerformance as unknown as Performance;
 
-// Mock reanimated
+// Mock Sentry
+jest.mock('@sentry/react-native', () => ({
+  init: jest.fn(),
+  captureException: jest.fn(),
+  addBreadcrumb: jest.fn(),
+}));
+
+// Mock Supabase
+jest.mock('@supabase/supabase-js', () => ({
+  createClient: jest.fn(() => ({
+    auth: {
+      getUser: jest.fn(),
+    },
+    from: jest.fn(() => ({
+      insert: jest.fn(),
+      update: jest.fn(),
+      select: jest.fn(),
+      eq: jest.fn(),
+    })),
+  })),
+}));
+
+// Mock react-native-reanimated
 jest.mock('react-native-reanimated', () => {
-  const Reanimated = require('react-native-reanimated/mock');
-  Reanimated.default.call = () => {};
+  const Reanimated = {
+    View,
+    default: {
+      call: jest.fn(),
+    },
+  };
   return Reanimated;
 });
 
-// Mock native modules
-jest.mock('react-native/Libraries/Animated/NativeAnimatedHelper');
-
-// Mock safe area context
-jest.mock('react-native-safe-area-context', () => ({
-  SafeAreaProvider: ({ children }: { children: React.ReactNode }) => children,
-  SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
-  useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }),
-}));
-
-// Mock navigation
-jest.mock('@react-navigation/native', () => ({
-  useNavigation: () => ({
-    navigate: jest.fn(),
-    goBack: jest.fn(),
-  }),
-  useRoute: () => ({
-    params: {},
-  }),
-  NavigationContainer: ({ children }: { children: React.ReactNode }) => children,
-}));
-
-// Mock status bar
-jest.mock('expo-status-bar', () => ({
-  StatusBar: () => 'StatusBar',
-}));
-
-// Mock feather icons
-jest.mock('react-native-feather', () => ({
-  Activity: () => 'Activity',
-  Plus: () => 'Plus',
-  X: () => 'X',
-  Clock: () => 'Clock',
-  Calendar: () => 'Calendar',
-  Award: () => 'Award',
-  TrendingUp: () => 'TrendingUp',
-  ChevronRight: () => 'ChevronRight',
-  Star: () => 'Star',
-  Shield: () => 'Shield',
-  AlertTriangle: () => 'AlertTriangle',
-  FileText: () => 'FileText',
-  ExternalLink: () => 'ExternalLink',
-  Eye: () => 'Eye',
-  EyeOff: () => 'EyeOff',
-  Lock: () => 'Lock',
+// Mock react-native-gesture-handler
+jest.mock('react-native-gesture-handler', () => ({
+  Swipeable: View,
+  DrawerLayout: View,
+  State: {},
+  ScrollView: View,
+  Slider: View,
+  Switch: View,
+  TextInput: View,
+  ToolbarAndroid: View,
+  ViewPagerAndroid: View,
+  DrawerLayoutAndroid: View,
+  WebView: View,
+  NativeViewGestureHandler: View,
+  TapGestureHandler: View,
+  FlingGestureHandler: View,
+  ForceTouchGestureHandler: View,
+  LongPressGestureHandler: View,
+  PanGestureHandler: View,
+  PinchGestureHandler: View,
+  RotationGestureHandler: View,
+  RawButton: View,
+  BaseButton: View,
+  RectButton: View,
+  BorderlessButton: View,
+  FlatList: View,
+  gestureHandlerRootHOC: jest.fn(),
+  Directions: {},
 }));

@@ -1,12 +1,14 @@
+import { RouteProp, useRoute } from '@react-navigation/native';
 import React, { useEffect } from 'react';
-import { View, ScrollView, ActivityIndicator } from 'react-native';
-import { useRoute, RouteProp } from '@react-navigation/native';
+import { ActivityIndicator, ScrollView, View } from 'react-native';
+import { Calendar, ChevronRight, Clock } from 'react-native-feather';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import styled from 'styled-components/native';
-import { Clock, Calendar, ChevronRight } from 'react-native-feather';
+
 import { Dumbbell } from '../constants/icons';
-import { useWorkoutDetails } from '../store/workout.store';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import { useWorkoutDetails } from '../store/workout.store';
+import { Set } from '../types/workout';
 import { formatDuration } from '../utils/time';
 
 const Container = styled(SafeAreaView)`
@@ -23,7 +25,7 @@ const Header = styled(View)`
 
 const HeaderText = styled.Text`
   font-size: 20px;
-  font-weight: bold;
+  font-weight: 700;
   color: #1f2937;
 `;
 
@@ -41,7 +43,7 @@ const MetricItem = styled(View)`
 
 const MetricValue = styled.Text`
   font-size: 18px;
-  font-weight: bold;
+  font-weight: 700;
   color: #1f2937;
   margin-top: 4px;
 `;
@@ -112,15 +114,15 @@ type WorkoutDetailsScreenRouteProp = RouteProp<AppStackParamList, 'WorkoutDetail
 
 export const WorkoutDetailsScreen: React.FC = () => {
   const route = useRoute<WorkoutDetailsScreenRouteProp>();
-  const { workout, isLoading, error, loadWorkout } = useWorkoutDetails();
+  const { workout, loading, error, loadWorkout } = useWorkoutDetails();
 
   useEffect(() => {
-    if (route.params?.sessionId) {
-      loadWorkout(route.params.sessionId);
+    if (route.params?.workoutId) {
+      loadWorkout(route.params.workoutId);
     }
-  }, [route.params?.sessionId]);
+  }, [route.params?.workoutId, loadWorkout]);
 
-  if (isLoading) {
+  if (loading) {
     return (
       <LoadingContainer>
         <ActivityIndicator size="large" color="#3b82f6" testID="loading-indicator" />
@@ -144,16 +146,24 @@ export const WorkoutDetailsScreen: React.FC = () => {
     );
   }
 
-  const totalVolume = workout.exercises.reduce((total, { exercise, sets }) => {
-    return total + sets.reduce((setTotal, set) => setTotal + (set.weight || 0) * (set.reps || 0), 0);
+  const calculateSetVolume = (set: Set): number => {
+    return (set.weight || 0) * (set.reps || 0);
+  };
+
+  const totalVolume = workout.exerciseData.reduce((total: number, exerciseData) => {
+    return (
+      total +
+      exerciseData.sets.reduce(
+        (setTotal: number, set: Set) => setTotal + calculateSetVolume(set),
+        0,
+      )
+    );
   }, 0);
 
   return (
     <Container>
       <Header>
-        <HeaderText>
-          {workout.session.name || new Date(workout.session.date).toLocaleDateString()}
-        </HeaderText>
+        <HeaderText>{workout.name || new Date(workout.date).toLocaleDateString()}</HeaderText>
       </Header>
 
       <MetricsContainer>
@@ -164,7 +174,7 @@ export const WorkoutDetailsScreen: React.FC = () => {
         </MetricItem>
         <MetricItem>
           <Dumbbell width={20} height={20} color="#6b7280" />
-          <MetricValue>{workout.exercises.length}</MetricValue>
+          <MetricValue>{workout.exerciseData.length}</MetricValue>
           <MetricLabel>Exercises</MetricLabel>
         </MetricItem>
         <MetricItem>
@@ -180,10 +190,10 @@ export const WorkoutDetailsScreen: React.FC = () => {
       </MetricsContainer>
 
       <ExerciseList>
-        {workout.exercises.map(({ exercise, sets }) => (
-          <ExerciseCard key={exercise.id}>
-            <ExerciseName>{exercise.name}</ExerciseName>
-            {sets.map((set, index) => (
+        {workout.exerciseData.map(exerciseData => (
+          <ExerciseCard key={exerciseData.exercise.id}>
+            <ExerciseName>{exerciseData.exercise.name}</ExerciseName>
+            {exerciseData.sets.map((set: Set, index: number) => (
               <SetRow key={set.id}>
                 <SetText>Set {index + 1}</SetText>
                 <SetText>

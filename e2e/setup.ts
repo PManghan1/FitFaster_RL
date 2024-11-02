@@ -1,4 +1,4 @@
-import { device, element, by, expect } from 'detox';
+import { device } from 'detox';
 
 beforeAll(async () => {
   await device.launchApp({

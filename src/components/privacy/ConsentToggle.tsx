@@ -3,10 +3,9 @@ import { Switch, Text, TouchableOpacity, View } from 'react-native';
 import { Info, Shield } from 'react-native-feather';
 import styled from 'styled-components/native';
 
-import { ConsentPurpose } from '../../types/profile';
-
 interface ConsentToggleProps {
-  purpose: ConsentPurpose;
+  title: string;
+  description: string;
   isEnabled: boolean;
   onToggle: (value: boolean) => void;
   infoContent?: string;
@@ -66,7 +65,8 @@ const ToggleContainer = styled(View)`
 `;
 
 export const ConsentToggle: React.FC<ConsentToggleProps> = ({
-  purpose,
+  title,
+  description,
   isEnabled,
   onToggle,
   infoContent,
@@ -81,7 +81,7 @@ export const ConsentToggle: React.FC<ConsentToggleProps> = ({
           <IconContainer>
             <Shield width={20} height={20} color="#10B981" />
           </IconContainer>
-          <Title>{purpose.title}</Title>
+          <Title>{title}</Title>
         </TitleContainer>
         <ToggleContainer>
           <Switch
@@ -89,7 +89,7 @@ export const ConsentToggle: React.FC<ConsentToggleProps> = ({
             value={isEnabled}
             onValueChange={onToggle}
             trackColor={{ false: '#D1D5DB', true: '#10B981' }}
-            thumbColor={isEnabled ? '#FFFFFF' : '#FFFFFF'}
+            thumbColor="#FFFFFF"
           />
         </ToggleContainer>
         {infoContent && (
@@ -98,7 +98,7 @@ export const ConsentToggle: React.FC<ConsentToggleProps> = ({
           </InfoButton>
         )}
       </Header>
-      <Description>{purpose.description}</Description>
+      <Description>{description}</Description>
       {showInfo && infoContent && (
         <InfoContent testID={`${testID}-info-content`}>{infoContent}</InfoContent>
       )}

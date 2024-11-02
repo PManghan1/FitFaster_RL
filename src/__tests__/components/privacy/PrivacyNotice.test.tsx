@@ -1,9 +1,10 @@
+import { fireEvent, render } from '@testing-library/react-native';
 import React from 'react';
-import { render, fireEvent } from '@testing-library/react-native';
 import { Linking } from 'react-native';
-import { 
-  PrivacyNotice, 
-  DEFAULT_PRIVACY_NOTICE_CONFIG 
+
+import {
+  DEFAULT_PRIVACY_NOTICE_CONFIG,
+  PrivacyNotice,
 } from '../../../components/privacy/PrivacyNotice';
 
 // Mock Linking
@@ -15,16 +16,8 @@ describe('PrivacyNotice', () => {
   const defaultProps = {
     title: 'Privacy Notice',
     dataUsageDescription: 'Test data usage description',
-    dataCollectionPoints: [
-      'Point 1',
-      'Point 2',
-      'Point 3',
-    ],
-    dataProtectionMeasures: [
-      'Measure 1',
-      'Measure 2',
-      'Measure 3',
-    ],
+    dataCollectionPoints: ['Point 1', 'Point 2', 'Point 3'],
+    dataProtectionMeasures: ['Measure 1', 'Measure 2', 'Measure 3'],
     privacyPolicyUrl: 'https://example.com/privacy',
     dataRetentionPeriod: '30 days',
     testID: 'privacy-notice',
@@ -35,9 +28,7 @@ describe('PrivacyNotice', () => {
   });
 
   it('renders correctly with required props', () => {
-    const { getByText, getByTestId } = render(
-      <PrivacyNotice {...defaultProps} />
-    );
+    const { getByText, getByTestId } = render(<PrivacyNotice {...defaultProps} />);
 
     expect(getByText('Privacy Notice')).toBeTruthy();
     expect(getByText('Test data usage description')).toBeTruthy();
@@ -45,9 +36,7 @@ describe('PrivacyNotice', () => {
   });
 
   it('displays all data collection points', () => {
-    const { getByTestId } = render(
-      <PrivacyNotice {...defaultProps} />
-    );
+    const { getByTestId } = render(<PrivacyNotice {...defaultProps} />);
 
     defaultProps.dataCollectionPoints.forEach((point, index) => {
       expect(getByTestId(`privacy-notice-collection-point-${index}`)).toHaveTextContent(point);
@@ -55,9 +44,7 @@ describe('PrivacyNotice', () => {
   });
 
   it('displays all protection measures', () => {
-    const { getByTestId } = render(
-      <PrivacyNotice {...defaultProps} />
-    );
+    const { getByTestId } = render(<PrivacyNotice {...defaultProps} />);
 
     defaultProps.dataProtectionMeasures.forEach((measure, index) => {
       expect(getByTestId(`privacy-notice-protection-measure-${index}`)).toHaveTextContent(measure);
@@ -65,9 +52,7 @@ describe('PrivacyNotice', () => {
   });
 
   it('handles privacy policy link press correctly', () => {
-    const { getByTestId } = render(
-      <PrivacyNotice {...defaultProps} />
-    );
+    const { getByTestId } = render(<PrivacyNotice {...defaultProps} />);
 
     const linkButton = getByTestId('privacy-notice-privacy-policy-link');
     fireEvent.press(linkButton);
@@ -76,25 +61,19 @@ describe('PrivacyNotice', () => {
   });
 
   it('displays data retention period correctly', () => {
-    const { getByText } = render(
-      <PrivacyNotice {...defaultProps} />
-    );
+    const { getByText } = render(<PrivacyNotice {...defaultProps} />);
 
     expect(getByText('30 days')).toBeTruthy();
   });
 
   it('renders sensitivity indicator correctly', () => {
-    const { getByTestId } = render(
-      <PrivacyNotice {...defaultProps} />
-    );
+    const { getByTestId } = render(<PrivacyNotice {...defaultProps} />);
 
     expect(getByTestId('privacy-notice-sensitivity-indicator')).toBeTruthy();
   });
 
   it('uses default config correctly', () => {
-    const { getByText } = render(
-      <PrivacyNotice {...DEFAULT_PRIVACY_NOTICE_CONFIG} />
-    );
+    const { getByText } = render(<PrivacyNotice {...DEFAULT_PRIVACY_NOTICE_CONFIG} />);
 
     expect(getByText(DEFAULT_PRIVACY_NOTICE_CONFIG.dataUsageDescription)).toBeTruthy();
     DEFAULT_PRIVACY_NOTICE_CONFIG.dataCollectionPoints.forEach(point => {
@@ -108,19 +87,14 @@ describe('PrivacyNotice', () => {
   it('handles long text content properly', () => {
     const longDescription = 'A'.repeat(500);
     const { getByText } = render(
-      <PrivacyNotice
-        {...defaultProps}
-        dataUsageDescription={longDescription}
-      />
+      <PrivacyNotice {...defaultProps} dataUsageDescription={longDescription} />,
     );
 
     expect(getByText(longDescription)).toBeTruthy();
   });
 
   it('applies correct styling to sections', () => {
-    const { getByText } = render(
-      <PrivacyNotice {...defaultProps} />
-    );
+    const { getByText } = render(<PrivacyNotice {...defaultProps} />);
 
     const sections = ['Data Usage', 'Data Collection', 'Data Protection', 'Data Retention'];
     sections.forEach(section => {
@@ -130,15 +104,13 @@ describe('PrivacyNotice', () => {
           fontSize: 16,
           fontWeight: '600',
           color: '#374151',
-        })
+        }),
       );
     });
   });
 
   it('renders bullet points with correct styling', () => {
-    const { getByTestId } = render(
-      <PrivacyNotice {...defaultProps} />
-    );
+    const { getByTestId } = render(<PrivacyNotice {...defaultProps} />);
 
     defaultProps.dataCollectionPoints.forEach((_, index) => {
       const bulletPoint = getByTestId(`privacy-notice-collection-point-${index}`);
@@ -147,7 +119,7 @@ describe('PrivacyNotice', () => {
           flexDirection: 'row',
           alignItems: 'flex-start',
           marginBottom: 4,
-        })
+        }),
       );
     });
   });
@@ -161,9 +133,7 @@ describe('PrivacyNotice', () => {
       dataRetentionPeriod: '30 days',
     };
 
-    const { getByText, queryByTestId } = render(
-      <PrivacyNotice {...minimalProps} />
-    );
+    const { getByText, queryByTestId } = render(<PrivacyNotice {...minimalProps} />);
 
     expect(getByText('Privacy Notice')).toBeTruthy(); // Default title
     expect(queryByTestId('privacy-notice-collection-point-0')).toBeNull();
@@ -171,15 +141,15 @@ describe('PrivacyNotice', () => {
   });
 
   it('renders external link icon in privacy policy link', () => {
-    const { getByTestId } = render(
-      <PrivacyNotice {...defaultProps} />
-    );
+    const { getByTestId } = render(<PrivacyNotice {...defaultProps} />);
 
     const linkButton = getByTestId('privacy-notice-privacy-policy-link');
-    expect(linkButton.findByProps({
-      width: 16,
-      height: 16,
-      color: '#3B82F6',
-    })).toBeTruthy();
+    expect(
+      linkButton.findByProps({
+        width: 16,
+        height: 16,
+        color: '#3B82F6',
+      }),
+    ).toBeTruthy();
   });
 });

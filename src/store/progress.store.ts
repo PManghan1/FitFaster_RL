@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
+
 import { progressService } from '../services/progress';
 import { ProgressStore } from '../types/progress';
 
@@ -18,7 +19,7 @@ const initialState = {
 
 export const useProgressStore = create<ProgressStore>()(
   devtools(
-    (set) => ({
+    set => ({
       ...initialState,
 
       loadProgress: async (userId: string) => {
@@ -53,6 +54,6 @@ export const useProgressStore = create<ProgressStore>()(
         set(initialState);
       },
     }),
-    { name: 'progress-store' }
-  )
+    { name: 'progress-store' },
+  ),
 );

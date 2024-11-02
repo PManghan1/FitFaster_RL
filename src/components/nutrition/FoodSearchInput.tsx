@@ -1,7 +1,7 @@
-import React, { useState, useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { ActivityIndicator } from 'react-native';
-import styled from 'styled-components/native';
 import { Search, X } from 'react-native-feather';
+import styled from 'styled-components/native';
 import { useDebouncedCallback } from 'use-debounce';
 
 const Container = styled.View`
@@ -15,7 +15,7 @@ const InputContainer = styled.View<{ isFocused: boolean }>`
   border-radius: 12px;
   padding: 12px;
   border-width: 1px;
-  border-color: ${props => props.isFocused ? '#3B82F6' : '#E5E7EB'};
+  border-color: ${props => (props.isFocused ? '#3B82F6' : '#E5E7EB')};
   shadow-color: #000;
   shadow-offset: 0px 1px;
   shadow-opacity: 0.05;
@@ -26,7 +26,7 @@ const InputContainer = styled.View<{ isFocused: boolean }>`
 const Input = styled.TextInput`
   flex: 1;
   font-size: 16px;
-  color: #1F2937;
+  color: #1f2937;
   margin-left: 8px;
   margin-right: 8px;
 `;
@@ -43,7 +43,7 @@ const ClearButton = styled.TouchableOpacity`
 `;
 
 const ErrorText = styled.Text`
-  color: #EF4444;
+  color: #ef4444;
   font-size: 14px;
   margin-top: 4px;
 `;
@@ -68,19 +68,19 @@ export const FoodSearchInput: React.FC<FoodSearchInputProps> = ({
   const [query, setQuery] = useState('');
   const [isFocused, setIsFocused] = useState(false);
 
-  const debouncedSearch = useDebouncedCallback(
-    (searchQuery: string) => {
-      if (searchQuery.trim()) {
-        onSearch(searchQuery.trim());
-      }
-    },
-    debounceMs
-  );
+  const debouncedSearch = useDebouncedCallback((searchQuery: string) => {
+    if (searchQuery.trim()) {
+      onSearch(searchQuery.trim());
+    }
+  }, debounceMs);
 
-  const handleChangeText = useCallback((text: string) => {
-    setQuery(text);
-    debouncedSearch(text);
-  }, [debouncedSearch]);
+  const handleChangeText = useCallback(
+    (text: string) => {
+      setQuery(text);
+      debouncedSearch(text);
+    },
+    [debouncedSearch],
+  );
 
   const handleClear = useCallback(() => {
     setQuery('');
@@ -110,20 +110,13 @@ export const FoodSearchInput: React.FC<FoodSearchInputProps> = ({
         {isLoading ? (
           <ActivityIndicator size="small" color="#3B82F6" />
         ) : query ? (
-          <ClearButton
-            onPress={handleClear}
-            testID={`${testID}-clear`}
-          >
+          <ClearButton onPress={handleClear} testID={`${testID}-clear`}>
             <X width={20} height={20} color="#6B7280" />
           </ClearButton>
         ) : null}
       </InputContainer>
 
-      {error && (
-        <ErrorText testID={`${testID}-error`}>
-          {error}
-        </ErrorText>
-      )}
+      {error && <ErrorText testID={`${testID}-error`}>{error}</ErrorText>}
     </Container>
   );
 };

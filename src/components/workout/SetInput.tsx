@@ -1,8 +1,9 @@
-import React, { useState, useCallback } from 'react';
-import { View } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { Text } from 'react-native';
+import { BarChart2, Clock, Hash } from 'react-native-feather';
 import styled from 'styled-components/native';
-import { Clock, Hash, BarChart2 } from 'react-native-feather';
-import { Exercise, WorkoutSet } from '../../types/workout';
+
+import { Exercise, Set } from '../../types/workout';
 
 const Container = styled.View`
   background-color: white;
@@ -19,7 +20,7 @@ const Container = styled.View`
 const Title = styled.Text`
   font-size: 16px;
   font-weight: 600;
-  color: #1F2937;
+  color: #1f2937;
   margin-bottom: 12px;
 `;
 
@@ -36,16 +37,16 @@ const InputContainer = styled.View`
 
 const InputLabel = styled.Text`
   font-size: 12px;
-  color: #6B7280;
+  color: #6b7280;
   margin-bottom: 4px;
 `;
 
 const Input = styled.TextInput`
-  background-color: #F3F4F6;
+  background-color: #f3f4f6;
   border-radius: 8px;
   padding: 8px 12px;
   font-size: 16px;
-  color: #1F2937;
+  color: #1f2937;
 `;
 
 const IconContainer = styled.View`
@@ -57,7 +58,7 @@ const IconContainer = styled.View`
 `;
 
 const SaveButton = styled.TouchableOpacity<{ disabled?: boolean }>`
-  background-color: ${props => props.disabled ? '#E5E7EB' : '#3B82F6'};
+  background-color: ${props => (props.disabled ? '#E5E7EB' : '#3B82F6')};
   border-radius: 8px;
   padding: 12px;
   align-items: center;
@@ -65,22 +66,18 @@ const SaveButton = styled.TouchableOpacity<{ disabled?: boolean }>`
 `;
 
 const SaveButtonText = styled.Text<{ disabled?: boolean }>`
-  color: ${props => props.disabled ? '#9CA3AF' : 'white'};
+  color: ${props => (props.disabled ? '#9CA3AF' : 'white')};
   font-weight: 600;
   font-size: 14px;
 `;
 
 interface SetInputProps {
   exercise: Exercise;
-  onSave: (set: Omit<WorkoutSet, 'id' | 'userId' | 'exerciseId' | 'sessionId' | 'createdAt'>) => void;
+  onSave: (set: Omit<Set, 'id' | 'exerciseId' | 'completed'>) => void;
   testID?: string;
 }
 
-export const SetInput: React.FC<SetInputProps> = ({
-  exercise,
-  onSave,
-  testID,
-}) => {
+export const SetInput: React.FC<SetInputProps> = ({ exercise, onSave, testID }) => {
   const [weight, setWeight] = useState('');
   const [reps, setReps] = useState('');
   const [duration, setDuration] = useState('');
@@ -90,7 +87,7 @@ export const SetInput: React.FC<SetInputProps> = ({
   const isStrengthExercise = exercise.type === 'STRENGTH';
 
   const handleSave = useCallback(() => {
-    const set: Omit<WorkoutSet, 'id' | 'userId' | 'exerciseId' | 'sessionId' | 'createdAt'> = {
+    const set: Omit<Set, 'id' | 'exerciseId' | 'completed'> = {
       notes,
       ...(isStrengthExercise
         ? {
@@ -112,12 +109,14 @@ export const SetInput: React.FC<SetInputProps> = ({
   }, [weight, reps, duration, distance, notes, isStrengthExercise, onSave]);
 
   const isValid = isStrengthExercise
-    ? (weight !== '' || reps !== '')
-    : (duration !== '' || distance !== '');
+    ? weight !== '' || reps !== ''
+    : duration !== '' || distance !== '';
 
   return (
     <Container testID={testID}>
-      <Title>Record Set</Title>
+      <Title>
+        <Text>Record Set</Text>
+      </Title>
 
       {isStrengthExercise ? (
         <>
@@ -126,7 +125,9 @@ export const SetInput: React.FC<SetInputProps> = ({
               <BarChart2 width={20} height={20} color="#6B7280" />
             </IconContainer>
             <InputContainer>
-              <InputLabel>Weight (kg)</InputLabel>
+              <InputLabel>
+                <Text>Weight (kg)</Text>
+              </InputLabel>
               <Input
                 value={weight}
                 onChangeText={setWeight}
@@ -139,7 +140,9 @@ export const SetInput: React.FC<SetInputProps> = ({
               <Hash width={20} height={20} color="#6B7280" />
             </IconContainer>
             <InputContainer>
-              <InputLabel>Reps</InputLabel>
+              <InputLabel>
+                <Text>Reps</Text>
+              </InputLabel>
               <Input
                 value={reps}
                 onChangeText={setReps}
@@ -157,7 +160,9 @@ export const SetInput: React.FC<SetInputProps> = ({
               <Clock width={20} height={20} color="#6B7280" />
             </IconContainer>
             <InputContainer>
-              <InputLabel>Duration (seconds)</InputLabel>
+              <InputLabel>
+                <Text>Duration (seconds)</Text>
+              </InputLabel>
               <Input
                 value={duration}
                 onChangeText={setDuration}
@@ -167,7 +172,9 @@ export const SetInput: React.FC<SetInputProps> = ({
               />
             </InputContainer>
             <InputContainer>
-              <InputLabel>Distance (meters)</InputLabel>
+              <InputLabel>
+                <Text>Distance (meters)</Text>
+              </InputLabel>
               <Input
                 value={distance}
                 onChangeText={setDistance}
@@ -181,7 +188,9 @@ export const SetInput: React.FC<SetInputProps> = ({
       )}
 
       <InputContainer>
-        <InputLabel>Notes (optional)</InputLabel>
+        <InputLabel>
+          <Text>Notes (optional)</Text>
+        </InputLabel>
         <Input
           value={notes}
           onChangeText={setNotes}
@@ -192,12 +201,10 @@ export const SetInput: React.FC<SetInputProps> = ({
         />
       </InputContainer>
 
-      <SaveButton
-        onPress={handleSave}
-        disabled={!isValid}
-        testID={`${testID}-save`}
-      >
-        <SaveButtonText disabled={!isValid}>Save Set</SaveButtonText>
+      <SaveButton onPress={handleSave} disabled={!isValid} testID={`${testID}-save`}>
+        <SaveButtonText disabled={!isValid}>
+          <Text>Save Set</Text>
+        </SaveButtonText>
       </SaveButton>
     </Container>
   );

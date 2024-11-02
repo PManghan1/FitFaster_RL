@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { TextInput as RNTextInput, TouchableOpacity } from 'react-native';
+import { TouchableOpacity } from 'react-native';
+import { AlertTriangle, Eye, EyeOff, Lock } from 'react-native-feather';
 import styled from 'styled-components/native';
-import { Eye, EyeOff, Lock, AlertTriangle } from 'react-native-feather';
 import { z } from 'zod';
 
 const Container = styled.View`
@@ -41,17 +41,13 @@ const InputContainer = styled.View<{ isFocused: boolean; hasError: boolean }>`
   border-width: 1px;
   border-radius: 8px;
   padding: 8px 12px;
-  border-color: ${props => 
-    props.hasError ? '#EF4444' : 
-    props.isFocused ? '#3B82F6' : 
-    '#D1D5DB'
-  };
+  border-color: ${props => (props.hasError ? '#EF4444' : props.isFocused ? '#3B82F6' : '#D1D5DB')};
 `;
 
 const StyledTextInput = styled.TextInput`
   flex: 1;
   font-size: 16px;
-  color: #1F2937;
+  color: #1f2937;
 `;
 
 const ErrorContainer = styled.View`
@@ -63,13 +59,13 @@ const ErrorContainer = styled.View`
 const ErrorText = styled.Text`
   margin-left: 4px;
   font-size: 12px;
-  color: #EF4444;
+  color: #ef4444;
 `;
 
 const InfoText = styled.Text`
   margin-top: 4px;
   font-size: 12px;
-  color: #6B7280;
+  color: #6b7280;
 `;
 
 interface SecureInputProps {
@@ -77,7 +73,7 @@ interface SecureInputProps {
   value: string;
   onChangeText: (text: string) => void;
   sensitivityLevel: 'low' | 'medium' | 'high';
-  validation?: z.ZodType<any>;
+  validation?: z.ZodType<unknown>; // Changed from any to unknown
   secureTextEntry?: boolean;
   placeholder?: string;
   infoText?: string;
@@ -100,9 +96,9 @@ export const SecureInput: React.FC<SecureInputProps> = ({
   const [isFocused, setIsFocused] = useState(false);
 
   const sensitivityColors = {
-    low: '#4CAF50',    // Green
+    low: '#4CAF50', // Green
     medium: '#FFC107', // Yellow
-    high: '#F44336',   // Red
+    high: '#F44336', // Red
   };
 
   const handleChangeText = (text: string) => {
@@ -119,18 +115,18 @@ export const SecureInput: React.FC<SecureInputProps> = ({
     }
   };
 
+  const getSensitivityLabel = (level: string): string => {
+    return `${level.charAt(0).toUpperCase()}${level.slice(1)} Sensitivity`;
+  };
+
   return (
     <Container>
       <LabelContainer>
         <Label>{label}</Label>
         <SensitivityBadge color={sensitivityColors[sensitivityLevel]}>
-          <Lock 
-            width={12} 
-            height={12} 
-            color={sensitivityColors[sensitivityLevel]} 
-          />
+          <Lock width={12} height={12} color={sensitivityColors[sensitivityLevel]} />
           <SensitivityText color={sensitivityColors[sensitivityLevel]}>
-            {sensitivityLevel.charAt(0).toUpperCase() + sensitivityLevel.slice(1)} Sensitivity
+            {getSensitivityLabel(sensitivityLevel)}
           </SensitivityText>
         </SensitivityBadge>
       </LabelContainer>
@@ -168,9 +164,7 @@ export const SecureInput: React.FC<SecureInputProps> = ({
         </ErrorContainer>
       )}
 
-      {infoText && !error && (
-        <InfoText>{infoText}</InfoText>
-      )}
+      {infoText && !error && <InfoText>{infoText}</InfoText>}
     </Container>
   );
 };

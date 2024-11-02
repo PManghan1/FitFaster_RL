@@ -1,5 +1,3 @@
-import { WorkoutSummary } from './workout';
-
 export interface ProgressMetrics {
   totalWorkouts: number;
   currentStreak: number;

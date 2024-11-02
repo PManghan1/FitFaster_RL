@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View } from 'react-native';
-import styled from 'styled-components/native';
+import { Text } from 'react-native';
 import { Minus, Plus } from 'react-native-feather';
+import styled from 'styled-components/native';
+
 import { FoodItem } from '../../types/nutrition';
 
 const Container = styled.View`
@@ -21,12 +22,12 @@ const Header = styled.View`
 const Title = styled.Text`
   font-size: 16px;
   font-weight: 600;
-  color: #1F2937;
+  color: #1f2937;
 `;
 
 const ServingInfo = styled.Text`
   font-size: 14px;
-  color: #6B7280;
+  color: #6b7280;
 `;
 
 const ControlsContainer = styled.View`
@@ -45,7 +46,7 @@ const ControlButton = styled.TouchableOpacity<{ disabled?: boolean }>`
   width: 36px;
   height: 36px;
   border-radius: 18px;
-  background-color: ${props => props.disabled ? '#E5E7EB' : '#3B82F6'};
+  background-color: ${props => (props.disabled ? '#E5E7EB' : '#3B82F6')};
   justify-content: center;
   align-items: center;
 `;
@@ -55,7 +56,7 @@ const PortionInput = styled.TextInput`
   text-align: center;
   font-size: 18px;
   font-weight: 500;
-  color: #1F2937;
+  color: #1f2937;
   margin-horizontal: 12px;
 `;
 
@@ -64,7 +65,7 @@ const NutritionGrid = styled.View`
   justify-content: space-between;
   padding-top: 16px;
   border-top-width: 1px;
-  border-top-color: #E5E7EB;
+  border-top-color: #e5e7eb;
 `;
 
 const NutritionItem = styled.View`
@@ -73,14 +74,19 @@ const NutritionItem = styled.View`
 
 const NutritionLabel = styled.Text`
   font-size: 12px;
-  color: #6B7280;
+  color: #6b7280;
   margin-bottom: 4px;
 `;
 
 const NutritionValue = styled.Text`
   font-size: 16px;
   font-weight: 500;
-  color: #1F2937;
+  color: #1f2937;
+`;
+
+const ServingWrapper = styled.View`
+  flex-direction: row;
+  align-items: center;
 `;
 
 interface PortionSelectorProps {
@@ -134,10 +140,16 @@ export const PortionSelector: React.FC<PortionSelectorProps> = ({
   return (
     <Container testID={testID}>
       <Header>
-        <Title>Portion Size</Title>
-        <ServingInfo>
-          {defaultServing.amount} {defaultServing.unit.toLowerCase()} per serving
-        </ServingInfo>
+        <Text>
+          <Title>Portion Size</Title>
+        </Text>
+        <ServingWrapper>
+          <Text>
+            <ServingInfo>{defaultServing.amount}</ServingInfo>
+            <ServingInfo> {defaultServing.unit.toLowerCase()}</ServingInfo>
+            <ServingInfo> per serving</ServingInfo>
+          </Text>
+        </ServingWrapper>
       </Header>
 
       <ControlsContainer>
@@ -147,11 +159,7 @@ export const PortionSelector: React.FC<PortionSelectorProps> = ({
             disabled={portions <= minPortions}
             testID={`${testID}-decrease`}
           >
-            <Minus
-              width={20}
-              height={20}
-              color={portions <= minPortions ? '#9CA3AF' : 'white'}
-            />
+            <Minus width={20} height={20} color={portions <= minPortions ? '#9CA3AF' : 'white'} />
           </ControlButton>
 
           <PortionInput
@@ -167,43 +175,59 @@ export const PortionSelector: React.FC<PortionSelectorProps> = ({
             disabled={portions >= maxPortions}
             testID={`${testID}-increase`}
           >
-            <Plus
-              width={20}
-              height={20}
-              color={portions >= maxPortions ? '#9CA3AF' : 'white'}
-            />
+            <Plus width={20} height={20} color={portions >= maxPortions ? '#9CA3AF' : 'white'} />
           </ControlButton>
         </PortionControl>
 
-        <ServingInfo>
-          = {calculateNutrition(defaultServing.amount)} {defaultServing.unit.toLowerCase()}
-        </ServingInfo>
+        <ServingWrapper>
+          <Text>
+            <ServingInfo>=</ServingInfo>
+            <ServingInfo> {calculateNutrition(defaultServing.amount)}</ServingInfo>
+            <ServingInfo> {defaultServing.unit.toLowerCase()}</ServingInfo>
+          </Text>
+        </ServingWrapper>
       </ControlsContainer>
 
       <NutritionGrid>
         <NutritionItem>
-          <NutritionLabel>Calories</NutritionLabel>
-          <NutritionValue testID={`${testID}-calories`}>
-            {calculateNutrition(nutrients.calories)}
-          </NutritionValue>
+          <Text>
+            <NutritionLabel>Calories</NutritionLabel>
+          </Text>
+          <Text>
+            <NutritionValue testID={`${testID}-calories`}>
+              {calculateNutrition(nutrients.calories)}
+            </NutritionValue>
+          </Text>
         </NutritionItem>
         <NutritionItem>
-          <NutritionLabel>Protein</NutritionLabel>
-          <NutritionValue testID={`${testID}-protein`}>
-            {calculateNutrition(nutrients.protein)}g
-          </NutritionValue>
+          <Text>
+            <NutritionLabel>Protein</NutritionLabel>
+          </Text>
+          <Text>
+            <NutritionValue testID={`${testID}-protein`}>
+              {calculateNutrition(nutrients.protein)}g
+            </NutritionValue>
+          </Text>
         </NutritionItem>
         <NutritionItem>
-          <NutritionLabel>Carbs</NutritionLabel>
-          <NutritionValue testID={`${testID}-carbs`}>
-            {calculateNutrition(nutrients.carbs)}g
-          </NutritionValue>
+          <Text>
+            <NutritionLabel>Carbs</NutritionLabel>
+          </Text>
+          <Text>
+            <NutritionValue testID={`${testID}-carbs`}>
+              {calculateNutrition(nutrients.carbs)}g
+            </NutritionValue>
+          </Text>
         </NutritionItem>
         <NutritionItem>
-          <NutritionLabel>Fat</NutritionLabel>
-          <NutritionValue testID={`${testID}-fat`}>
-            {calculateNutrition(nutrients.fat)}g
-          </NutritionValue>
+          <Text>
+            <NutritionLabel>Fat</NutritionLabel>
+          </Text>
+          <Text>
+            <NutritionValue testID={`${testID}-fat`}>
+              {calculateNutrition(nutrients.fat)}g
+            </NutritionValue>
+          </Text>
         </NutritionItem>
       </NutritionGrid>
     </Container>

@@ -1,9 +1,9 @@
-import { useAuthStore } from "../../store/auth.store";
-import { supabase } from "../../services/supabase";
+import { supabase } from '../../services/supabase';
+import { useAuthStore } from '../../store/auth.store';
 import '@testing-library/jest-native/extend-expect';
 
 // Mock the Supabase client
-jest.mock("../../services/supabase", () => ({
+jest.mock('../../services/supabase', () => ({
   supabase: {
     auth: {
       getSession: jest.fn(),
@@ -15,10 +15,10 @@ jest.mock("../../services/supabase", () => ({
   },
 }));
 
-describe("AuthStore", () => {
+describe('AuthStore', () => {
   const mockSession = {
-    user: { id: "123", email: "test@example.com" },
-    access_token: "token",
+    user: { id: '123', email: 'test@example.com' },
+    access_token: 'token',
   };
 
   beforeEach(() => {
@@ -32,8 +32,8 @@ describe("AuthStore", () => {
     });
   });
 
-  describe("initialize", () => {
-    it("should initialize the store with current session", async () => {
+  describe('initialize', () => {
+    it('should initialize the store with current session', async () => {
       (supabase.auth.getSession as jest.Mock).mockResolvedValueOnce({
         data: { session: mockSession },
         error: null,
@@ -48,8 +48,8 @@ describe("AuthStore", () => {
       expect(state.isLoading).toBe(false);
     });
 
-    it("should handle initialization error", async () => {
-      const error = { message: "Failed to get session" };
+    it('should handle initialization error', async () => {
+      const error = { message: 'Failed to get session' };
       (supabase.auth.getSession as jest.Mock).mockResolvedValueOnce({
         data: { session: null },
         error,
@@ -63,14 +63,14 @@ describe("AuthStore", () => {
     });
   });
 
-  describe("signIn", () => {
-    it("should sign in user successfully", async () => {
+  describe('signIn', () => {
+    it('should sign in user successfully', async () => {
       (supabase.auth.signInWithPassword as jest.Mock).mockResolvedValueOnce({
         data: { user: mockSession.user, session: mockSession },
         error: null,
       });
 
-      const result = await useAuthStore.getState().signIn("test@example.com", "password");
+      const result = await useAuthStore.getState().signIn('test@example.com', 'password');
 
       expect(result.session).toBeDefined();
       expect(result.session?.access_token).toBe(mockSession.access_token);
@@ -80,14 +80,14 @@ describe("AuthStore", () => {
       expect(state.isLoading).toBe(false);
     });
 
-    it("should handle sign in error", async () => {
-      const error = { message: "Invalid credentials" };
+    it('should handle sign in error', async () => {
+      const error = { message: 'Invalid credentials' };
       (supabase.auth.signInWithPassword as jest.Mock).mockResolvedValueOnce({
         data: { user: null, session: null },
         error,
       });
 
-      const result = await useAuthStore.getState().signIn("test@example.com", "wrong-password");
+      const result = await useAuthStore.getState().signIn('test@example.com', 'wrong-password');
 
       expect(result.error).toBeDefined();
       const state = useAuthStore.getState();
@@ -97,14 +97,14 @@ describe("AuthStore", () => {
     });
   });
 
-  describe("signUp", () => {
-    it("should sign up user successfully", async () => {
+  describe('signUp', () => {
+    it('should sign up user successfully', async () => {
       (supabase.auth.signUp as jest.Mock).mockResolvedValueOnce({
         data: { user: mockSession.user, session: mockSession },
         error: null,
       });
 
-      const result = await useAuthStore.getState().signUp("test@example.com", "password");
+      const result = await useAuthStore.getState().signUp('test@example.com', 'password');
 
       expect(result.session).toBeDefined();
       expect(result.session?.access_token).toBe(mockSession.access_token);
@@ -114,14 +114,14 @@ describe("AuthStore", () => {
       expect(state.isLoading).toBe(false);
     });
 
-    it("should handle sign up error", async () => {
-      const error = { message: "Email already exists" };
+    it('should handle sign up error', async () => {
+      const error = { message: 'Email already exists' };
       (supabase.auth.signUp as jest.Mock).mockResolvedValueOnce({
         data: { user: null, session: null },
         error,
       });
 
-      const result = await useAuthStore.getState().signUp("existing@example.com", "password");
+      const result = await useAuthStore.getState().signUp('existing@example.com', 'password');
 
       expect(result.error).toBeDefined();
       const state = useAuthStore.getState();
@@ -131,8 +131,8 @@ describe("AuthStore", () => {
     });
   });
 
-  describe("signOut", () => {
-    it("should sign out user successfully", async () => {
+  describe('signOut', () => {
+    it('should sign out user successfully', async () => {
       (supabase.auth.signOut as jest.Mock).mockResolvedValueOnce({
         error: null,
       });
@@ -145,8 +145,8 @@ describe("AuthStore", () => {
       expect(state.isLoading).toBe(false);
     });
 
-    it("should handle sign out error", async () => {
-      const error = { message: "Failed to sign out" };
+    it('should handle sign out error', async () => {
+      const error = { message: 'Failed to sign out' };
       (supabase.auth.signOut as jest.Mock).mockResolvedValueOnce({
         error,
       });
@@ -159,28 +159,28 @@ describe("AuthStore", () => {
     });
   });
 
-  describe("resetPassword", () => {
-    it("should reset password successfully", async () => {
+  describe('resetPassword', () => {
+    it('should reset password successfully', async () => {
       (supabase.auth.resetPasswordForEmail as jest.Mock).mockResolvedValueOnce({
         data: {},
         error: null,
       });
 
-      await useAuthStore.getState().resetPassword("test@example.com");
+      await useAuthStore.getState().resetPassword('test@example.com');
 
       const state = useAuthStore.getState();
       expect(state.error).toBeNull();
       expect(state.isLoading).toBe(false);
     });
 
-    it("should handle reset password error", async () => {
-      const error = { message: "Invalid email" };
+    it('should handle reset password error', async () => {
+      const error = { message: 'Invalid email' };
       (supabase.auth.resetPasswordForEmail as jest.Mock).mockResolvedValueOnce({
         data: null,
         error,
       });
 
-      await useAuthStore.getState().resetPassword("invalid@example.com");
+      await useAuthStore.getState().resetPassword('invalid@example.com');
 
       const state = useAuthStore.getState();
       expect(state.error).toBe(error.message);

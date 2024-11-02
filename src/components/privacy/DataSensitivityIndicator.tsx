@@ -1,6 +1,7 @@
 import React from 'react';
+import { Text } from 'react-native';
+import { AlertTriangle, Lock, Shield } from 'react-native-feather';
 import styled from 'styled-components/native';
-import { Lock, AlertTriangle, Shield } from 'react-native-feather';
 
 type SensitivityLevel = 'low' | 'medium' | 'high';
 
@@ -40,19 +41,30 @@ const Label = styled.Text<{ color: string }>`
 
 const Description = styled.Text`
   font-size: 14px;
-  color: #6B7280;
+  color: #6b7280;
 `;
 
 const InfoContainer = styled.View`
   margin-top: 8px;
   padding: 8px;
-  background-color: #F3F4F6;
+  background-color: #f3f4f6;
   border-radius: 6px;
 `;
 
 const InfoText = styled.Text`
   font-size: 12px;
-  color: #4B5563;
+  color: #4b5563;
+`;
+
+const DescriptionContainer = styled.View`
+  flex-direction: row;
+  align-items: center;
+`;
+
+const MeasureItem = styled.View`
+  flex-direction: row;
+  align-items: center;
+  margin-top: 4px;
 `;
 
 const getSensitivityConfig = (level: SensitivityLevel): SensitivityConfig => {
@@ -88,6 +100,22 @@ interface DataSensitivityIndicatorProps {
   testID?: string;
 }
 
+const styles = {
+  inlineText: {
+    color: '#6B7280',
+    marginHorizontal: 4,
+  },
+  protectionText: {
+    fontSize: 12,
+    color: '#4B5563',
+  },
+  bulletText: {
+    fontSize: 12,
+    color: '#4B5563',
+    marginRight: 4,
+  },
+};
+
 export const DataSensitivityIndicator: React.FC<DataSensitivityIndicatorProps> = ({
   level,
   dataType,
@@ -105,17 +133,20 @@ export const DataSensitivityIndicator: React.FC<DataSensitivityIndicatorProps> =
         </Badge>
       </Header>
 
-      <Description>
-        {dataType} - {config.description}
-      </Description>
+      <DescriptionContainer>
+        <Description>{dataType}</Description>
+        <Text style={styles.inlineText}>{' - '}</Text>
+        <Description>{config.description}</Description>
+      </DescriptionContainer>
 
       {protectionMeasures && protectionMeasures.length > 0 && (
         <InfoContainer>
-          <InfoText>Protection measures:</InfoText>
+          <Text style={styles.protectionText}>Protection measures:</Text>
           {protectionMeasures.map((measure, index) => (
-            <InfoText key={index} testID={`${testID}-measure-${index}`}>
-              • {measure}
-            </InfoText>
+            <MeasureItem key={index}>
+              <Text style={styles.bulletText}>•</Text>
+              <InfoText testID={`${testID}-measure-${index}`}>{measure}</InfoText>
+            </MeasureItem>
           ))}
         </InfoContainer>
       )}
@@ -128,19 +159,12 @@ export const DATA_SENSITIVITY_PRESETS = {
   BASIC_PROFILE: {
     level: 'low' as SensitivityLevel,
     dataType: 'Basic Profile Information',
-    protectionMeasures: [
-      'Standard encryption',
-      'Basic access controls',
-    ],
+    protectionMeasures: ['Standard encryption', 'Basic access controls'],
   },
   CONTACT_INFO: {
     level: 'medium' as SensitivityLevel,
     dataType: 'Contact Information',
-    protectionMeasures: [
-      'Enhanced encryption',
-      'Access logging',
-      'User consent required',
-    ],
+    protectionMeasures: ['Enhanced encryption', 'Access logging', 'User consent required'],
   },
   HEALTH_DATA: {
     level: 'high' as SensitivityLevel,

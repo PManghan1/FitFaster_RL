@@ -1,33 +1,34 @@
-import React, { useEffect, useState } from 'react';
-import { View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import React, { useEffect, useState } from 'react';
+import { View } from 'react-native';
 import { Search } from 'react-native-feather';
 import styled from 'styled-components/native';
+
 import { ExerciseList } from '../components/workout/ExerciseList';
+import { AppStackParamList } from '../navigation/AppNavigator';
 import { useExerciseLibrary } from '../store/workout.store';
 import { Exercise, MuscleGroup } from '../types/workout';
-import { AppStackParamList } from '../navigation/AppNavigator';
 
 const Container = styled.SafeAreaView`
   flex: 1;
-  background-color: #F9FAFB;
+  background-color: #f9fafb;
 `;
 
 const SearchContainer = styled.View`
   padding: 16px;
   background-color: white;
   border-bottom-width: 1px;
-  border-bottom-color: #E5E7EB;
+  border-bottom-color: #e5e7eb;
 `;
 
 const SearchInput = styled.TextInput`
-  background-color: #F3F4F6;
+  background-color: #f3f4f6;
   border-radius: 8px;
   padding: 8px 16px;
   padding-left: 40px;
   font-size: 16px;
-  color: #1F2937;
+  color: #1f2937;
 `;
 
 const SearchIcon = styled(View)`
@@ -44,17 +45,20 @@ const LoadingContainer = styled.View`
 
 const LoadingText = styled.Text`
   font-size: 16px;
-  color: #6B7280;
+  color: #6b7280;
   margin-top: 8px;
 `;
 
 const ErrorText = styled.Text`
-  color: #EF4444;
+  color: #ef4444;
   text-align: center;
   margin: 16px;
 `;
 
-type ExerciseLibraryScreenNavigationProp = NativeStackNavigationProp<AppStackParamList, 'ExerciseLibrary'>;
+type ExerciseLibraryScreenNavigationProp = NativeStackNavigationProp<
+  AppStackParamList,
+  'ExerciseLibrary'
+>;
 
 export const ExerciseLibraryScreen: React.FC = () => {
   const navigation = useNavigation<ExerciseLibraryScreenNavigationProp>();
@@ -78,9 +82,8 @@ export const ExerciseLibraryScreen: React.FC = () => {
     setSelectedMuscleGroups(muscleGroups);
   };
 
-  const displayedExercises = searchQuery || selectedMuscleGroups.size > 0 
-    ? searchResults 
-    : exercises;
+  const displayedExercises =
+    searchQuery || selectedMuscleGroups.size > 0 ? searchResults : exercises;
 
   return (
     <Container>

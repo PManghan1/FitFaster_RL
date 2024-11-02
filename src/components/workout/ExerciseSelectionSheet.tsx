@@ -1,8 +1,7 @@
 import React from 'react';
-import { View, TouchableOpacity } from 'react-native';
-import styled from 'styled-components/native';
+import { Text, TouchableOpacity, View } from 'react-native';
 import { X } from 'react-native-feather';
-import { Exercise } from '../../types/workout';
+import styled from 'styled-components/native';
 
 const Container = styled(View)`
   flex: 1;
@@ -28,18 +27,16 @@ const CloseButton = styled(TouchableOpacity)`
 `;
 
 interface ExerciseSelectionSheetProps {
-  onSelectExercise: (exercise: Exercise) => void;
   onClose: () => void;
 }
 
-export const ExerciseSelectionSheet: React.FC<ExerciseSelectionSheetProps> = ({
-  onSelectExercise,
-  onClose,
-}) => {
+export const ExerciseSelectionSheet: React.FC<ExerciseSelectionSheetProps> = ({ onClose }) => {
   return (
     <Container>
       <Header>
-        <Title>Select Exercise</Title>
+        <Title>
+          <Text>Select Exercise</Text>
+        </Title>
         <CloseButton onPress={onClose}>
           <X width={24} height={24} color="#6b7280" />
         </CloseButton>

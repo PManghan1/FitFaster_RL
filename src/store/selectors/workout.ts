@@ -1,10 +1,10 @@
-import type { WorkoutStore, WorkoutSession, Exercise, WorkoutId } from '../../types/workout';
+import type { Exercise, WorkoutId, WorkoutSession, WorkoutStore } from '../../types/workout';
 
 // Memoized selectors for workout data
 export const workoutSelectors = {
   // Get active workout session
   getActiveWorkout: (state: WorkoutStore) => state.activeWorkout,
-  
+
   // Get completed workouts for the current week
   getCurrentWeekWorkouts: (state: WorkoutStore) => {
     const now = new Date();
@@ -20,9 +20,12 @@ export const workoutSelectors = {
     const workout = state.workoutHistory.find(w => w.id === workoutId);
     if (!workout) return 0;
     return workout.exercises.reduce((total: number, exercise: Exercise) => {
-      return total + exercise.sets.reduce((setTotal: number, set) => {
-        return setTotal + ((set.weight || 0) * (set.reps || 0));
-      }, 0);
+      return (
+        total +
+        exercise.sets.reduce((setTotal: number, set) => {
+          return setTotal + (set.weight || 0) * (set.reps || 0);
+        }, 0)
+      );
     }, 0);
   },
 
@@ -45,13 +48,14 @@ export const workoutSelectors = {
   // Get workout streak
   getWorkoutStreak: (state: WorkoutStore) => {
     let streak = 0;
-    const sortedWorkouts = [...state.workoutHistory]
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const sortedWorkouts = [...state.workoutHistory].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+    );
 
     if (sortedWorkouts.length === 0) return 0;
 
     const today = new Date();
-    let currentDate = new Date(sortedWorkouts[0].date);
+    const currentDate = new Date(sortedWorkouts[0].date);
 
     // Check if the most recent workout was today or yesterday
     const daysDiff = Math.floor((today.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -86,19 +90,24 @@ export const createWorkoutSelectors = {
   // Get workouts by exercise type
   getWorkoutsByExercise: (exerciseId: string) => (state: WorkoutStore) => {
     return state.workoutHistory.filter((workout: WorkoutSession) =>
-      workout.exercises.some((e: Exercise) => e.id === exerciseId)
+      workout.exercises.some((e: Exercise) => e.id === exerciseId),
     );
   },
 
   // Get progress for a specific exercise
   getExerciseProgress: (exerciseId: string) => (state: WorkoutStore) => {
     return state.workoutHistory
-      .filter((workout: WorkoutSession) => workout.exercises.some((e: Exercise) => e.id === exerciseId))
+      .filter((workout: WorkoutSession) =>
+        workout.exercises.some((e: Exercise) => e.id === exerciseId),
+      )
       .map((workout: WorkoutSession) => {
         const exercise = workout.exercises.find((e: Exercise) => e.id === exerciseId)!;
         return {
           date: workout.date,
-          volume: exercise.sets.reduce((total: number, set) => total + ((set.weight || 0) * (set.reps || 0)), 0),
+          volume: exercise.sets.reduce(
+            (total: number, set) => total + (set.weight || 0) * (set.reps || 0),
+            0,
+          ),
           maxWeight: Math.max(...exercise.sets.map(set => set.weight || 0)),
         };
       })

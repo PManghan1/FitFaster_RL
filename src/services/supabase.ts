@@ -1,10 +1,11 @@
-import { createClient, Provider } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 import * as SecureStore from 'expo-secure-store';
 
 import config from '../config';
+import { Exercise, ExerciseHistory, Set, WorkoutSession } from '../types/workout';
 
 // Database type definition
-type Database = {
+export type Database = {
   public: {
     Tables: {
       profiles: {
@@ -14,6 +15,11 @@ type Database = {
           updated_at: string;
           full_name: string | null;
           avatar_url: string | null;
+          email: string;
+        };
+        Insert: {
+          full_name?: string | null;
+          avatar_url?: string | null;
           email: string;
         };
       };
@@ -31,9 +37,33 @@ type Database = {
           expires_at?: string;
         };
       };
+      exercises: {
+        Row: Exercise;
+        Insert: Omit<Exercise, 'id' | 'createdAt' | 'updatedAt'>;
+      };
+      workout_sessions: {
+        Row: WorkoutSession;
+        Insert: Omit<
+          WorkoutSession,
+          'id' | 'createdAt' | 'updatedAt' | 'exercises' | 'sets' | 'totalSets' | 'totalVolume'
+        >;
+      };
+      workout_sets: {
+        Row: Set & { userId: string; sessionId: string; createdAt: string };
+        Insert: Omit<Set & { userId: string; sessionId: string }, 'id' | 'createdAt'>;
+      };
+      exercise_history: {
+        Row: ExerciseHistory;
+        Insert: Omit<ExerciseHistory, 'id' | 'createdAt'>;
+      };
     };
   };
 };
+
+type TableRow<T extends keyof Database['public']['Tables']> =
+  Database['public']['Tables'][T]['Row'];
+type TableInsert<T extends keyof Database['public']['Tables']> =
+  Database['public']['Tables'][T]['Insert'];
 
 // Custom storage adapter using expo-secure-store
 const secureStore = {
@@ -58,6 +88,94 @@ export const supabase = createClient<Database>(config.supabase.url, config.supab
   },
 });
 
+/**
+ * Enhanced Supabase service with query optimization
+ */
+export class SupabaseService {
+  /**
+   * Optimized select query with monitoring
+   */
+  protected async selectQuery<T extends keyof Database['public']['Tables']>(
+    table: T,
+    fields: (keyof TableRow<T>)[],
+    options: {
+      page?: number;
+      pageSize?: number;
+      filters?: Partial<Record<keyof TableRow<T>, string | number | boolean | null>>;
+    } = {},
+  ): Promise<TableRow<T>[]> {
+    const { page, pageSize, filters } = options;
+    let query = supabase.from(table).select(fields.join(','));
+
+    // Apply filters if provided
+    if (filters) {
+      (Object.entries(filters) as [string, string | number | boolean | null][]).forEach(
+        ([key, value]) => {
+          query = query.eq(key, value);
+        },
+      );
+    }
+
+    // Apply pagination if provided
+    if (page && pageSize) {
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+      query = query.range(from, to);
+    }
+
+    const response = await query;
+    if (response.error) throw response.error;
+
+    // Safely cast the response data to the correct type
+    const data = response.data as unknown as TableRow<T>[];
+    return data || [];
+  }
+
+  /**
+   * Optimized insert operation
+   */
+  protected async insertQuery<T extends keyof Database['public']['Tables']>(
+    table: T,
+    data: TableInsert<T>,
+  ): Promise<TableRow<T>> {
+    const response = await supabase.from(table).insert(data).select().single();
+
+    if (response.error) throw response.error;
+    if (!response.data) throw new Error('No data returned from insert');
+
+    // Safely cast the response data to the correct type
+    return response.data as unknown as TableRow<T>;
+  }
+
+  /**
+   * Optimized update operation
+   */
+  protected async updateQuery<T extends keyof Database['public']['Tables']>(
+    table: T,
+    id: string,
+    data: Partial<TableRow<T>>,
+  ): Promise<TableRow<T>> {
+    const response = await supabase.from(table).update(data).eq('id', id).select().single();
+
+    if (response.error) throw response.error;
+    if (!response.data) throw new Error('No data returned from update');
+
+    // Safely cast the response data to the correct type
+    return response.data as unknown as TableRow<T>;
+  }
+
+  /**
+   * Optimized delete operation
+   */
+  protected async deleteQuery(
+    table: keyof Database['public']['Tables'],
+    id: string,
+  ): Promise<void> {
+    const { error } = await supabase.from(table).delete().eq('id', id);
+    if (error) throw error;
+  }
+}
+
 // Custom error class for Supabase errors
 export class SupabaseError extends Error {
   constructor(
@@ -69,136 +187,3 @@ export class SupabaseError extends Error {
     this.name = 'SupabaseError';
   }
 }
-
-// Auth helper functions with proper error handling and types
-export const getCurrentUser = async () => {
-  try {
-    const {
-      data: { user },
-      error,
-    } = await supabase.auth.getUser();
-    if (error) throw new SupabaseError(error.message, error.name);
-    return user;
-  } catch (error) {
-    if (config.isDevelopment) {
-      console.error('Error getting current user:', error);
-    }
-    return null;
-  }
-};
-
-export const getCurrentSession = async () => {
-  try {
-    const {
-      data: { session },
-      error,
-    } = await supabase.auth.getSession();
-    if (error) throw new SupabaseError(error.message, error.name);
-    return session;
-  } catch (error) {
-    if (config.isDevelopment) {
-      console.error('Error getting current session:', error);
-    }
-    return null;
-  }
-};
-
-export const signOut = async () => {
-  try {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw new SupabaseError(error.message, error.name);
-  } catch (error) {
-    if (config.isDevelopment) {
-      console.error('Error signing out:', error);
-    }
-    throw error;
-  }
-};
-
-export const signInWithEmail = async (email: string, password: string) => {
-  try {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) throw new SupabaseError(error.message, error.name);
-    return data;
-  } catch (error) {
-    if (config.isDevelopment) {
-      console.error('Error signing in:', error);
-    }
-    throw error;
-  }
-};
-
-export const signInWithSocialProvider = async (provider: Provider) => {
-  try {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: {
-        redirectTo: `${config.appUrl}/auth/callback`,
-        queryParams: {
-          access_type: 'offline',
-          prompt: 'consent',
-        },
-      },
-    });
-    if (error) throw new SupabaseError(error.message, error.name);
-    return data;
-  } catch (error) {
-    if (config.isDevelopment) {
-      console.error(`Error signing in with ${provider}:`, error);
-    }
-    throw error;
-  }
-};
-
-export const signUpWithEmail = async (email: string, password: string, fullName: string) => {
-  try {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
-        },
-      },
-    });
-    if (error) throw new SupabaseError(error.message, error.name);
-    return data;
-  } catch (error) {
-    if (config.isDevelopment) {
-      console.error('Error signing up:', error);
-    }
-    throw error;
-  }
-};
-
-export const resetPassword = async (email: string) => {
-  try {
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
-    if (error) throw new SupabaseError(error.message, error.name);
-  } catch (error) {
-    if (config.isDevelopment) {
-      console.error('Error resetting password:', error);
-    }
-    throw error;
-  }
-};
-
-export const updatePassword = async (newPassword: string) => {
-  try {
-    const { error } = await supabase.auth.updateUser({
-      password: newPassword,
-    });
-    if (error) throw new SupabaseError(error.message, error.name);
-  } catch (error) {
-    if (config.isDevelopment) {
-      console.error('Error updating password:', error);
-    }
-    throw error;
-  }
-};
-
-// Export types
-export type { Database };

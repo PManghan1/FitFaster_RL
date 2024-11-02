@@ -5,8 +5,17 @@ declare module 'detox' {
   export const by: ByFacade;
   export const expect: ExpectFacade;
 
+  interface LaunchAppParams {
+    newInstance?: boolean;
+    permissions?: Record<string, boolean>;
+    url?: string;
+    userNotification?: Record<string, unknown>;
+    delete?: boolean;
+    launchArgs?: Record<string, string>;
+  }
+
   interface Device {
-    launchApp(params?: {}): Promise<void>;
+    launchApp(params?: LaunchAppParams): Promise<void>;
     reloadReactNative(): Promise<void>;
     terminateApp(): Promise<void>;
     sendToHome(): Promise<void>;
@@ -47,7 +56,11 @@ declare module 'detox' {
     clearText(): Promise<void>;
     scroll(pixels: number, direction: 'up' | 'down' | 'left' | 'right'): Promise<void>;
     scrollTo(edge: 'top' | 'bottom' | 'left' | 'right'): Promise<void>;
-    swipe(direction: 'up' | 'down' | 'left' | 'right', speed?: 'fast' | 'slow', percentage?: number): Promise<void>;
+    swipe(
+      direction: 'up' | 'down' | 'left' | 'right',
+      speed?: 'fast' | 'slow',
+      percentage?: number,
+    ): Promise<void>;
     atIndex(index: number): ElementActions;
   }
 

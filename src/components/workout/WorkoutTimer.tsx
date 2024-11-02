@@ -1,8 +1,8 @@
-import React, { useEffect, useCallback } from 'react';
-import { View, TouchableOpacity } from 'react-native';
-import styled from 'styled-components/native';
-import { Play, Pause, RotateCcw } from 'react-native-feather';
 import { activateKeepAwake, deactivateKeepAwake } from 'expo-keep-awake';
+import React, { useCallback, useEffect } from 'react';
+import { Pause, Play, RotateCcw } from 'react-native-feather';
+import styled from 'styled-components/native';
+
 import { useWorkoutStore } from '../../store/workout.store';
 
 const Container = styled.View`
@@ -21,13 +21,13 @@ const Container = styled.View`
 const TimeDisplay = styled.Text`
   font-size: 48px;
   font-weight: bold;
-  color: #1F2937;
+  color: #1f2937;
   margin-vertical: 16px;
 `;
 
 const Label = styled.Text`
   font-size: 16px;
-  color: #6B7280;
+  color: #6b7280;
   margin-bottom: 8px;
 `;
 
@@ -42,7 +42,7 @@ const ControlButton = styled.TouchableOpacity<{ variant?: 'primary' | 'secondary
   width: 48px;
   height: 48px;
   border-radius: 24px;
-  background-color: ${props => props.variant === 'primary' ? '#3B82F6' : '#E5E7EB'};
+  background-color: ${props => (props.variant === 'primary' ? '#3B82F6' : '#E5E7EB')};
   justify-content: center;
   align-items: center;
   margin-horizontal: 8px;
@@ -51,13 +51,13 @@ const ControlButton = styled.TouchableOpacity<{ variant?: 'primary' | 'secondary
 const PresetButton = styled.TouchableOpacity<{ isSelected?: boolean }>`
   padding: 8px 16px;
   border-radius: 20px;
-  background-color: ${props => props.isSelected ? '#3B82F6' : '#E5E7EB'};
+  background-color: ${props => (props.isSelected ? '#3B82F6' : '#E5E7EB')};
   margin-horizontal: 4px;
 `;
 
 const PresetText = styled.Text<{ isSelected?: boolean }>`
-  color: ${props => props.isSelected ? 'white' : '#4B5563'};
-  font-weight: ${props => props.isSelected ? '600' : '400'};
+  color: ${props => (props.isSelected ? 'white' : '#4B5563')};
+  font-weight: ${props => (props.isSelected ? '600' : '400')};
 `;
 
 const PresetContainer = styled.View`
@@ -84,24 +84,31 @@ export const WorkoutTimer: React.FC<WorkoutTimerProps> = ({
   const { restTimer, startRestTimer, stopRestTimer } = useWorkoutStore();
   const [isActive, setIsActive] = React.useState(false);
 
+  const handleComplete = useCallback(() => {
+    setIsActive(false);
+    deactivateKeepAwake();
+    stopRestTimer();
+    onComplete?.();
+  }, [onComplete, stopRestTimer]);
+
   useEffect(() => {
     return () => {
       stopRestTimer();
       deactivateKeepAwake();
     };
-  }, []);
+  }, [stopRestTimer]);
 
   useEffect(() => {
     if (restTimer === 0) {
       handleComplete();
     }
-  }, [restTimer]);
+  }, [restTimer, handleComplete]);
 
   const handleStart = useCallback(() => {
     setIsActive(true);
     activateKeepAwake();
     startRestTimer(restTimer || initialTime);
-  }, [initialTime, startRestTimer]);
+  }, [initialTime, startRestTimer, restTimer]);
 
   const handlePause = useCallback(() => {
     setIsActive(false);
@@ -116,19 +123,15 @@ export const WorkoutTimer: React.FC<WorkoutTimerProps> = ({
     startRestTimer(initialTime);
   }, [initialTime, startRestTimer, stopRestTimer]);
 
-  const handleComplete = useCallback(() => {
-    setIsActive(false);
-    deactivateKeepAwake();
-    stopRestTimer();
-    onComplete?.();
-  }, [onComplete, stopRestTimer]);
-
-  const handlePresetSelect = useCallback((time: number) => {
-    stopRestTimer();
-    startRestTimer(time);
-    setIsActive(true);
-    activateKeepAwake();
-  }, [startRestTimer, stopRestTimer]);
+  const handlePresetSelect = useCallback(
+    (time: number) => {
+      stopRestTimer();
+      startRestTimer(time);
+      setIsActive(true);
+      activateKeepAwake();
+    },
+    [startRestTimer, stopRestTimer],
+  );
 
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
@@ -139,16 +142,10 @@ export const WorkoutTimer: React.FC<WorkoutTimerProps> = ({
   return (
     <Container testID={testID}>
       <Label>{label}</Label>
-      <TimeDisplay testID={`${testID}-display`}>
-        {formatTime(restTimer || initialTime)}
-      </TimeDisplay>
+      <TimeDisplay testID={`${testID}-display`}>{formatTime(restTimer || initialTime)}</TimeDisplay>
 
       <Controls>
-        <ControlButton
-          onPress={handleReset}
-          variant="secondary"
-          testID={`${testID}-reset`}
-        >
+        <ControlButton onPress={handleReset} variant="secondary" testID={`${testID}-reset`}>
           <RotateCcw width={24} height={24} color="#4B5563" />
         </ControlButton>
 
@@ -166,16 +163,14 @@ export const WorkoutTimer: React.FC<WorkoutTimerProps> = ({
       </Controls>
 
       <PresetContainer>
-        {presets.map((preset) => (
+        {presets.map(preset => (
           <PresetButton
             key={preset}
             onPress={() => handlePresetSelect(preset)}
             isSelected={restTimer === preset}
             testID={`${testID}-preset-${preset}`}
           >
-            <PresetText isSelected={restTimer === preset}>
-              {formatTime(preset)}
-            </PresetText>
+            <PresetText isSelected={restTimer === preset}>{formatTime(preset)}</PresetText>
           </PresetButton>
         ))}
       </PresetContainer>

@@ -1,7 +1,8 @@
+import { fireEvent, render } from '@testing-library/react-native';
 import React from 'react';
-import { render, fireEvent } from '@testing-library/react-native';
-import { SecureInput } from '../../../components/privacy/SecureInput';
 import { z } from 'zod';
+
+import { SecureInput } from '../../../components/privacy/SecureInput';
 
 describe('SecureInput', () => {
   const mockOnChangeText = jest.fn();
@@ -18,7 +19,7 @@ describe('SecureInput', () => {
         onChangeText={mockOnChangeText}
         sensitivityLevel="low"
         testID="test-input"
-      />
+      />,
     );
 
     expect(getByText('Test Input')).toBeTruthy();
@@ -33,7 +34,7 @@ describe('SecureInput', () => {
         value=""
         onChangeText={mockOnChangeText}
         sensitivityLevel="low"
-      />
+      />,
     );
 
     expect(getByText('Low Sensitivity')).toBeTruthy();
@@ -44,7 +45,7 @@ describe('SecureInput', () => {
         value=""
         onChangeText={mockOnChangeText}
         sensitivityLevel="medium"
-      />
+      />,
     );
     expect(getByText('Medium Sensitivity')).toBeTruthy();
 
@@ -54,7 +55,7 @@ describe('SecureInput', () => {
         value=""
         onChangeText={mockOnChangeText}
         sensitivityLevel="high"
-      />
+      />,
     );
     expect(getByText('High Sensitivity')).toBeTruthy();
   });
@@ -68,7 +69,7 @@ describe('SecureInput', () => {
         sensitivityLevel="high"
         secureTextEntry
         testID="password-input"
-      />
+      />,
     );
 
     const input = getByTestId('password-input');
@@ -89,11 +90,11 @@ describe('SecureInput', () => {
         sensitivityLevel="medium"
         validation={schema}
         testID="email-input"
-      />
+      />,
     );
 
     const input = getByTestId('email-input');
-    
+
     // Invalid email
     fireEvent.changeText(input, 'invalid-email');
     expect(getByText('Invalid email format')).toBeTruthy();
@@ -111,7 +112,7 @@ describe('SecureInput', () => {
         onChangeText={mockOnChangeText}
         sensitivityLevel="low"
         infoText="Additional information"
-      />
+      />,
     );
 
     expect(getByText('Additional information')).toBeTruthy();
@@ -125,25 +126,25 @@ describe('SecureInput', () => {
         onChangeText={mockOnChangeText}
         sensitivityLevel="low"
         testID="test-input"
-      />
+      />,
     );
 
     const input = getByTestId('test-input');
-    
+
     fireEvent(input, 'focus');
     // Check for focused styles
     expect(input.parent.props.style).toContainEqual(
       expect.objectContaining({
-        borderColor: '#3B82F6'
-      })
+        borderColor: '#3B82F6',
+      }),
     );
 
     fireEvent(input, 'blur');
     // Check for unfocused styles
     expect(input.parent.props.style).toContainEqual(
       expect.objectContaining({
-        borderColor: '#D1D5DB'
-      })
+        borderColor: '#D1D5DB',
+      }),
     );
   });
 
@@ -155,12 +156,12 @@ describe('SecureInput', () => {
         onChangeText={mockOnChangeText}
         sensitivityLevel="low"
         testID="test-input"
-      />
+      />,
     );
 
     const input = getByTestId('test-input');
     fireEvent.changeText(input, 'test value');
-    
+
     expect(mockOnChangeText).toHaveBeenCalledWith('test value');
     expect(mockOnChangeText).toHaveBeenCalledTimes(1);
   });
@@ -175,17 +176,17 @@ describe('SecureInput', () => {
         sensitivityLevel="low"
         validation={schema}
         testID="test-input"
-      />
+      />,
     );
 
     const input = getByTestId('test-input');
     fireEvent.changeText(input, 'test');
-    
+
     expect(getByText('Minimum 5 characters required')).toBeTruthy();
     expect(input.parent.props.style).toContainEqual(
       expect.objectContaining({
-        borderColor: '#EF4444'
-      })
+        borderColor: '#EF4444',
+      }),
     );
   });
 });

@@ -1,13 +1,14 @@
-import { DatabaseError } from '../utils/supabase';
-import { workoutService } from './workout';
 import { ProgressMetrics, WorkoutHistoryItem } from '../types/progress';
 import { WorkoutSummary } from '../types/workout';
+import { DatabaseError } from '../utils/supabase';
+
+import { workoutService } from './workout';
 
 class ProgressService {
   async getProgressMetrics(userId: string): Promise<ProgressMetrics> {
     try {
       const workouts = await workoutService.getWorkoutHistory(userId);
-      
+
       const now = new Date();
       const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
       startOfWeek.setHours(0, 0, 0, 0);
@@ -21,14 +22,16 @@ class ProgressService {
       workouts.forEach(workout => {
         // Calculate total volume and exercise counts
         workout.exercises.forEach(({ exercise, sets }) => {
-          const exerciseVolume = sets.reduce((total, set) => 
-            total + (set.weight || 0) * (set.reps || 0), 0);
+          const exerciseVolume = sets.reduce(
+            (total, set) => total + (set.weight || 0) * (set.reps || 0),
+            0,
+          );
           totalVolume += exerciseVolume;
 
           const current = exerciseCounts.get(exercise.id) || { name: exercise.name, count: 0 };
           exerciseCounts.set(exercise.id, {
             name: exercise.name,
-            count: current.count + 1
+            count: current.count + 1,
           });
         });
 
@@ -44,7 +47,7 @@ class ProgressService {
           currentStreak = 1;
         } else {
           const dayDiff = Math.floor(
-            (lastWorkoutDate.getTime() - workoutDate.getTime()) / (1000 * 60 * 60 * 24)
+            (lastWorkoutDate.getTime() - workoutDate.getTime()) / (1000 * 60 * 60 * 24),
           );
           if (dayDiff === 1) {
             currentStreak++;
@@ -69,26 +72,30 @@ class ProgressService {
         mostUsedExercises,
       };
     } catch (error) {
-      throw new DatabaseError(error instanceof Error ? error.message : 'Failed to get progress metrics');
+      throw new DatabaseError(
+        error instanceof Error ? error.message : 'Failed to get progress metrics',
+      );
     }
   }
 
   async getRecentWorkouts(userId: string, limit = 10): Promise<WorkoutHistoryItem[]> {
     try {
       const workouts = await workoutService.getWorkoutHistory(userId);
-      
-      return workouts
-        .slice(0, limit)
-        .map(workout => this.mapWorkoutSummaryToHistoryItem(workout));
+
+      return workouts.slice(0, limit).map(workout => this.mapWorkoutSummaryToHistoryItem(workout));
     } catch (error) {
-      throw new DatabaseError(error instanceof Error ? error.message : 'Failed to get recent workouts');
+      throw new DatabaseError(
+        error instanceof Error ? error.message : 'Failed to get recent workouts',
+      );
     }
   }
 
   private mapWorkoutSummaryToHistoryItem(workout: WorkoutSummary): WorkoutHistoryItem {
-    const totalVolume = workout.exercises.reduce((total, { sets }) => 
-      total + sets.reduce((setTotal, set) => 
-        setTotal + (set.weight || 0) * (set.reps || 0), 0), 0);
+    const totalVolume = workout.exercises.reduce(
+      (total, { sets }) =>
+        total + sets.reduce((setTotal, set) => setTotal + (set.weight || 0) * (set.reps || 0), 0),
+      0,
+    );
 
     return {
       id: workout.session.id,

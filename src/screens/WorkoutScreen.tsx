@@ -1,45 +1,37 @@
-import React, { useEffect, useCallback, useState } from 'react';
-import { 
-  View, 
-  ScrollView, 
-  Alert, 
-  Text, 
-  TouchableOpacity, 
-  Modal,
-  StyleSheet 
-} from 'react-native';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import styled from 'styled-components/native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Alert, DevSettings, Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { Plus, X } from 'react-native-feather';
-import { 
-  ExerciseList, 
-  SetInput, 
-  WorkoutTimer, 
-  WorkoutHistory 
-} from '../components/workout';
-import { useCurrentWorkout, useExerciseLibrary } from '../store/workout.store';
-import { Exercise, MuscleGroup } from '../types/workout';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import styled from 'styled-components/native';
+
+import { withErrorBoundary } from '../components/hoc/withErrorBoundary';
+import { ExerciseList, SetInput, WorkoutErrorFallback, WorkoutTimer } from '../components/workout';
+import { usePerformanceMonitoring } from '../hooks/usePerformanceMonitoring';
 import { AppStackParamList } from '../navigation/AppNavigator';
+import { useWorkoutStore } from '../store/workout.store';
+import { theme } from '../theme';
+import { Exercise, MuscleGroup, Set as WorkoutSet } from '../types/workout';
+import { formatDuration } from '../utils/time';
 
 const Container = styled(SafeAreaView)`
   flex: 1;
-  background-color: #f3f4f6;
+  background-color: ${theme.colors.background.light};
 `;
 
 const Header = styled(View)`
-  padding: 16px;
-  background-color: white;
+  padding: ${theme.spacing.md}px;
+  background-color: ${theme.colors.background.default};
   border-bottom-width: 1px;
-  border-bottom-color: #e5e7eb;
+  border-bottom-color: ${theme.colors.border.default};
 `;
 
 const HeaderText = styled(Text)`
-  font-size: 20px;
-  font-weight: bold;
-  color: #1f2937;
+  font-size: ${theme.typography.fontSize.lg}px;
+  font-weight: 700;
+  color: ${theme.colors.text.default};
 `;
 
 const Content = styled(ScrollView)`
@@ -47,26 +39,26 @@ const Content = styled(ScrollView)`
 `;
 
 const ActionBar = styled(View)`
-  padding: 16px;
-  background-color: white;
+  padding: ${theme.spacing.md}px;
+  background-color: ${theme.colors.background.default};
   border-top-width: 1px;
-  border-top-color: #e5e7eb;
+  border-top-color: ${theme.colors.border.default};
 `;
 
 const ActionButton = styled(TouchableOpacity)`
-  background-color: #3b82f6;
-  padding: 12px;
-  border-radius: 8px;
+  background-color: ${theme.colors.primary.default};
+  padding: ${theme.spacing.md}px;
+  border-radius: ${theme.borderRadius.md}px;
   flex-direction: row;
   align-items: center;
   justify-content: center;
 `;
 
 const ActionButtonText = styled(Text)`
-  color: white;
+  color: ${theme.colors.background.default};
   text-align: center;
-  font-weight: 600;
-  margin-left: 8px;
+  font-weight: 700;
+  margin-left: ${theme.spacing.sm}px;
 `;
 
 const AddExerciseButton = styled(TouchableOpacity)`
@@ -76,136 +68,178 @@ const AddExerciseButton = styled(TouchableOpacity)`
   width: 56px;
   height: 56px;
   border-radius: 28px;
-  background-color: #3b82f6;
+  background-color: ${theme.colors.primary.default};
   align-items: center;
   justify-content: center;
-  shadow-color: #000;
-  shadow-offset: 0px 2px;
-  shadow-opacity: 0.25;
-  shadow-radius: 3.84px;
   elevation: 5;
 `;
 
-const ModalContainer = styled(View)`
-  flex: 1;
+const ExerciseCard = styled(View)`
   background-color: white;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  shadow-color: #000;
+  shadow-offset: 0px 2px;
+  shadow-opacity: 0.1;
+  shadow-radius: 3px;
+  elevation: 3;
+`;
+
+const ExerciseName = styled(Text)`
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 8px;
+`;
+
+const SetRow = styled(View)`
+  flex-direction: row;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom-width: 1px;
+  border-bottom-color: #e5e7eb;
+`;
+
+const SetText = styled(Text)`
+  font-size: 14px;
+  color: #4b5563;
 `;
 
 const ModalHeader = styled(View)`
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  padding: 16px;
+  padding: ${theme.spacing.md}px;
   border-bottom-width: 1px;
-  border-bottom-color: #e5e7eb;
+  border-bottom-color: ${theme.colors.border.default};
 `;
 
 const ModalTitle = styled(Text)`
-  font-size: 18px;
-  font-weight: 600;
-  color: #1f2937;
-`;
-
-const CloseButton = styled(TouchableOpacity)`
-  padding: 8px;
+  font-size: ${theme.typography.fontSize.lg}px;
+  font-weight: 700;
+  color: ${theme.colors.text.default};
 `;
 
 type WorkoutScreenNavigationProp = NativeStackNavigationProp<AppStackParamList, 'Workout'>;
 type WorkoutScreenRouteProp = RouteProp<AppStackParamList, 'Workout'>;
 
-export const WorkoutScreen: React.FC = () => {
+type WorkoutSetInput = Omit<WorkoutSet, 'id' | 'exerciseId' | 'completed'>;
+
+const WorkoutScreenComponent: React.FC = () => {
   const navigation = useNavigation<WorkoutScreenNavigationProp>();
   const route = useRoute<WorkoutScreenRouteProp>();
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [selectedMuscleGroups, setSelectedMuscleGroups] = React.useState<Set<MuscleGroup>>(new Set());
-  
-  const { 
-    session,
-    isActive,
+  const [selectedMuscleGroups, setSelectedMuscleGroups] = useState<MuscleGroup[]>([]);
+
+  const {
+    currentWorkout,
     currentExercise,
     restTimer,
+    isActive,
     startWorkout,
     endWorkout,
     selectExercise,
     addSet,
     startRestTimer,
-    stopRestTimer
-  } = useCurrentWorkout();
+    stopRestTimer,
+  } = useWorkoutStore();
 
-  const {
-    exercises,
-    searchResults,
-    isSearching,
-    searchExercises
-  } = useExerciseLibrary();
-
-  useEffect(() => {
-    // Load initial exercises
-    searchExercises('');
-  }, []);
+  const performance = usePerformanceMonitoring({
+    screenName: 'WorkoutScreen',
+    componentName: 'WorkoutScreen',
+    enableRenderTracking: true,
+  });
 
   useEffect(() => {
     // Handle selected exercise from ExerciseLibrary
     if (route.params?.selectedExercise) {
-      selectExercise(route.params.selectedExercise);
-      // Clear the param to prevent re-selection on screen focus
-      navigation.setParams({ selectedExercise: undefined });
+      performance.measureInteraction('select_exercise', () => {
+        if (route.params?.selectedExercise) {
+          selectExercise(route.params.selectedExercise);
+          // Clear the param to prevent re-selection on screen focus
+          navigation.setParams({ selectedExercise: undefined });
+        }
+      });
     }
-  }, [route.params?.selectedExercise, selectExercise]);
+  }, [route.params?.selectedExercise, selectExercise, navigation, performance]);
 
   const handleStartWorkout = useCallback(async () => {
     try {
-      // TODO: Get actual user ID from auth context
       await startWorkout('user-id', 'New Workout');
+      performance.measureApiCall(Promise.resolve(), 'start_workout', { userId: 'user-id' });
     } catch (error) {
       Alert.alert('Error', 'Failed to start workout');
     }
-  }, [startWorkout]);
+  }, [startWorkout, performance]);
 
   const handleEndWorkout = useCallback(async () => {
     try {
       await endWorkout();
+      performance.measureApiCall(Promise.resolve(), 'end_workout');
       // Navigate back or to summary
       navigation.goBack();
     } catch (error) {
       Alert.alert('Error', 'Failed to end workout');
     }
-  }, [endWorkout, navigation]);
+  }, [endWorkout, navigation, performance]);
 
-  const handleExerciseSelect = useCallback((exercise: Exercise) => {
-    selectExercise(exercise);
-    setIsModalVisible(false);
-  }, [selectExercise]);
+  const handleExerciseSelect = useCallback(
+    (exercise: Exercise) => {
+      performance.measureInteraction('select_exercise_from_list', () => {
+        selectExercise(exercise);
+        setIsModalVisible(false);
+      });
+    },
+    [selectExercise, performance],
+  );
 
-  const handleSetComplete = useCallback(async (setData: any) => {
-    if (!currentExercise) return;
-    
-    try {
-      await addSet('user-id', currentExercise.id, setData);
-      // Start rest timer with default time based on exercise type
-      startRestTimer(90); // Using default STRENGTH rest time
-    } catch (error) {
-      Alert.alert('Error', 'Failed to save set');
-    }
-  }, [currentExercise, addSet, startRestTimer]);
+  const handleSetComplete = useCallback(
+    async (setData: WorkoutSetInput) => {
+      if (!currentExercise) return;
+
+      try {
+        await addSet(currentExercise.id, {
+          ...setData,
+          completed: false,
+        });
+        performance.measureApiCall(Promise.resolve(), 'add_set', {
+          exerciseId: currentExercise.id,
+        });
+        // Start rest timer with default time based on exercise type
+        startRestTimer(90); // Using default STRENGTH rest time
+      } catch (error) {
+        Alert.alert('Error', 'Failed to save set');
+      }
+    },
+    [currentExercise, addSet, startRestTimer, performance],
+  );
 
   const handleRestComplete = useCallback(() => {
-    stopRestTimer();
-  }, [stopRestTimer]);
+    performance.measureInteraction('complete_rest', () => {
+      stopRestTimer();
+    });
+  }, [stopRestTimer, performance]);
 
-  const handleFilterChange = useCallback((muscleGroups: Set<MuscleGroup>) => {
-    setSelectedMuscleGroups(muscleGroups);
-    searchExercises('', Array.from(muscleGroups));
-  }, [searchExercises]);
+  if (!currentWorkout || !isActive) {
+    return (
+      <Container>
+        <StatusBar style="dark" />
+        <ActionBar>
+          <ActionButton onPress={handleStartWorkout}>
+            <ActionButtonText>Start Workout</ActionButtonText>
+          </ActionButton>
+        </ActionBar>
+      </Container>
+    );
+  }
 
   return (
     <Container>
       <StatusBar style="dark" />
-      
+
       <Header>
-        <HeaderText>
-          {isActive ? session?.name || 'Current Workout' : 'Start Workout'}
-        </HeaderText>
+        <HeaderText>{currentWorkout.name || 'Current Workout'}</HeaderText>
         {restTimer !== null && (
           <WorkoutTimer
             initialTime={restTimer}
@@ -217,64 +251,64 @@ export const WorkoutScreen: React.FC = () => {
       </Header>
 
       <Content>
-        {isActive ? (
-          <>
-            <ExerciseList
-              exercises={searchResults.length ? searchResults : exercises}
-              onSelectExercise={handleExerciseSelect}
-              selectedMuscleGroups={selectedMuscleGroups}
-              onFilterChange={handleFilterChange}
-            />
-            
-            {currentExercise && (
-              <SetInput
-                exercise={currentExercise}
-                onSave={handleSetComplete}
-              />
-            )}
-          </>
-        ) : (
-          <WorkoutHistory
-            workouts={[]} // TODO: Load from store
-            onSelectWorkout={() => {}}
-          />
-        )}
+        {currentWorkout.exerciseData.map(exerciseData => (
+          <ExerciseCard key={exerciseData.exercise.id}>
+            <ExerciseName>{exerciseData.exercise.name}</ExerciseName>
+            {exerciseData.sets.map((set, index) => (
+              <SetRow key={set.id}>
+                <SetText>Set {index + 1}</SetText>
+                <SetText>
+                  {set.weight ? `${set.weight}kg × ` : ''}
+                  {set.reps ? `${set.reps} reps` : ''}
+                  {set.duration ? `${formatDuration(set.duration)}` : ''}
+                  {set.distance ? `${set.distance}m` : ''}
+                </SetText>
+              </SetRow>
+            ))}
+          </ExerciseCard>
+        ))}
+
+        {currentExercise && <SetInput exercise={currentExercise} onSave={handleSetComplete} />}
       </Content>
 
       <ActionBar>
-        <ActionButton onPress={isActive ? handleEndWorkout : handleStartWorkout}>
-          <ActionButtonText>
-            {isActive ? 'End Workout' : 'Start Workout'}
-          </ActionButtonText>
+        <ActionButton onPress={handleEndWorkout}>
+          <ActionButtonText>End Workout</ActionButtonText>
         </ActionButton>
       </ActionBar>
 
-      {isActive && (
-        <AddExerciseButton onPress={() => setIsModalVisible(true)}>
-          <Plus width={24} height={24} color="white" />
-        </AddExerciseButton>
-      )}
+      <AddExerciseButton onPress={() => setIsModalVisible(true)}>
+        <Plus width={24} height={24} color="white" />
+      </AddExerciseButton>
 
-      <Modal
-        visible={isModalVisible}
-        animationType="slide"
-        presentationStyle="pageSheet"
-      >
-        <ModalContainer>
+      <Modal visible={isModalVisible} animationType="slide" presentationStyle="pageSheet">
+        <View style={{ flex: 1, backgroundColor: theme.colors.background.default }}>
           <ModalHeader>
             <ModalTitle>Select Exercise</ModalTitle>
-            <CloseButton onPress={() => setIsModalVisible(false)}>
-              <X width={24} height={24} color="#6b7280" />
-            </CloseButton>
+            <TouchableOpacity onPress={() => setIsModalVisible(false)} style={{ padding: 8 }}>
+              <X width={24} height={24} color={theme.colors.text.light} />
+            </TouchableOpacity>
           </ModalHeader>
           <ExerciseList
-            exercises={searchResults.length ? searchResults : exercises}
+            exercises={[]}
             onSelectExercise={handleExerciseSelect}
-            selectedMuscleGroups={selectedMuscleGroups}
-            onFilterChange={handleFilterChange}
+            selectedMuscleGroups={new Set(selectedMuscleGroups)}
+            onFilterChange={groups => setSelectedMuscleGroups(Array.from(groups))}
           />
-        </ModalContainer>
+        </View>
       </Modal>
     </Container>
   );
 };
+
+export const WorkoutScreen = withErrorBoundary(WorkoutScreenComponent, {
+  fallback: (
+    <WorkoutErrorFallback
+      onRetry={() => {
+        if (__DEV__) {
+          DevSettings.reload();
+        }
+      }}
+    />
+  ),
+});

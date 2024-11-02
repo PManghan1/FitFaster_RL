@@ -36,24 +36,22 @@ export interface Set {
   notes?: string;
 }
 
-export interface Workout {
-  id: string;
-  name: string;
-  exercises: Exercise[];
+export interface ExerciseWithSets {
+  exercise: Exercise;
   sets: Set[];
-  startTime?: string;
-  endTime?: string;
-  notes?: string;
-  createdAt: string;
-  updatedAt?: string;
 }
 
-export interface WorkoutSession extends Workout {
+export interface WorkoutSession {
+  id: string;
   userId: string;
+  name: string;
+  exerciseData: ExerciseWithSets[];
   date: string;
   duration: number;
   totalSets: number;
   totalVolume: number;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export interface ExerciseHistory {
@@ -68,47 +66,4 @@ export interface ExerciseHistory {
   distance?: number;
   notes?: string;
   createdAt: string;
-}
-
-export interface WorkoutProgress {
-  exercise: Exercise;
-  history: ExerciseHistory[];
-  personalBests: {
-    weight: number;
-    reps: number;
-    duration: number;
-    distance: number;
-  };
-  recentSets: Set[];
-}
-
-export interface WorkoutSummary {
-  session: WorkoutSession;
-  exercises: Array<{
-    exercise: Exercise;
-    sets: Set[];
-  }>;
-  duration: number;
-  totalSets: number;
-  muscleGroups: MuscleGroup[];
-}
-
-export type WorkoutId = string;
-
-export interface WorkoutStore {
-  currentWorkout: Workout | null;
-  workoutHistory: WorkoutSession[];
-  exercises: Exercise[];
-  isLoading: boolean;
-  error: string | null;
-  startWorkout: (name?: string) => Promise<void>;
-  endWorkout: () => Promise<void>;
-  addExercise: (exercise: Exercise) => void;
-  removeExercise: (exerciseId: string) => void;
-  addSet: (exerciseId: string, set: Partial<Set>) => void;
-  updateSet: (setId: string, updates: Partial<Set>) => void;
-  removeSet: (setId: string) => void;
-  loadExercises: () => Promise<void>;
-  loadWorkoutHistory: () => Promise<void>;
-  reset: () => void;
 }

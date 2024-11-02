@@ -115,10 +115,10 @@ export const getProviderClientId = (
 
 // Validate the configuration
 const validateConfig = () => {
-  const requiredKeys = ['supabase.url', 'supabase.anonKey', 'environment', 'appUrl', 'sentry.dsn'];
+  const requiredKeys: (keyof typeof config)[] = ['supabase', 'sentry', 'environment', 'appUrl'];
 
   for (const key of requiredKeys) {
-    const value = key.split('.').reduce((obj, k) => obj?.[k], config as any);
+    const value = config[key];
     if (!value) {
       throw new Error(`Missing required config key: ${key}`);
     }

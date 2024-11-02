@@ -1,8 +1,9 @@
 import React from 'react';
-import { View, FlatList, ListRenderItem } from 'react-native';
-import styled from 'styled-components/native';
+import { FlatList, ListRenderItem, Text } from 'react-native';
 import { Calendar, ChevronRight } from 'react-native-feather';
-import { WorkoutSummary, MuscleGroup } from '../../types/workout';
+import styled from 'styled-components/native';
+
+import { WorkoutSummary } from '../../types/workout';
 
 const Container = styled.View`
   flex: 1;
@@ -35,7 +36,7 @@ const DateContainer = styled.View`
 const DateText = styled.Text`
   font-size: 16px;
   font-weight: 600;
-  color: #1F2937;
+  color: #1f2937;
   margin-left: 8px;
 `;
 
@@ -51,14 +52,14 @@ const StatItem = styled.View`
 
 const StatLabel = styled.Text`
   font-size: 12px;
-  color: #6B7280;
+  color: #6b7280;
   margin-bottom: 4px;
 `;
 
 const StatValue = styled.Text`
   font-size: 16px;
   font-weight: 500;
-  color: #1F2937;
+  color: #1f2937;
 `;
 
 const MuscleGroupsContainer = styled.View`
@@ -67,7 +68,7 @@ const MuscleGroupsContainer = styled.View`
 `;
 
 const MuscleGroupTag = styled.View`
-  background-color: #E5E7EB;
+  background-color: #e5e7eb;
   border-radius: 12px;
   padding-horizontal: 8px;
   padding-vertical: 4px;
@@ -77,7 +78,7 @@ const MuscleGroupTag = styled.View`
 
 const MuscleGroupText = styled.Text`
   font-size: 12px;
-  color: #4B5563;
+  color: #4b5563;
 `;
 
 const EmptyState = styled.View`
@@ -89,10 +90,14 @@ const EmptyState = styled.View`
 
 const EmptyStateText = styled.Text`
   font-size: 16px;
-  color: #6B7280;
+  color: #6b7280;
   text-align: center;
   margin-top: 12px;
 `;
+
+const contentContainerStyle = {
+  padding: 8,
+};
 
 interface WorkoutHistoryProps {
   workouts: WorkoutSummary[];
@@ -132,28 +137,32 @@ export const WorkoutHistory: React.FC<WorkoutHistoryProps> = ({
           <Calendar width={20} height={20} color="#6B7280" />
           <DateText>{formatDate(workout.session.date)}</DateText>
         </DateContainer>
-        {onSelectWorkout && (
-          <ChevronRight width={20} height={20} color="#9CA3AF" />
-        )}
+        {onSelectWorkout && <ChevronRight width={20} height={20} color="#9CA3AF" />}
       </Header>
 
       <StatsContainer>
         <StatItem>
-          <StatLabel>Duration</StatLabel>
+          <StatLabel>
+            <Text>Duration</Text>
+          </StatLabel>
           <StatValue>{formatDuration(workout.duration)}</StatValue>
         </StatItem>
         <StatItem>
-          <StatLabel>Exercises</StatLabel>
+          <StatLabel>
+            <Text>Exercises</Text>
+          </StatLabel>
           <StatValue>{workout.exercises.length}</StatValue>
         </StatItem>
         <StatItem>
-          <StatLabel>Sets</StatLabel>
+          <StatLabel>
+            <Text>Sets</Text>
+          </StatLabel>
           <StatValue>{workout.totalSets}</StatValue>
         </StatItem>
       </StatsContainer>
 
       <MuscleGroupsContainer>
-        {workout.muscleGroups.map((group) => (
+        {workout.muscleGroups.map(group => (
           <MuscleGroupTag key={group}>
             <MuscleGroupText>{group.replace('_', ' ')}</MuscleGroupText>
           </MuscleGroupTag>
@@ -176,9 +185,9 @@ export const WorkoutHistory: React.FC<WorkoutHistoryProps> = ({
       <FlatList<WorkoutSummary>
         data={workouts}
         renderItem={renderWorkoutCard}
-        keyExtractor={(item) => item.session.id}
+        keyExtractor={item => item.session.id}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ padding: 8 }}
+        contentContainerStyle={contentContainerStyle} // Refactored inline style
         testID={`${testID}-list`}
       />
     </Container>

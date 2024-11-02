@@ -1,49 +1,139 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { Component, ErrorInfo } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-import { colors } from '../theme';
+import { ErrorCategory, errorReporting, ErrorSeverity } from '../services/error';
+import { theme } from '../theme';
+import { PerformanceMonitor } from '../utils/performance';
 
 interface Props {
-  children: ReactNode;
+  children: React.ReactNode;
+  fallback?: React.ReactNode;
 }
 
 interface State {
   hasError: boolean;
   error: Error | null;
+  errorInfo: ErrorInfo | null;
+  category: ErrorCategory;
+  severity: ErrorSeverity;
+  retryCount: number;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
+  private readonly MAX_RETRIES = 3;
+
   constructor(props: Props) {
     super(props);
     this.state = {
       hasError: false,
       error: null,
+      errorInfo: null,
+      category: ErrorCategory.UNKNOWN,
+      severity: ErrorSeverity.MEDIUM,
+      retryCount: 0,
     };
   }
 
-  static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): Partial<State> {
+    const category = errorReporting.categorizeError(error);
+    const severity = errorReporting.determineSeverity(error, category);
+
     return {
       hasError: true,
       error,
+      category,
+      severity,
     };
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // Log error to error reporting service
-    console.error('Error caught by boundary:', error, errorInfo);
+  async componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    PerformanceMonitor.start('error-handling');
+
+    this.setState({ errorInfo });
+
+    // Report error to our error service
+    await errorReporting.reportError({
+      error,
+      errorInfo,
+      severity: this.state.severity,
+      category: this.state.category,
+      timestamp: Date.now(),
+      componentStack: errorInfo.componentStack || undefined,
+      additionalData: {
+        retryCount: this.state.retryCount,
+      },
+    });
+
+    const duration = PerformanceMonitor.end('error-handling');
+    if (duration > 100) {
+      console.warn(`Slow error handling detected: ${duration}ms`);
+    }
+  }
+
+  private handleRetry = () => {
+    if (this.state.retryCount < this.MAX_RETRIES) {
+      this.setState(prevState => ({
+        hasError: false,
+        error: null,
+        errorInfo: null,
+        retryCount: prevState.retryCount + 1,
+      }));
+    }
+  };
+
+  private handleReset = () => {
+    this.setState({
+      hasError: false,
+      error: null,
+      errorInfo: null,
+      category: ErrorCategory.UNKNOWN,
+      severity: ErrorSeverity.MEDIUM,
+      retryCount: 0,
+    });
+  };
+
+  private renderErrorDetails() {
+    const { error, category, severity } = this.state;
+    const isRecoverable = error ? errorReporting.isRecoverable(error) : false;
+    const userMessage = errorReporting.getUserFriendlyMessage(category, severity);
+    const recoveryAction = errorReporting.getRecoveryAction(category);
+
+    return (
+      <View style={styles.container}>
+        <Text style={styles.title}>Something went wrong</Text>
+
+        <Text style={styles.message}>{userMessage}</Text>
+
+        <Text style={styles.action}>{recoveryAction}</Text>
+
+        {__DEV__ && error && (
+          <View style={styles.debugContainer}>
+            <Text style={styles.debugTitle}>Debug Information:</Text>
+            <Text style={styles.debugText}>{error.message}</Text>
+            <Text style={styles.debugText}>Category: {category}</Text>
+            <Text style={styles.debugText}>Severity: {severity}</Text>
+          </View>
+        )}
+
+        {isRecoverable && this.state.retryCount < this.MAX_RETRIES && (
+          <TouchableOpacity style={styles.button} onPress={this.handleRetry}>
+            <Text style={styles.buttonText}>Retry</Text>
+          </TouchableOpacity>
+        )}
+
+        <TouchableOpacity style={[styles.button, styles.resetButton]} onPress={this.handleReset}>
+          <Text style={styles.buttonText}>Reset App</Text>
+        </TouchableOpacity>
+      </View>
+    );
   }
 
   render() {
     if (this.state.hasError) {
-      return (
-        <View style={styles.container}>
-          <Text style={styles.title}>Something went wrong</Text>
-          <Text style={styles.message}>
-            {this.state.error?.message || 'An unexpected error occurred'}
-          </Text>
-          <Text style={styles.instruction}>Please try restarting the app</Text>
-        </View>
-      );
+      if (this.props.fallback) {
+        return this.props.fallback;
+      }
+      return this.renderErrorDetails();
     }
 
     return this.props.children;
@@ -51,28 +141,62 @@ export class ErrorBoundary extends Component<Props, State> {
 }
 
 const styles = StyleSheet.create({
+  action: {
+    color: theme.colors.text.light,
+    fontSize: 16,
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  button: {
+    backgroundColor: theme.colors.primary.default,
+    borderRadius: 8,
+    marginTop: 20,
+    padding: 12,
+    width: '80%',
+  },
+  buttonText: {
+    color: theme.colors.background.default,
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
   container: {
     alignItems: 'center',
-    backgroundColor: colors.background.default,
+    backgroundColor: theme.colors.background.default,
     flex: 1,
     justifyContent: 'center',
     padding: 20,
   },
-  instruction: {
-    color: colors.text.light,
+  debugContainer: {
+    backgroundColor: theme.colors.background.light,
+    borderRadius: 8,
+    marginTop: 20,
+    padding: 16,
+    width: '100%',
+  },
+  debugText: {
+    color: theme.colors.text.light,
+    fontSize: 12,
+    marginTop: 4,
+  },
+  debugTitle: {
+    color: theme.colors.text.default,
     fontSize: 14,
-    textAlign: 'center',
+    fontWeight: 'bold',
+    marginBottom: 8,
   },
   message: {
-    color: colors.text.light,
+    color: theme.colors.text.default,
     fontSize: 16,
-    marginBottom: 8,
+    marginTop: 12,
     textAlign: 'center',
   },
+  resetButton: {
+    backgroundColor: theme.colors.error.default,
+  },
   title: {
-    color: colors.text.default,
+    color: theme.colors.text.default,
     fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 12,
   },
 });

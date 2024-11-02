@@ -44,6 +44,9 @@ module.exports = {
     'react-native/no-color-literals': 'warn',
     'react-hooks/rules-of-hooks': 'error',
     'react-hooks/exhaustive-deps': 'warn',
+    'react-native/no-raw-text': ['error', {
+      skip: ['LoadingText', 'ErrorText', 'MetricLabel', 'HeaderText', 'SetText', 'ExerciseName', 'MetricValue', 'ModalTitle', 'ActionButtonText']
+    }],
     'import/order': [
       'error',
       {

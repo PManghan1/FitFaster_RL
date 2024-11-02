@@ -1,139 +1,107 @@
-import { BarCodeScanner } from 'expo-barcode-scanner';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Button, StyleSheet, Text, View } from 'react-native';
+import React, { useCallback, useEffect } from 'react';
+import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import styled from 'styled-components/native';
 
-interface FoodData {
-  product_name: string;
-  nutriments: {
-    energy_kcal: number;
-    proteins: number;
-    carbohydrates: number;
-    fat: number;
-    [key: string]: any;
-  };
-}
+import { usePerformanceMonitoring } from '../hooks/usePerformanceMonitoring';
+import { analyticsService } from '../services/analytics';
+import { nutritionService } from '../services/nutrition';
 
-const NutritionTrackingScreen: React.FC = () => {
-  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-  const [scanned, setScanned] = useState<boolean>(false);
-  const [foodData, setFoodData] = useState<FoodData | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
+const Container = styled(View)`
+  flex: 1;
+  background-color: ${({ theme }) => theme.colors.background.light};
+`;
+
+const Content = styled(ScrollView)`
+  flex: 1;
+  padding: 16px;
+`;
+
+const ActionButton = styled(TouchableOpacity)`
+  background-color: ${({ theme }) => theme.colors.primary.default};
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+`;
+
+const ButtonText = styled(Text)`
+  color: white;
+  text-align: center;
+  font-weight: 700;
+  font-size: 16px;
+`;
+
+export const NutritionTrackingScreen: React.FC = () => {
+  const performance = usePerformanceMonitoring({
+    screenName: 'NutritionTrackingScreen',
+    componentName: 'NutritionTrackingScreen',
+    enableRenderTracking: true,
+  });
 
   useEffect(() => {
-    (async () => {
-      const { status } = await BarCodeScanner.requestPermissionsAsync();
-      setHasPermission(status === 'granted');
-    })();
+    // Track screen view
+    analyticsService.trackScreenView('NutritionTracking');
+
+    // Track initial load time
+    const loadPromise = new Promise<void>(resolve => {
+      // TODO: Load initial nutrition data
+      resolve();
+    });
+    performance.measureApiCall(loadPromise, 'load_nutrition_data', { initialLoad: true });
+  }, [performance]);
+
+  const handleMealLog = useCallback(async () => {
+    try {
+      await nutritionService.logMeal({
+        name: 'Test Meal',
+        calories: 500,
+        protein: 30,
+        carbs: 50,
+        fat: 20,
+      });
+    } catch (error) {
+      console.error('Failed to log meal:', error);
+    }
   }, []);
 
-  const handleBarCodeScanned = async ({ data }: { data: string }) => {
-    setScanned(true);
-    setLoading(true);
+  const handleFoodScan = useCallback(async () => {
     try {
-      const response = await fetch(`https://world.openfoodfacts.org/api/v0/product/${data}.json`);
-      const result = await response.json();
-      if (result.status === 1) {
-        const fetchedData: FoodData = {
-          product_name: result.product.product_name || 'Unknown Product',
-          nutriments: result.product.nutriments,
-        };
-        setFoodData(fetchedData);
-      } else {
-        Alert.alert('Product Not Found', 'The scanned barcode was not found in the database.');
-      }
+      await nutritionService.scanFood('123456789');
     } catch (error) {
-      Alert.alert('Error', 'There was an error fetching the nutritional information.');
-    } finally {
-      setLoading(false);
+      console.error('Failed to scan food:', error);
     }
-  };
+  }, []);
 
-  if (hasPermission === null) {
-    return (
-      <View style={styles.container}>
-        <Text>Requesting for camera permission...</Text>
-      </View>
-    );
-  }
-  if (hasPermission === false) {
-    return (
-      <View style={styles.container}>
-        <Text>No access to camera</Text>
-      </View>
-    );
-  }
+  const handleSupplementLog = useCallback(async () => {
+    try {
+      await nutritionService.logSupplement({
+        name: 'Test Supplement',
+      });
+    } catch (error) {
+      console.error('Failed to log supplement:', error);
+    }
+  }, []);
 
   return (
-    <View style={styles.container}>
-      <BarCodeScanner
-        onBarCodeScanned={scanned || loading ? undefined : handleBarCodeScanned}
-        style={StyleSheet.absoluteFillObject}
-      />
-      {loading && (
-        <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#ffffff" />
-          <Text style={styles.loadingText}>Fetching nutritional information...</Text>
-        </View>
-      )}
-      {foodData && (
-        <View style={styles.infoContainer}>
-          <Text style={styles.title}>{foodData.product_name}</Text>
-          <Text>Calories: {foodData.nutriments.energy_kcal || 'N/A'} kcal</Text>
-          <Text>Proteins: {foodData.nutriments.proteins || 'N/A'} g</Text>
-          <Text>Carbohydrates: {foodData.nutriments.carbohydrates || 'N/A'} g</Text>
-          <Text>Fat: {foodData.nutriments.fat || 'N/A'} g</Text>
-          <Button
-            title={'Tap to Scan Again'}
-            onPress={() => {
-              setScanned(false);
-              setFoodData(null);
-            }}
-          />
-        </View>
-      )}
-      {!foodData && scanned && !loading && (
-        <Button title={'Tap to Scan Again'} onPress={() => setScanned(false)} />
-      )}
-    </View>
+    <Container>
+      <Content>
+        <ActionButton onPress={handleMealLog}>
+          <ButtonText>
+            <Text>Log Meal</Text>
+          </ButtonText>
+        </ActionButton>
+
+        <ActionButton onPress={handleFoodScan}>
+          <ButtonText>
+            <Text>Scan Food</Text>
+          </ButtonText>
+        </ActionButton>
+
+        <ActionButton onPress={handleSupplementLog}>
+          <ButtonText>
+            <Text>Log Supplement</Text>
+          </ButtonText>
+        </ActionButton>
+      </Content>
+    </Container>
   );
 };
-
-export default NutritionTrackingScreen;
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    flexDirection: 'column',
-    justifyContent: 'flex-end',
-  },
-  infoContainer: {
-    backgroundColor: '#ffffff',
-    borderRadius: 10,
-    bottom: 100,
-    elevation: 5,
-    left: 20,
-    padding: 20,
-    position: 'absolute',
-    right: 20,
-  },
-  loadingOverlay: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    borderRadius: 10,
-    left: '25%',
-    padding: 20,
-    position: 'absolute',
-    right: '25%',
-    top: '40%',
-  },
-  loadingText: {
-    color: '#ffffff',
-    marginTop: 10,
-    textAlign: 'center',
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-});

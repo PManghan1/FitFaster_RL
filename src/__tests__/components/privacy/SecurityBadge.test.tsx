@@ -1,9 +1,7 @@
+import { fireEvent, render } from '@testing-library/react-native';
 import React from 'react';
-import { render, fireEvent } from '@testing-library/react-native';
-import { 
-  SecurityBadge, 
-  SECURITY_BADGE_PRESETS 
-} from '../../../components/privacy/SecurityBadge';
+
+import { SECURITY_BADGE_PRESETS, SecurityBadge } from '../../../components/privacy/SecurityBadge';
 
 describe('SecurityBadge', () => {
   const defaultProps = {
@@ -11,11 +9,7 @@ describe('SecurityBadge', () => {
     status: 'secure' as const,
     title: 'GDPR Compliance',
     description: 'Meets EU data protection requirements',
-    details: [
-      'Data encryption enabled',
-      'User consent tracking',
-      'Right to be forgotten',
-    ],
+    details: ['Data encryption enabled', 'User consent tracking', 'Right to be forgotten'],
     testID: 'security-badge',
   };
 
@@ -24,9 +18,7 @@ describe('SecurityBadge', () => {
   });
 
   it('renders correctly with required props', () => {
-    const { getByText, getByTestId } = render(
-      <SecurityBadge {...defaultProps} />
-    );
+    const { getByText, getByTestId } = render(<SecurityBadge {...defaultProps} />);
 
     expect(getByText('GDPR Compliance')).toBeTruthy();
     expect(getByText('Meets EU data protection requirements')).toBeTruthy();
@@ -44,34 +36,24 @@ describe('SecurityBadge', () => {
 
     statuses.forEach(status => {
       const { getByTestId, rerender } = render(
-        <SecurityBadge
-          {...defaultProps}
-          status={status}
-          testID={`security-badge-${status}`}
-        />
+        <SecurityBadge {...defaultProps} status={status} testID={`security-badge-${status}`} />,
       );
 
       const badge = getByTestId(`security-badge-${status}`);
       expect(badge.findByProps({ status }).props.style).toContainEqual(
         expect.objectContaining({
           backgroundColor: colors[status],
-        })
+        }),
       );
 
       rerender(
-        <SecurityBadge
-          {...defaultProps}
-          status={status}
-          testID={`security-badge-${status}`}
-        />
+        <SecurityBadge {...defaultProps} status={status} testID={`security-badge-${status}`} />,
       );
     });
   });
 
   it('toggles detail visibility on press', () => {
-    const { getByTestId, queryByTestId } = render(
-      <SecurityBadge {...defaultProps} />
-    );
+    const { getByTestId, queryByTestId } = render(<SecurityBadge {...defaultProps} />);
 
     // Details should not be visible initially
     expect(queryByTestId('security-badge-detail-0')).toBeNull();
@@ -86,9 +68,7 @@ describe('SecurityBadge', () => {
   });
 
   it('renders all details when expanded', () => {
-    const { getByTestId } = render(
-      <SecurityBadge {...defaultProps} />
-    );
+    const { getByTestId } = render(<SecurityBadge {...defaultProps} />);
 
     fireEvent.press(getByTestId('security-badge'));
 
@@ -99,9 +79,7 @@ describe('SecurityBadge', () => {
 
   it('calls onPress callback when provided', () => {
     const mockOnPress = jest.fn();
-    const { getByTestId } = render(
-      <SecurityBadge {...defaultProps} onPress={mockOnPress} />
-    );
+    const { getByTestId } = render(<SecurityBadge {...defaultProps} onPress={mockOnPress} />);
 
     fireEvent.press(getByTestId('security-badge'));
     expect(mockOnPress).toHaveBeenCalledTimes(1);
@@ -110,10 +88,7 @@ describe('SecurityBadge', () => {
   it('renders preset configurations correctly', () => {
     Object.entries(SECURITY_BADGE_PRESETS).forEach(([key, preset]) => {
       const { getByText, getByTestId, rerender } = render(
-        <SecurityBadge
-          {...preset}
-          testID={`security-badge-${key}`}
-        />
+        <SecurityBadge {...preset} testID={`security-badge-${key}`} />,
       );
 
       fireEvent.press(getByTestId(`security-badge-${key}`));
@@ -121,55 +96,56 @@ describe('SecurityBadge', () => {
         expect(getByText(detail)).toBeTruthy();
       });
 
-      rerender(
-        <SecurityBadge
-          {...preset}
-          testID={`security-badge-${key}`}
-        />
-      );
+      rerender(<SecurityBadge {...preset} testID={`security-badge-${key}`} />);
     });
   });
 
   it('displays correct icon based on status', () => {
-    const { getByTestId, rerender } = render(
-      <SecurityBadge {...defaultProps} status="secure" />
-    );
+    const { getByTestId, rerender } = render(<SecurityBadge {...defaultProps} status="secure" />);
 
     // Check Shield icon for secure status
-    expect(getByTestId('security-badge').findByProps({
-      width: 20,
-      height: 20,
-      color: '#4CAF50',
-    })).toBeTruthy();
+    expect(
+      getByTestId('security-badge').findByProps({
+        width: 20,
+        height: 20,
+        color: '#4CAF50',
+      }),
+    ).toBeTruthy();
 
     // Check AlertTriangle icon for warning status
     rerender(<SecurityBadge {...defaultProps} status="warning" />);
-    expect(getByTestId('security-badge').findByProps({
-      width: 20,
-      height: 20,
-      color: '#FFC107',
-    })).toBeTruthy();
+    expect(
+      getByTestId('security-badge').findByProps({
+        width: 20,
+        height: 20,
+        color: '#FFC107',
+      }),
+    ).toBeTruthy();
 
     // Check AlertTriangle icon for error status
     rerender(<SecurityBadge {...defaultProps} status="error" />);
-    expect(getByTestId('security-badge').findByProps({
-      width: 20,
-      height: 20,
-      color: '#EF4444',
-    })).toBeTruthy();
+    expect(
+      getByTestId('security-badge').findByProps({
+        width: 20,
+        height: 20,
+        color: '#EF4444',
+      }),
+    ).toBeTruthy();
 
     // Check Info icon for info status
     rerender(<SecurityBadge {...defaultProps} status="info" />);
-    expect(getByTestId('security-badge').findByProps({
-      width: 20,
-      height: 20,
-      color: '#3B82F6',
-    })).toBeTruthy();
+    expect(
+      getByTestId('security-badge').findByProps({
+        width: 20,
+        height: 20,
+        color: '#3B82F6',
+      }),
+    ).toBeTruthy();
   });
 
   it('handles missing details gracefully', () => {
     const { getByTestId, queryByTestId } = render(
-      <SecurityBadge {...defaultProps} details={undefined} />
+      <SecurityBadge {...defaultProps} details={undefined} />,
     );
 
     fireEvent.press(getByTestId('security-badge'));
@@ -177,9 +153,7 @@ describe('SecurityBadge', () => {
   });
 
   it('applies correct styles based on status', () => {
-    const { getByTestId } = render(
-      <SecurityBadge {...defaultProps} status="secure" />
-    );
+    const { getByTestId } = render(<SecurityBadge {...defaultProps} status="secure" />);
 
     const badge = getByTestId('security-badge');
     expect(badge.props.style).toContainEqual(
@@ -189,7 +163,7 @@ describe('SecurityBadge', () => {
         padding: 8,
         borderRadius: 8,
         marginVertical: 4,
-      })
+      }),
     );
   });
 
@@ -204,7 +178,7 @@ describe('SecurityBadge', () => {
         title={longTitle}
         description={longDescription}
         details={[longDetail]}
-      />
+      />,
     );
 
     fireEvent.press(getByTestId('security-badge'));

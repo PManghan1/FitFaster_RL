@@ -1,34 +1,32 @@
-import { AES, enc } from 'crypto-js';
 import { PostgrestError } from '@supabase/supabase-js';
-import { supabase } from './supabase';
-import config from '../config';
+
 import {
-  EssentialProfile,
-  HealthData,
-  ConsentRecord,
-  ProcessingLog,
-  PrivacySettings,
   ConsentPurpose,
+  ConsentRecord,
   DataAccessType,
-  EncryptedHealthData,
   DecryptedHealthData,
+  EncryptedHealthData,
+  EssentialProfile,
+  PrivacySettings,
 } from '../types/profile';
 import {
-  assertDataExists,
-  assertArrayDataExists,
   assertType,
-  isHealthData,
-  isProfile,
-  isConsentRecord,
-  isPrivacySettings,
   DatabaseError,
-  handleError,
-  safeSpread,
-  encryptHealthData,
   decryptHealthData,
+  encryptHealthData,
+  handleError,
+  isConsentRecord,
+  isHealthData,
+  isPrivacySettings,
+  isProfile,
 } from '../utils/database';
 
-const ENCRYPTION_KEY = config.security.encryptionKey;
+import { supabase } from './supabase';
+
+interface DatabaseResult<T> {
+  data: T | null;
+  error: PostgrestError | null;
+}
 
 class ProfileService {
   private async logAccess(
@@ -37,7 +35,7 @@ class ProfileService {
     dataCategory: 'ESSENTIAL' | 'HEALTH' | 'CONSENT',
     purpose: string,
     success: boolean,
-    details?: string
+    details?: string,
   ): Promise<void> {
     try {
       const result = await supabase.from('processing_logs').insert({
@@ -60,16 +58,12 @@ class ProfileService {
 
   async getProfile(userId: string): Promise<EssentialProfile | null> {
     try {
-      const result = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
+      const result = await supabase.from('profiles').select('*').eq('id', userId).single();
 
       if (result.error) throw result.error;
       if (!result.data) return null;
 
-      assertType(result.data, isProfile, 'Invalid profile data');
+      assertType<EssentialProfile>(result.data, isProfile, 'Invalid profile data');
       await this.logAccess(userId, 'READ', 'ESSENTIAL', 'GET_PROFILE', true);
       return result.data;
     } catch (error) {
@@ -81,19 +75,13 @@ class ProfileService {
 
   async getHealthData(userId: string): Promise<DecryptedHealthData | null> {
     try {
-      const result = await supabase
-        .from('health_data')
-        .select('*')
-        .eq('user_id', userId)
-        .single();
+      const result = await supabase.from('health_data').select('*').eq('user_id', userId).single();
 
       if (result.error) throw result.error;
       if (!result.data) return null;
 
-      assertType(result.data, isHealthData, 'Invalid health data');
-      const data = result.data as EncryptedHealthData;
-
-      const decryptedData = decryptHealthData(data);
+      assertType<EncryptedHealthData>(result.data, isHealthData, 'Invalid health data');
+      const decryptedData = decryptHealthData(result.data);
       await this.logAccess(userId, 'READ', 'HEALTH', 'GET_HEALTH_DATA', true);
       return decryptedData;
     } catch (error) {
@@ -107,14 +95,12 @@ class ProfileService {
     try {
       const encryptedData = encryptHealthData(data);
 
-      const result = await supabase
-        .from('health_data')
-        .upsert({
-          user_id: userId,
-          ...encryptedData,
-          encrypted: true,
-          updated_at: new Date().toISOString(),
-        });
+      const result = await supabase.from('health_data').upsert({
+        user_id: userId,
+        ...encryptedData,
+        encrypted: true,
+        updated_at: new Date().toISOString(),
+      });
 
       if (result.error) throw result.error;
 
@@ -130,7 +116,7 @@ class ProfileService {
     userId: string,
     purpose: ConsentPurpose,
     granted: boolean,
-    userAgent: string
+    userAgent: string,
   ): Promise<void> {
     try {
       const result = await supabase.from('consent_records').insert({
@@ -169,7 +155,7 @@ class ProfileService {
       }
 
       if (result.data) {
-        assertType(result.data, isConsentRecord, 'Invalid consent record');
+        assertType<ConsentRecord>(result.data, isConsentRecord, 'Invalid consent record');
         await this.logAccess(userId, 'READ', 'CONSENT', 'GET_CONSENT_STATUS', true);
         return result.data.granted;
       }
@@ -192,21 +178,29 @@ class ProfileService {
       const profile = await this.getProfile(userId);
       if (!profile) throw new DatabaseError('Profile not found');
 
-      const [healthData, consentsResult, privacySettingsResult] = await Promise.all([
-        this.getHealthData(userId),
+      const healthData = await this.getHealthData(userId);
+
+      const [consentsResult, privacySettingsResult] = (await Promise.all([
         supabase.from('consent_records').select('*').eq('user_id', userId),
         supabase.from('privacy_settings').select('*').eq('user_id', userId).single(),
-      ]);
+      ])) as [DatabaseResult<ConsentRecord[]>, DatabaseResult<PrivacySettings>];
 
-      assertArrayDataExists(consentsResult, 'No consent records found');
-      assertDataExists(privacySettingsResult, 'Privacy settings not found');
+      if (consentsResult.error) throw consentsResult.error;
+      if (privacySettingsResult.error) throw privacySettingsResult.error;
+      if (!consentsResult.data || !privacySettingsResult.data) {
+        throw new DatabaseError('Failed to fetch user data');
+      }
 
       const consents = consentsResult.data.map(record => {
-        assertType(record, isConsentRecord, 'Invalid consent record');
+        assertType<ConsentRecord>(record, isConsentRecord, 'Invalid consent record');
         return record;
       });
 
-      assertType(privacySettingsResult.data, isPrivacySettings, 'Invalid privacy settings');
+      assertType<PrivacySettings>(
+        privacySettingsResult.data,
+        isPrivacySettings,
+        'Invalid privacy settings',
+      );
 
       await this.logAccess(userId, 'EXPORT', 'ESSENTIAL', 'EXPORT_USER_DATA', true);
 
@@ -218,7 +212,14 @@ class ProfileService {
       };
     } catch (error) {
       const dbError = handleError(error);
-      await this.logAccess(userId, 'EXPORT', 'ESSENTIAL', 'EXPORT_USER_DATA', false, dbError.message);
+      await this.logAccess(
+        userId,
+        'EXPORT',
+        'ESSENTIAL',
+        'EXPORT_USER_DATA',
+        false,
+        dbError.message,
+      );
       throw dbError;
     }
   }
@@ -237,17 +238,24 @@ class ProfileService {
       const errors = results
         .map(result => result.error)
         .filter((error): error is PostgrestError => error !== null);
-      
+
       if (errors.length > 0) {
         throw new DatabaseError(
-          `Failed to delete all user data: ${errors.map(e => e.message).join(', ')}`
+          `Failed to delete all user data: ${errors.map(e => e.message).join(', ')}`,
         );
       }
 
       await this.logAccess(userId, 'DELETE', 'ESSENTIAL', 'DELETE_USER_DATA', true);
     } catch (error) {
       const dbError = handleError(error);
-      await this.logAccess(userId, 'DELETE', 'ESSENTIAL', 'DELETE_USER_DATA', false, dbError.message);
+      await this.logAccess(
+        userId,
+        'DELETE',
+        'ESSENTIAL',
+        'DELETE_USER_DATA',
+        false,
+        dbError.message,
+      );
       throw dbError;
     }
   }

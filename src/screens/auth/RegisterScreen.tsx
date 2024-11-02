@@ -1,11 +1,12 @@
-import React from "react";
-import { ActivityIndicator } from "react-native";
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { View, Text, TextInput, TouchableOpacity } from "../../components/styled";
-import { useAuthStore } from "../../store/auth.store";
-import { RegisterFormData, registerSchema } from "../../types/auth";
+import { zodResolver } from '@hookform/resolvers/zod';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import React from 'react';
+import { Controller, useForm } from 'react-hook-form';
+import { ActivityIndicator } from 'react-native';
+
+import { Text, TextInput, TouchableOpacity, View } from '../../components/styled';
+import { useAuthStore } from '../../store/auth.store';
+import { RegisterFormData, registerSchema } from '../../types/auth';
 
 type RootStackParamList = {
   Login: undefined;
@@ -14,7 +15,7 @@ type RootStackParamList = {
   Home: undefined;
 };
 
-type Props = NativeStackScreenProps<RootStackParamList, "Register">;
+type Props = NativeStackScreenProps<RootStackParamList, 'Register'>;
 
 export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   const { signUp, isLoading, error } = useAuthStore();
@@ -26,10 +27,10 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      email: "",
-      password: "",
-      confirmPassword: "",
-      fullName: "",
+      email: '',
+      password: '',
+      confirmPassword: '',
+      fullName: '',
     },
   });
 
@@ -37,30 +38,30 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     try {
       const { error } = await signUp(data);
       if (!error) {
-        navigation.replace("Home");
+        navigation.replace('Home');
       }
     } catch (err) {
-      console.error("Registration error:", err);
+      console.error('Registration error:', err);
     }
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: 'white', padding: 16 }}>
       <View style={{ flex: 1, justifyContent: 'center' }}>
-        <Text style={{ 
-          fontSize: 24,
-          fontWeight: 'bold',
-          textAlign: 'center',
-          marginBottom: 32,
-          color: '#2563EB'
-        }}>
+        <Text
+          style={{
+            fontSize: 24,
+            fontWeight: 'bold',
+            textAlign: 'center',
+            marginBottom: 32,
+            color: '#2563EB',
+          }}
+        >
           Create Account
         </Text>
 
         {error && (
-          <Text style={{ color: '#EF4444', textAlign: 'center', marginBottom: 16 }}>
-            {error}
-          </Text>
+          <Text style={{ color: '#EF4444', textAlign: 'center', marginBottom: 16 }}>{error}</Text>
         )}
 
         <Controller
@@ -82,9 +83,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
                 editable={!isLoading}
               />
               {errors.fullName && (
-                <Text style={{ color: '#EF4444', marginTop: 4 }}>
-                  {errors.fullName.message}
-                </Text>
+                <Text style={{ color: '#EF4444', marginTop: 4 }}>{errors.fullName.message}</Text>
               )}
             </View>
           )}
@@ -111,9 +110,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
                 editable={!isLoading}
               />
               {errors.email && (
-                <Text style={{ color: '#EF4444', marginTop: 4 }}>
-                  {errors.email.message}
-                </Text>
+                <Text style={{ color: '#EF4444', marginTop: 4 }}>{errors.email.message}</Text>
               )}
             </View>
           )}
@@ -139,9 +136,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
                 editable={!isLoading}
               />
               {errors.password && (
-                <Text style={{ color: '#EF4444', marginTop: 4 }}>
-                  {errors.password.message}
-                </Text>
+                <Text style={{ color: '#EF4444', marginTop: 4 }}>{errors.password.message}</Text>
               )}
             </View>
           )}
@@ -196,10 +191,7 @@ export const RegisterScreen: React.FC<Props> = ({ navigation }) => {
 
         <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
           <Text style={{ color: '#4B5563' }}>Already have an account? </Text>
-          <TouchableOpacity
-            onPress={() => navigation.navigate("Login")}
-            disabled={isLoading}
-          >
+          <TouchableOpacity onPress={() => navigation.navigate('Login')} disabled={isLoading}>
             <Text style={{ color: '#2563EB', fontWeight: 'bold' }}>Sign In</Text>
           </TouchableOpacity>
         </View>

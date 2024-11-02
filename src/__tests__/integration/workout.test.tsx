@@ -1,106 +1,120 @@
-import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { fireEvent, render, waitFor } from '@testing-library/react-native';
-import React from 'react';
+import { act, renderHook } from '@testing-library/react-native';
 
-import { WorkoutDetailsScreen } from '../../screens/WorkoutDetailsScreen';
-import { WorkoutScreen } from '../../screens/WorkoutScreen';
+import { performanceMonitoring } from '../../services/performance';
+import { workoutService } from '../../services/workout';
 import { useWorkoutStore } from '../../store/workout.store';
-import { Workout } from '../../types/workout';
+import { Exercise } from '../../types/workout';
 
-const Stack = createNativeStackNavigator();
+jest.mock('../../services/supabase');
+jest.mock('../../services/performance');
+jest.mock('../../services/analytics');
 
-/**
- * Test navigation wrapper component
- */
-const TestNavigator: React.FC = () => (
-  <NavigationContainer>
-    <Stack.Navigator>
-      <Stack.Screen name="Workout" component={WorkoutScreen} />
-      <Stack.Screen name="WorkoutDetails" component={WorkoutDetailsScreen} />
-    </Stack.Navigator>
-  </NavigationContainer>
-);
+describe('Workout Integration Tests', () => {
+  const mockExercise: Exercise = {
+    id: '1',
+    name: 'Bench Press',
+    type: 'STRENGTH',
+    muscleGroups: ['CHEST', 'SHOULDERS', 'TRICEPS'],
+    isCustom: false,
+    createdAt: new Date().toISOString(),
+  };
 
-/**
- * Creates a mock workout for testing
- */
-const createMockWorkout = (includeSet = false): Workout => ({
-  id: '1',
-  name: 'Morning Workout',
-  exercises: [
-    {
-      id: '1',
-      name: 'Bench Press',
-      type: 'STRENGTH',
-      muscleGroups: ['CHEST'],
-      isCustom: false,
-      createdAt: new Date().toISOString(),
-    },
-  ],
-  sets: includeSet
-    ? [
-        {
-          id: '1',
-          exerciseId: '1',
-          weight: 135,
-          reps: 10,
-          completed: true,
-        },
-      ]
-    : [],
-  createdAt: new Date().toISOString(),
-});
-
-describe('Workout Flow Integration Tests', () => {
   beforeEach(() => {
-    const store = useWorkoutStore.getState();
-    store.reset();
+    jest.clearAllMocks();
   });
 
-  it('should create and track a workout session', async () => {
-    const { getByText, getByTestId } = render(<TestNavigator />);
+  it('should start workout and update store', async () => {
+    const { result } = renderHook(() => useWorkoutStore());
 
-    // Start new workout
-    fireEvent.press(getByText('Start Workout'));
-
-    // Add exercise
-    fireEvent.press(getByTestId('add-exercise-button'));
-    fireEvent.press(getByText('Bench Press'));
-
-    // Create and add workout
-    const workout = createMockWorkout(false);
-    const store = useWorkoutStore.getState();
-    store.addWorkout(workout);
-
-    // Verify UI updates
-    await waitFor(() => {
-      expect(getByTestId('workout-summary')).toBeTruthy();
-      expect(getByText('Bench Press')).toBeTruthy();
+    await act(async () => {
+      await workoutService.startWorkout('user-123', 'Test Workout');
     });
 
-    // Verify store updates
-    const savedWorkouts = store.workouts;
-    expect(savedWorkouts).toHaveLength(1);
-    expect(savedWorkouts[0].exercises[0].name).toBe('Bench Press');
+    expect(result.current.currentWorkout).toBeDefined();
+    expect(result.current.isActive).toBe(true);
+    expect(performanceMonitoring.measureApiCall).toHaveBeenCalledWith(
+      expect.any(Promise),
+      'start_workout',
+      expect.any(Object),
+    );
   });
 
-  it('should navigate to workout details and display set information', async () => {
-    const { getByText } = render(<TestNavigator />);
+  it('should add exercise to workout', async () => {
+    const { result } = renderHook(() => useWorkoutStore());
 
-    // Create and add workout with sets
-    const workout = createMockWorkout(true);
-    const store = useWorkoutStore.getState();
-    store.addWorkout(workout);
-
-    // Navigate to details
-    fireEvent.press(getByText('View Details'));
-
-    // Verify details view
-    await waitFor(() => {
-      expect(getByText('Workout Details')).toBeTruthy();
-      expect(getByText('Bench Press')).toBeTruthy();
-      expect(getByText('135 lbs × 10')).toBeTruthy();
+    await act(async () => {
+      await workoutService.startWorkout('user-123', 'Test Workout');
+      await workoutService.addExercise(result.current.currentWorkout!.id, mockExercise);
     });
+
+    const exerciseData = result.current.currentWorkout?.exerciseData[0];
+    expect(exerciseData?.exercise).toEqual(mockExercise);
+    expect(performanceMonitoring.measureApiCall).toHaveBeenCalledWith(
+      expect.any(Promise),
+      'add_exercise',
+      expect.any(Object),
+    );
+  });
+
+  it('should add set to exercise', async () => {
+    const { result } = renderHook(() => useWorkoutStore());
+    const mockSet = {
+      weight: 100,
+      reps: 10,
+      exerciseId: mockExercise.id,
+      completed: false,
+    };
+
+    await act(async () => {
+      await workoutService.startWorkout('user-123', 'Test Workout');
+      await workoutService.addExercise(result.current.currentWorkout!.id, mockExercise);
+      await workoutService.addSet(result.current.currentWorkout!.id, mockExercise.id, mockSet);
+    });
+
+    const exerciseData = result.current.currentWorkout?.exerciseData[0];
+    expect(exerciseData?.sets[0]).toMatchObject(mockSet);
+    expect(performanceMonitoring.measureApiCall).toHaveBeenCalledWith(
+      expect.any(Promise),
+      'add_set',
+      expect.any(Object),
+    );
+  });
+
+  it('should end workout and update store', async () => {
+    const { result } = renderHook(() => useWorkoutStore());
+
+    await act(async () => {
+      await workoutService.startWorkout('user-123', 'Test Workout');
+      await workoutService.endWorkout(result.current.currentWorkout!.id);
+    });
+
+    expect(result.current.currentWorkout).toBeNull();
+    expect(result.current.isActive).toBe(false);
+    expect(performanceMonitoring.measureApiCall).toHaveBeenCalledWith(
+      expect.any(Promise),
+      'end_workout',
+      expect.any(Object),
+    );
+  });
+
+  it('should handle concurrent operations correctly', async () => {
+    const { result } = renderHook(() => useWorkoutStore());
+
+    await act(async () => {
+      await workoutService.startWorkout('user-123', 'Test Workout');
+
+      // Simulate concurrent operations
+      await Promise.all([
+        workoutService.addExercise(result.current.currentWorkout!.id, mockExercise),
+        workoutService.addExercise(result.current.currentWorkout!.id, {
+          ...mockExercise,
+          id: '2',
+          name: 'Squats',
+        }),
+      ]);
+    });
+
+    expect(result.current.currentWorkout?.exerciseData).toHaveLength(2);
+    expect(performanceMonitoring.measureApiCall).toHaveBeenCalledTimes(3); // start + 2 adds
   });
 });
