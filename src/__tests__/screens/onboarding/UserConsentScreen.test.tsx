@@ -1,121 +1,132 @@
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import UserConsentScreen from '../../../screens/onboarding/UserConsentScreen';
+import { render, fireEvent, act } from '@testing-library/react-native';
 import { NavigationContainer } from '@react-navigation/native';
+import UserConsentScreen from '../../../screens/onboarding/UserConsentScreen';
+import { useOnboarding } from '../../../hooks/useOnboarding';
 
-// Mock navigation
-const mockNavigate = jest.fn();
-jest.mock('@react-navigation/native', () => ({
-  ...jest.requireActual('@react-navigation/native'),
-  useNavigation: () => ({
-    navigate: mockNavigate,
-  }),
+jest.mock('../../../hooks/useOnboarding', () => ({
+  useOnboarding: jest.fn(),
 }));
 
 describe('UserConsentScreen', () => {
+  const mockHandleUserConsent = jest.fn();
+
   beforeEach(() => {
-    mockNavigate.mockClear();
+    jest.clearAllMocks();
+    (useOnboarding as jest.Mock).mockReturnValue({
+      handleUserConsent: mockHandleUserConsent,
+    });
   });
 
-  it('renders correctly', () => {
+  it('renders all consent options', () => {
     const { getByText } = render(
       <NavigationContainer>
         <UserConsentScreen />
       </NavigationContainer>
     );
 
-    expect(getByText('Data Privacy and Consent')).toBeTruthy();
     expect(getByText('Health Data Collection')).toBeTruthy();
-    expect(getByText('Third-Party Integration')).toBeTruthy();
-    expect(getByText('Terms of Service')).toBeTruthy();
-    expect(getByText('Privacy Policy')).toBeTruthy();
+    expect(getByText('Third-Party Data Sharing')).toBeTruthy();
+    expect(getByText('Marketing Communications')).toBeTruthy();
+    expect(getByText('Push Notifications')).toBeTruthy();
+    expect(getByText('Location Services')).toBeTruthy();
   });
 
-  it('shows validation errors when trying to continue without required consents', async () => {
+  it('indicates required consents', () => {
+    const { getAllByText } = render(
+      <NavigationContainer>
+        <UserConsentScreen />
+      </NavigationContainer>
+    );
+
+    const requiredLabels = getAllByText('Required');
+    expect(requiredLabels).toHaveLength(2);
+  });
+
+  it('toggles consent options', () => {
     const { getByText } = render(
       <NavigationContainer>
         <UserConsentScreen />
       </NavigationContainer>
     );
 
-    const continueButton = getByText('Continue');
-    fireEvent.press(continueButton);
-
-    await waitFor(() => {
-      expect(mockNavigate).not.toHaveBeenCalled();
-    });
-  });
-
-  it('allows toggling consent checkboxes', () => {
-    const { getByText } = render(
-      <NavigationContainer>
-        <UserConsentScreen />
-      </NavigationContainer>
-    );
-
-    const healthDataConsent = getByText('Health Data Collection');
-    fireEvent.press(healthDataConsent);
-
-    const termsConsent = getByText('Terms of Service');
-    fireEvent.press(termsConsent);
-
-    // Verify checkboxes are checked (implementation dependent on your checkbox component)
-    expect(healthDataConsent.parent).toBeTruthy();
-    expect(termsConsent.parent).toBeTruthy();
-  });
-
-  it('navigates to next screen when all required consents are given', async () => {
-    const { getByText } = render(
-      <NavigationContainer>
-        <UserConsentScreen />
-      </NavigationContainer>
-    );
-
-    // Accept all required consents
     fireEvent.press(getByText('Health Data Collection'));
-    fireEvent.press(getByText('Third-Party Integration'));
-    fireEvent.press(getByText('Terms of Service'));
-    fireEvent.press(getByText('Privacy Policy'));
-    fireEvent.press(getByText('Data Retention'));
+    fireEvent.press(getByText('Push Notifications'));
 
-    const continueButton = getByText('Continue');
-    fireEvent.press(continueButton);
+    expect(getByText('Health Data Collection').props.accessibilityState.checked).toBe(true);
+    expect(getByText('Push Notifications').props.accessibilityState.checked).toBe(true);
+  });
 
-    await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('DietaryPreferences');
+  it('validates required consents before submission', async () => {
+    const { getByText } = render(
+      <NavigationContainer>
+        <UserConsentScreen />
+      </NavigationContainer>
+    );
+
+    await act(async () => {
+      fireEvent.press(getByText('Continue'));
     });
+
+    expect(
+      getByText('Health data collection and notifications are required to use the app')
+    ).toBeTruthy();
   });
 
-  it('renders privacy policy and terms buttons', () => {
+  it('submits when required consents are given', async () => {
+    mockHandleUserConsent.mockResolvedValue({ isValid: true });
+
     const { getByText } = render(
       <NavigationContainer>
         <UserConsentScreen />
       </NavigationContainer>
     );
 
-    expect(getByText('View Privacy Policy')).toBeTruthy();
-    expect(getByText('View Terms')).toBeTruthy();
-  });
-
-  it('marketing communications consent is optional', async () => {
-    const { getByText } = render(
-      <NavigationContainer>
-        <UserConsentScreen />
-      </NavigationContainer>
-    );
-
-    // Accept all required consents except marketing
     fireEvent.press(getByText('Health Data Collection'));
-    fireEvent.press(getByText('Third-Party Integration'));
-    fireEvent.press(getByText('Terms of Service'));
-    fireEvent.press(getByText('Privacy Policy'));
-    fireEvent.press(getByText('Data Retention'));
+    fireEvent.press(getByText('Push Notifications'));
 
-    const continueButton = getByText('Continue');
-    fireEvent.press(continueButton);
-
-    await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('DietaryPreferences');
+    await act(async () => {
+      fireEvent.press(getByText('Continue'));
     });
+
+    expect(mockHandleUserConsent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        healthDataCollection: true,
+        notifications: true,
+      })
+    );
+  });
+
+  it('displays validation errors from hook', async () => {
+    mockHandleUserConsent.mockResolvedValue({
+      isValid: false,
+      errors: { consent: 'Invalid consent configuration' },
+    });
+
+    const { getByText } = render(
+      <NavigationContainer>
+        <UserConsentScreen />
+      </NavigationContainer>
+    );
+
+    fireEvent.press(getByText('Health Data Collection'));
+    fireEvent.press(getByText('Push Notifications'));
+
+    await act(async () => {
+      fireEvent.press(getByText('Continue'));
+    });
+
+    expect(getByText('Invalid consent configuration')).toBeTruthy();
+  });
+
+  it('has proper accessibility labels', () => {
+    const { getByA11yLabel } = render(
+      <NavigationContainer>
+        <UserConsentScreen />
+      </NavigationContainer>
+    );
+
+    expect(getByA11yLabel('Health Data Collection consent')).toBeTruthy();
+    expect(getByA11yLabel('Push Notifications consent')).toBeTruthy();
   });
 });

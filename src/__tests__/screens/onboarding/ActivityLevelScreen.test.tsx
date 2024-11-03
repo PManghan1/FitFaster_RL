@@ -1,123 +1,126 @@
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import ActivityLevelScreen from '../../../screens/onboarding/ActivityLevelScreen';
+import { render, fireEvent, act } from '@testing-library/react-native';
 import { NavigationContainer } from '@react-navigation/native';
+import ActivityLevelScreen from '../../../screens/onboarding/ActivityLevelScreen';
+import { useOnboarding } from '../../../hooks/useOnboarding';
 
-// Mock navigation
-const mockNavigate = jest.fn();
-jest.mock('@react-navigation/native', () => ({
-  ...jest.requireActual('@react-navigation/native'),
-  useNavigation: () => ({
-    navigate: mockNavigate,
-  }),
+jest.mock('../../../hooks/useOnboarding', () => ({
+  useOnboarding: jest.fn(),
 }));
 
 describe('ActivityLevelScreen', () => {
+  const mockHandleActivityLevel = jest.fn();
+
   beforeEach(() => {
-    mockNavigate.mockClear();
+    jest.clearAllMocks();
+    (useOnboarding as jest.Mock).mockReturnValue({
+      handleActivityLevel: mockHandleActivityLevel,
+    });
   });
 
-  it('renders correctly', () => {
+  it('renders all activity level options', () => {
     const { getByText } = render(
       <NavigationContainer>
         <ActivityLevelScreen />
       </NavigationContainer>
     );
 
-    expect(getByText('Daily Activity Level')).toBeTruthy();
-    expect(getByText('Overall Daily Activity')).toBeTruthy();
-    expect(getByText('Occupation Type')).toBeTruthy();
-    expect(getByText('Primary Transportation Mode')).toBeTruthy();
-    expect(getByText('Weekend Activity Level')).toBeTruthy();
+    expect(getByText('Sedentary')).toBeTruthy();
+    expect(getByText('Lightly Active')).toBeTruthy();
+    expect(getByText('Moderately Active')).toBeTruthy();
+    expect(getByText('Very Active')).toBeTruthy();
+    expect(getByText('Extra Active')).toBeTruthy();
   });
 
-  it('allows selecting daily activity level', () => {
+  it('displays examples for each activity level', () => {
     const { getByText } = render(
       <NavigationContainer>
         <ActivityLevelScreen />
       </NavigationContainer>
     );
 
-    const activityOption = getByText('Moderately Active');
-    fireEvent.press(activityOption);
-
-    expect(activityOption.parent).toHaveStyle({ backgroundColor: expect.any(String) });
+    expect(getByText('Desk job')).toBeTruthy();
+    expect(getByText('Regular walking')).toBeTruthy();
+    expect(getByText('Regular workouts')).toBeTruthy();
+    expect(getByText('Daily training')).toBeTruthy();
+    expect(getByText('Professional athlete')).toBeTruthy();
   });
 
-  it('allows selecting occupation type', () => {
+  it('handles activity level selection', () => {
     const { getByText } = render(
       <NavigationContainer>
         <ActivityLevelScreen />
       </NavigationContainer>
     );
 
-    const occupationOption = getByText('Desk Job');
-    fireEvent.press(occupationOption);
+    const moderateOption = getByText('Moderately Active');
+    fireEvent.press(moderateOption);
 
-    expect(occupationOption.parent).toHaveStyle({ backgroundColor: expect.any(String) });
+    const completeButton = getByText('Complete Setup');
+    expect(completeButton.props.disabled).toBeFalsy();
   });
 
-  it('allows selecting transportation mode', () => {
+  it('shows error when trying to continue without selection', async () => {
     const { getByText } = render(
       <NavigationContainer>
         <ActivityLevelScreen />
       </NavigationContainer>
     );
 
-    const transportOption = getByText('Mixed');
-    fireEvent.press(transportOption);
+    await act(async () => {
+      fireEvent.press(getByText('Complete Setup'));
+    });
 
-    expect(transportOption.parent).toHaveStyle({ backgroundColor: expect.any(String) });
+    expect(getByText('Please select your activity level')).toBeTruthy();
   });
 
-  it('allows selecting weekend activity level', () => {
+  it('submits selected activity level', async () => {
+    mockHandleActivityLevel.mockResolvedValue({ isValid: true });
+
     const { getByText } = render(
       <NavigationContainer>
         <ActivityLevelScreen />
       </NavigationContainer>
     );
 
-    const weekendOption = getByText('Similar to Weekdays');
-    fireEvent.press(weekendOption);
-
-    expect(weekendOption.parent).toHaveStyle({ backgroundColor: expect.any(String) });
-  });
-
-  it('navigates to next screen when form is valid', async () => {
-    const { getByText } = render(
-      <NavigationContainer>
-        <ActivityLevelScreen />
-      </NavigationContainer>
-    );
-
-    // Select required options
     fireEvent.press(getByText('Moderately Active'));
-    fireEvent.press(getByText('Desk Job'));
-    fireEvent.press(getByText('Mixed'));
-    fireEvent.press(getByText('Similar to Weekdays'));
 
-    // Submit form
-    const continueButton = getByText('Complete Setup');
-    fireEvent.press(continueButton);
-
-    await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('OnboardingGoals');
+    await act(async () => {
+      fireEvent.press(getByText('Complete Setup'));
     });
+
+    expect(mockHandleActivityLevel).toHaveBeenCalledWith('moderately_active');
   });
 
-  it('shows validation errors when form is incomplete', async () => {
+  it('displays validation errors from hook', async () => {
+    mockHandleActivityLevel.mockResolvedValue({
+      isValid: false,
+      errors: { level: 'Invalid activity level' },
+    });
+
     const { getByText } = render(
       <NavigationContainer>
         <ActivityLevelScreen />
       </NavigationContainer>
     );
 
-    // Submit without selecting any options
-    const continueButton = getByText('Complete Setup');
-    fireEvent.press(continueButton);
+    fireEvent.press(getByText('Moderately Active'));
 
-    await waitFor(() => {
-      expect(mockNavigate).not.toHaveBeenCalled();
+    await act(async () => {
+      fireEvent.press(getByText('Complete Setup'));
     });
+
+    expect(getByText('Invalid activity level')).toBeTruthy();
+  });
+
+  it('has proper accessibility labels', () => {
+    const { getByA11yLabel } = render(
+      <NavigationContainer>
+        <ActivityLevelScreen />
+      </NavigationContainer>
+    );
+
+    expect(getByA11yLabel('Moderately Active activity level')).toBeTruthy();
+    expect(getByA11yLabel('Complete onboarding setup')).toBeTruthy();
   });
 });

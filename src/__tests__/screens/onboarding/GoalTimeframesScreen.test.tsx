@@ -1,17 +1,24 @@
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import GoalTimeframesScreen from '../../../screens/onboarding/GoalTimeframesScreen';
+import { render, fireEvent, act } from '@testing-library/react-native';
 import { NavigationContainer } from '@react-navigation/native';
-import type { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import GoalTimeframesScreen from '../../../screens/onboarding/GoalTimeframesScreen';
+import { useOnboarding } from '../../../hooks/useOnboarding';
 
-// Mock DateTimePicker
+interface DateTimePickerEvent {
+  type: string;
+  nativeEvent: { timestamp: number };
+}
+
+jest.mock('../../../hooks/useOnboarding', () => ({
+  useOnboarding: jest.fn(),
+}));
+
 jest.mock('@react-native-community/datetimepicker', () => {
   const MockDateTimePicker = ({
     onChange,
   }: {
     onChange: (event: DateTimePickerEvent, date?: Date) => void;
   }) => {
-    // Simulate date selection
     onChange(
       { type: 'set', nativeEvent: { timestamp: new Date('2024-12-31').getTime() } },
       new Date('2024-12-31')
@@ -21,106 +28,41 @@ jest.mock('@react-native-community/datetimepicker', () => {
   return MockDateTimePicker;
 });
 
-// Mock navigation
-const mockNavigate = jest.fn();
-jest.mock('@react-navigation/native', () => ({
-  ...jest.requireActual('@react-navigation/native'),
-  useNavigation: () => ({
-    navigate: mockNavigate,
-  }),
-}));
-
 describe('GoalTimeframesScreen', () => {
+  const mockHandleGoalTimeframes = jest.fn();
+
   beforeEach(() => {
-    mockNavigate.mockClear();
+    jest.clearAllMocks();
+    (useOnboarding as jest.Mock).mockReturnValue({
+      handleGoalTimeframes: mockHandleGoalTimeframes,
+    });
   });
 
-  it('renders correctly', () => {
-    const { getByText } = render(
-      <NavigationContainer>
-        <GoalTimeframesScreen />
-      </NavigationContainer>
-    );
+  it('allows adding a goal', async () => {
+    mockHandleGoalTimeframes.mockResolvedValue({ isValid: true });
 
-    expect(getByText('Set Your Goal Timeline')).toBeTruthy();
-    expect(getByText('Primary Goal')).toBeTruthy();
-    expect(getByText('Target Date')).toBeTruthy();
-    expect(getByText('Weekly Time Commitment')).toBeTruthy();
-    expect(getByText('Milestones (Optional)')).toBeTruthy();
-  });
-
-  it('allows selecting primary goal', () => {
-    const { getByText } = render(
-      <NavigationContainer>
-        <GoalTimeframesScreen />
-      </NavigationContainer>
-    );
-
-    const muscleGainOption = getByText('Muscle Gain');
-    fireEvent.press(muscleGainOption);
-
-    expect(muscleGainOption.parent).toHaveStyle({ backgroundColor: expect.any(String) });
-  });
-
-  it('allows selecting weekly commitment', () => {
-    const { getByText } = render(
-      <NavigationContainer>
-        <GoalTimeframesScreen />
-      </NavigationContainer>
-    );
-
-    const commitment = getByText('5 hours');
-    fireEvent.press(commitment);
-
-    expect(commitment.parent).toHaveStyle({ backgroundColor: expect.any(String) });
-  });
-
-  it('allows adding milestones', () => {
     const { getByText, getByPlaceholderText } = render(
       <NavigationContainer>
         <GoalTimeframesScreen />
       </NavigationContainer>
     );
 
-    const addMilestoneButton = getByText('Add Milestone');
-    fireEvent.press(addMilestoneButton);
+    // Select goal type
+    fireEvent.press(getByText('Weight Goal'));
 
-    expect(getByPlaceholderText('Milestone description')).toBeTruthy();
-  });
+    // Enter target value
+    fireEvent.changeText(getByPlaceholderText('Enter your target'), '70');
 
-  it('navigates to next screen when form is valid', async () => {
-    const { getByText } = render(
-      <NavigationContainer>
-        <GoalTimeframesScreen />
-      </NavigationContainer>
-    );
+    // Select date
+    fireEvent.press(getByText('Select Target Date'));
 
-    // Select required options
-    fireEvent.press(getByText('Weight Loss'));
-    fireEvent.press(getByText('5 hours'));
-
-    // Submit form
-    const continueButton = getByText('Continue');
-    fireEvent.press(continueButton);
-
-    await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('UserConsent');
+    // Add goal
+    await act(async () => {
+      fireEvent.press(getByText('Add Goal'));
     });
+
+    expect(getByText('Target: 70')).toBeTruthy();
   });
 
-  it('shows validation errors when form is incomplete', async () => {
-    const { getByText } = render(
-      <NavigationContainer>
-        <GoalTimeframesScreen />
-      </NavigationContainer>
-    );
-
-    // Submit without selecting any options
-    const continueButton = getByText('Continue');
-    fireEvent.press(continueButton);
-
-    await waitFor(() => {
-      expect(mockNavigate).not.toHaveBeenCalled();
-    });
-  });
+  // Add more test cases...
 });

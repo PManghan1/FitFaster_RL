@@ -1,165 +1,117 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, ScrollView } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
-import { OnboardingStackParamList, UserConsent } from '../../types/onboarding';
 import { Text, Button, CheckBox } from 'react-native-elements';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { userConsentSchema } from '../../types/onboarding';
 import { useOnboarding } from '../../hooks/useOnboarding';
+import type { UserConsent } from '../../types/onboarding';
 import tw from '../../utils/tailwind';
 
-type NavigationProp = StackNavigationProp<OnboardingStackParamList, 'UserConsent'>;
+const CONSENT_ITEMS = [
+  {
+    key: 'healthDataCollection',
+    title: 'Health Data Collection',
+    description:
+      'Allow us to collect and analyze your health and fitness data to provide personalized recommendations.',
+  },
+  {
+    key: 'thirdPartySharing',
+    title: 'Third-Party Data Sharing',
+    description:
+      'Share your data with trusted partners to enhance your fitness experience (optional).',
+  },
+  {
+    key: 'marketing',
+    title: 'Marketing Communications',
+    description:
+      'Receive updates, tips, and promotional offers related to your fitness journey (optional).',
+  },
+  {
+    key: 'notifications',
+    title: 'Push Notifications',
+    description: 'Allow us to send you reminders, updates, and important alerts.',
+  },
+  {
+    key: 'locationTracking',
+    title: 'Location Services',
+    description:
+      'Enable location tracking for workout tracking and nearby facility recommendations (optional).',
+  },
+] as const;
 
-const UserConsentScreen: React.FC = () => {
-  const navigation = useNavigation<NavigationProp>();
+export const UserConsentScreen: React.FC = () => {
   const { handleUserConsent } = useOnboarding();
-
-  const {
-    control,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<UserConsent>({
-    resolver: zodResolver(userConsentSchema),
-    defaultValues: {
-      healthDataCollection: false,
-      thirdPartySharing: false,
-      marketingCommunications: false,
-      termsAccepted: false,
-      privacyPolicyAccepted: false,
-      dataRetentionAcknowledged: false,
-    },
+  const [consent, setConsent] = useState<UserConsent>({
+    healthDataCollection: false,
+    thirdPartySharing: false,
+    marketing: false,
+    notifications: false,
+    locationTracking: false,
   });
+  const [error, setError] = useState<string | null>(null);
 
-  const onSubmit = (data: UserConsent) => {
-    const { isValid } = handleUserConsent(data);
-    if (isValid) {
-      navigation.navigate('DietaryPreferences');
-    }
+  const handleToggleConsent = (key: keyof UserConsent) => {
+    setConsent(prev => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+    setError(null);
   };
 
-  const ConsentItem = ({
-    title,
-    description,
-    name,
-    required = true,
-  }: {
-    title: string;
-    description: string;
-    name: keyof UserConsent;
-    required?: boolean;
-  }) => (
-    <Controller
-      control={control}
-      name={name}
-      render={({ field: { onChange, value } }) => (
-        <View style={tw`mb-6`}>
-          <CheckBox
-            title={
-              <View style={tw`flex-1 ml-2`}>
-                <Text style={tw`font-semibold text-base`}>
-                  {title} {required && <Text style={tw`text-red-500`}>*</Text>}
-                </Text>
-                <Text style={tw`text-gray-600 text-sm mt-1`}>{description}</Text>
-              </View>
-            }
-            checked={value}
-            onPress={() => onChange(!value)}
-            containerStyle={tw`bg-transparent border-0 p-0 m-0`}
-          />
-          {errors[name] && <Text style={tw`text-red-500 mt-1 ml-2`}>{errors[name]?.message}</Text>}
-        </View>
-      )}
-    />
-  );
+  const handleSubmit = async () => {
+    if (!consent.healthDataCollection || !consent.notifications) {
+      setError('Health data collection and notifications are required to use the app');
+      return;
+    }
+
+    const { isValid, errors } = await handleUserConsent(consent);
+    if (!isValid && errors) {
+      setError(Object.values(errors)[0]);
+    }
+  };
 
   return (
     <SafeAreaView style={tw`flex-1 bg-white`}>
       <ScrollView contentContainerStyle={tw`p-4`}>
-        <Text h1 style={tw`text-2xl font-bold mb-6`}>
-          Data Privacy and Consent
+        <Text h1 style={tw`text-2xl font-bold mb-2`}>
+          Privacy & Consent
         </Text>
-        <Text style={tw`text-gray-600 mb-8`}>
-          Your privacy is important to us. Please review and consent to our data handling practices.
+        <Text style={tw`text-gray-600 mb-6`}>
+          Please review and confirm your privacy preferences.
         </Text>
 
-        <ConsentItem
-          title="Health Data Collection"
-          description="Allow us to collect and process your health metrics, fitness data, and activity information to provide personalized recommendations and track your progress."
-          name="healthDataCollection"
-        />
-
-        <ConsentItem
-          title="Third-Party Integration"
-          description="Allow sharing of necessary data with third-party services (e.g., fitness tracking devices) to enhance your experience."
-          name="thirdPartySharing"
-        />
-
-        <ConsentItem
-          title="Marketing Communications"
-          description="Receive updates about new features, tips, and promotional offers. You can opt out at any time."
-          name="marketingCommunications"
-          required={false}
-        />
-
-        <ConsentItem
-          title="Terms of Service"
-          description="I agree to the Terms of Service and understand my rights and obligations as a user of the app."
-          name="termsAccepted"
-        />
-
-        <ConsentItem
-          title="Privacy Policy"
-          description="I have read and agree to the Privacy Policy, including how my personal data will be collected, used, and protected."
-          name="privacyPolicyAccepted"
-        />
-
-        <ConsentItem
-          title="Data Retention"
-          description="I understand that my data will be retained as long as I maintain an active account, and I can request its deletion at any time."
-          name="dataRetentionAcknowledged"
-        />
-
-        <View style={tw`mt-4 mb-8`}>
-          <Text style={tw`text-sm text-gray-500 italic`}>
-            * Required consents are necessary to provide core app functionality. You can manage
-            these preferences later in the app settings.
-          </Text>
+        <View style={tw`mb-6`}>
+          {CONSENT_ITEMS.map(item => (
+            <View key={item.key} style={tw`mb-4`}>
+              <CheckBox
+                title={item.title}
+                checked={consent[item.key]}
+                onPress={() => handleToggleConsent(item.key)}
+                containerStyle={tw`bg-transparent border-0 p-0 m-0 mb-1`}
+                textStyle={tw`font-bold`}
+                checkedColor="#3B82F6"
+                accessibilityLabel={`${item.title} consent`}
+                accessibilityHint={item.description}
+              />
+              <Text style={tw`text-gray-600 ml-8`}>{item.description}</Text>
+              {(item.key === 'healthDataCollection' || item.key === 'notifications') && (
+                <Text style={tw`text-red-500 ml-8 mt-1`}>Required</Text>
+              )}
+            </View>
+          ))}
         </View>
 
-        <View style={tw`flex-row justify-between mb-4`}>
-          <Button
-            title="View Privacy Policy"
-            type="outline"
-            buttonStyle={tw`border-blue-500 px-4`}
-            titleStyle={tw`text-blue-500`}
-            containerStyle={tw`flex-1 mr-2`}
-            onPress={() => {
-              // TODO: Implement privacy policy modal
-              console.log('Show privacy policy');
-            }}
-          />
-          <Button
-            title="View Terms"
-            type="outline"
-            buttonStyle={tw`border-blue-500 px-4`}
-            titleStyle={tw`text-blue-500`}
-            containerStyle={tw`flex-1 ml-2`}
-            onPress={() => {
-              // TODO: Implement terms modal
-              console.log('Show terms');
-            }}
-          />
-        </View>
+        {error && <Text style={tw`text-red-500 mb-4 text-center`}>{error}</Text>}
 
         <Button
           title="Continue"
-          onPress={handleSubmit(onSubmit)}
+          onPress={handleSubmit}
           buttonStyle={tw`bg-blue-500 py-3 rounded-lg`}
           titleStyle={tw`font-bold`}
         />
+
+        <Text style={tw`text-gray-500 text-xs text-center mt-4`}>
+          You can update these preferences later in Settings.
+        </Text>
       </ScrollView>
     </SafeAreaView>
   );

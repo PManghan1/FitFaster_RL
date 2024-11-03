@@ -1,190 +1,104 @@
 import React from 'react';
 import { View, ScrollView } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
-import { OnboardingStackParamList, FitnessLevel } from '../../types/onboarding';
 import { Text, Button } from 'react-native-elements';
-import SelectionCard from '../../components/onboarding/SelectionCard';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { fitnessLevelSchema } from '../../types/onboarding';
+import { SelectionCard } from '../../components/onboarding/SelectionCard';
 import { useOnboarding } from '../../hooks/useOnboarding';
+import type { FitnessLevel } from '../../types/onboarding';
 import tw from '../../utils/tailwind';
 
-type NavigationProp = StackNavigationProp<OnboardingStackParamList, 'FitnessLevel'>;
+const FITNESS_LEVELS: Array<{
+  value: FitnessLevel;
+  title: string;
+  description: string;
+  icon: string;
+}> = [
+  {
+    value: 'beginner',
+    title: 'Beginner',
+    description: 'New to fitness or returning after a long break',
+    icon: '🌱',
+  },
+  {
+    value: 'intermediate',
+    title: 'Intermediate',
+    description: 'Regular exercise with basic form and endurance',
+    icon: '💪',
+  },
+  {
+    value: 'advanced',
+    title: 'Advanced',
+    description: 'Consistent training with good form and strength',
+    icon: '🏃',
+  },
+  {
+    value: 'athlete',
+    title: 'Athlete',
+    description: 'Competitive sports or professional training',
+    icon: '🏆',
+  },
+];
 
-const FitnessLevelScreen: React.FC = () => {
-  const navigation = useNavigation<NavigationProp>();
+export const FitnessLevelScreen: React.FC = () => {
   const { handleFitnessLevel } = useOnboarding();
+  const [selectedLevel, setSelectedLevel] = React.useState<FitnessLevel | null>(null);
+  const [error, setError] = React.useState<string | null>(null);
 
-  const {
-    control,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<FitnessLevel>({
-    resolver: zodResolver(fitnessLevelSchema),
-    defaultValues: {
-      experienceLevel: 'beginner',
-      weeklyActivityFrequency: 3,
-      typicalExercises: [],
-      injuryHistory: [],
-      preferredWorkoutTime: 'flexible',
-    },
-  });
+  const handleSubmit = async () => {
+    if (!selectedLevel) {
+      setError('Please select your fitness level');
+      return;
+    }
 
-  const experienceLevels = [
-    { value: 'beginner', label: 'Beginner', description: 'New to fitness or getting back into it' },
-    { value: 'intermediate', label: 'Intermediate', description: 'Regular exercise for 6+ months' },
-    { value: 'advanced', label: 'Advanced', description: 'Consistent training for 1+ years' },
-  ] as const;
-
-  const exerciseTypes = [
-    { value: 'walking', label: 'Walking' },
-    { value: 'running', label: 'Running' },
-    { value: 'cycling', label: 'Cycling' },
-    { value: 'swimming', label: 'Swimming' },
-    { value: 'weight_training', label: 'Weight Training' },
-    { value: 'yoga', label: 'Yoga' },
-    { value: 'pilates', label: 'Pilates' },
-    { value: 'sports', label: 'Sports' },
-  ] as const;
-
-  const workoutTimes = [
-    { value: 'morning', label: 'Morning', description: 'Early morning workouts' },
-    { value: 'afternoon', label: 'Afternoon', description: 'Mid-day workouts' },
-    { value: 'evening', label: 'Evening', description: 'Evening workouts' },
-    { value: 'flexible', label: 'Flexible', description: 'No specific preference' },
-  ] as const;
-
-  const onSubmit = (data: FitnessLevel) => {
-    const { isValid } = handleFitnessLevel(data);
-    if (isValid) {
-      navigation.navigate('GoalTimeframes');
+    const { isValid, errors } = await handleFitnessLevel(selectedLevel);
+    if (!isValid && errors) {
+      setError(Object.values(errors)[0]);
     }
   };
 
   return (
     <SafeAreaView style={tw`flex-1 bg-white`}>
       <ScrollView contentContainerStyle={tw`p-4`}>
-        <Text h1 style={tw`text-2xl font-bold mb-6`}>
-          Your Fitness Experience
+        <Text h1 style={tw`text-2xl font-bold mb-2`}>
+          What&apos;s your fitness level?
         </Text>
-        <Text style={tw`text-gray-600 mb-8`}>
-          Help us understand your fitness background to create an appropriate program.
+        <Text style={tw`text-gray-600 mb-6`}>
+          This helps us tailor your workouts and recommendations.
         </Text>
 
-        {/* Experience Level */}
-        <View style={tw`mb-8`}>
-          <Text style={tw`text-lg font-semibold mb-4`}>Experience Level</Text>
-          <Controller
-            control={control}
-            name="experienceLevel"
-            render={({ field: { onChange, value } }) => (
-              <View>
-                {experienceLevels.map(level => (
-                  <SelectionCard
-                    key={level.value}
-                    title={level.label}
-                    description={level.description}
-                    selected={value === level.value}
-                    onPress={() => onChange(level.value)}
-                  />
-                ))}
-              </View>
-            )}
-          />
-          {errors.experienceLevel && (
-            <Text style={tw`text-red-500 mt-1`}>{errors.experienceLevel.message}</Text>
-          )}
+        <View style={tw`mb-6`}>
+          {FITNESS_LEVELS.map(level => (
+            <SelectionCard
+              key={level.value}
+              title={level.title}
+              description={level.description}
+              icon={level.icon}
+              selected={selectedLevel === level.value}
+              onPress={() => {
+                setSelectedLevel(level.value);
+                setError(null);
+              }}
+              style={tw`mb-4`}
+              accessibilityLabel={`${level.title} fitness level`}
+              accessibilityHint={level.description}
+            />
+          ))}
         </View>
 
-        {/* Weekly Activity Frequency */}
-        <View style={tw`mb-8`}>
-          <Text style={tw`text-lg font-semibold mb-4`}>Weekly Activity</Text>
-          <Controller
-            control={control}
-            name="weeklyActivityFrequency"
-            render={({ field: { onChange, value } }) => (
-              <View>
-                {[0, 1, 2, 3, 4, 5, 6, 7].map(num => (
-                  <SelectionCard
-                    key={num}
-                    title={`${num} ${num === 1 ? 'day' : 'days'} per week`}
-                    description={`${num === 0 ? 'Currently inactive' : `Active ${num} days a week`}`}
-                    selected={value === num}
-                    onPress={() => onChange(num)}
-                  />
-                ))}
-              </View>
-            )}
-          />
-          {errors.weeklyActivityFrequency && (
-            <Text style={tw`text-red-500 mt-1`}>{errors.weeklyActivityFrequency.message}</Text>
-          )}
-        </View>
-
-        {/* Typical Exercises */}
-        <View style={tw`mb-8`}>
-          <Text style={tw`text-lg font-semibold mb-4`}>Typical Exercises</Text>
-          <Text style={tw`text-gray-600 mb-4`}>Select all that you regularly do</Text>
-          <Controller
-            control={control}
-            name="typicalExercises"
-            render={({ field: { onChange, value } }) => (
-              <View style={tw`flex-row flex-wrap justify-between`}>
-                {exerciseTypes.map(exercise => (
-                  <SelectionCard
-                    key={exercise.value}
-                    title={exercise.label}
-                    selected={value.includes(exercise.value)}
-                    onPress={() => {
-                      const newValue = value.includes(exercise.value)
-                        ? value.filter(v => v !== exercise.value)
-                        : [...value, exercise.value];
-                      onChange(newValue);
-                    }}
-                    style={tw`w-[48%] mb-2`}
-                  />
-                ))}
-              </View>
-            )}
-          />
-          {errors.typicalExercises && (
-            <Text style={tw`text-red-500 mt-1`}>{errors.typicalExercises.message}</Text>
-          )}
-        </View>
-
-        {/* Preferred Workout Time */}
-        <View style={tw`mb-8`}>
-          <Text style={tw`text-lg font-semibold mb-4`}>Preferred Workout Time</Text>
-          <Controller
-            control={control}
-            name="preferredWorkoutTime"
-            render={({ field: { onChange, value } }) => (
-              <View>
-                {workoutTimes.map(time => (
-                  <SelectionCard
-                    key={time.value}
-                    title={time.label}
-                    description={time.description}
-                    selected={value === time.value}
-                    onPress={() => onChange(time.value)}
-                  />
-                ))}
-              </View>
-            )}
-          />
-          {errors.preferredWorkoutTime && (
-            <Text style={tw`text-red-500 mt-1`}>{errors.preferredWorkoutTime.message}</Text>
-          )}
-        </View>
+        {error && <Text style={tw`text-red-500 mb-4 text-center`}>{error}</Text>}
 
         <Button
           title="Continue"
-          onPress={handleSubmit(onSubmit)}
+          onPress={handleSubmit}
+          disabled={!selectedLevel}
           buttonStyle={tw`bg-blue-500 py-3 rounded-lg`}
           titleStyle={tw`font-bold`}
+          accessibilityLabel="Continue to next step"
+          accessibilityHint={
+            selectedLevel
+              ? `Selected fitness level: ${selectedLevel}`
+              : 'Please select a fitness level'
+          }
         />
       </ScrollView>
     </SafeAreaView>

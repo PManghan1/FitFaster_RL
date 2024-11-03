@@ -1,101 +1,110 @@
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import FitnessLevelScreen from '../../../screens/onboarding/FitnessLevelScreen';
+import { render, fireEvent, act } from '@testing-library/react-native';
 import { NavigationContainer } from '@react-navigation/native';
+import FitnessLevelScreen from '../../../screens/onboarding/FitnessLevelScreen';
+import { useOnboarding } from '../../../hooks/useOnboarding';
 
-// Mock navigation
-const mockNavigate = jest.fn();
-jest.mock('@react-navigation/native', () => ({
-  ...jest.requireActual('@react-navigation/native'),
-  useNavigation: () => ({
-    navigate: mockNavigate,
-  }),
+jest.mock('../../../hooks/useOnboarding', () => ({
+  useOnboarding: jest.fn(),
 }));
 
 describe('FitnessLevelScreen', () => {
+  const mockHandleFitnessLevel = jest.fn();
+
   beforeEach(() => {
-    mockNavigate.mockClear();
-  });
-
-  it('renders correctly', () => {
-    const { getByText } = render(
-      <NavigationContainer>
-        <FitnessLevelScreen />
-      </NavigationContainer>
-    );
-
-    expect(getByText('Your Fitness Experience')).toBeTruthy();
-    expect(getByText('Experience Level')).toBeTruthy();
-    expect(getByText('Weekly Activity')).toBeTruthy();
-    expect(getByText('Typical Exercises')).toBeTruthy();
-    expect(getByText('Preferred Workout Time')).toBeTruthy();
-  });
-
-  it('allows selecting experience level', () => {
-    const { getByText } = render(
-      <NavigationContainer>
-        <FitnessLevelScreen />
-      </NavigationContainer>
-    );
-
-    const intermediateOption = getByText('Intermediate');
-    fireEvent.press(intermediateOption);
-
-    expect(intermediateOption.parent).toHaveStyle({ backgroundColor: expect.any(String) });
-  });
-
-  it('allows selecting multiple typical exercises', () => {
-    const { getByText } = render(
-      <NavigationContainer>
-        <FitnessLevelScreen />
-      </NavigationContainer>
-    );
-
-    const walkingOption = getByText('Walking');
-    const runningOption = getByText('Running');
-
-    fireEvent.press(walkingOption);
-    fireEvent.press(runningOption);
-
-    expect(walkingOption.parent).toHaveStyle({ backgroundColor: expect.any(String) });
-    expect(runningOption.parent).toHaveStyle({ backgroundColor: expect.any(String) });
-  });
-
-  it('navigates to next screen when form is valid', async () => {
-    const { getByText } = render(
-      <NavigationContainer>
-        <FitnessLevelScreen />
-      </NavigationContainer>
-    );
-
-    // Select required options
-    fireEvent.press(getByText('Beginner'));
-    fireEvent.press(getByText('3 days per week'));
-    fireEvent.press(getByText('Walking'));
-    fireEvent.press(getByText('Flexible'));
-
-    // Submit form
-    const continueButton = getByText('Continue');
-    fireEvent.press(continueButton);
-
-    await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('GoalTimeframes');
+    jest.clearAllMocks();
+    (useOnboarding as jest.Mock).mockReturnValue({
+      handleFitnessLevel: mockHandleFitnessLevel,
     });
   });
 
-  it('shows validation errors when form is incomplete', async () => {
+  it('renders all fitness level options', () => {
     const { getByText } = render(
       <NavigationContainer>
         <FitnessLevelScreen />
       </NavigationContainer>
     );
 
-    // Submit without selecting any options
+    expect(getByText('Beginner')).toBeTruthy();
+    expect(getByText('Intermediate')).toBeTruthy();
+    expect(getByText('Advanced')).toBeTruthy();
+    expect(getByText('Athlete')).toBeTruthy();
+  });
+
+  it('handles fitness level selection', () => {
+    const { getByText } = render(
+      <NavigationContainer>
+        <FitnessLevelScreen />
+      </NavigationContainer>
+    );
+
+    const beginnerOption = getByText('Beginner');
+    fireEvent.press(beginnerOption);
+
+    const continueButton = getByText('Continue');
+    expect(continueButton.props.disabled).toBeFalsy();
+  });
+
+  it('shows error when trying to continue without selection', () => {
+    const { getByText } = render(
+      <NavigationContainer>
+        <FitnessLevelScreen />
+      </NavigationContainer>
+    );
+
     const continueButton = getByText('Continue');
     fireEvent.press(continueButton);
 
-    await waitFor(() => {
-      expect(mockNavigate).not.toHaveBeenCalled();
+    expect(getByText('Please select your fitness level')).toBeTruthy();
+  });
+
+  it('submits selected fitness level', async () => {
+    mockHandleFitnessLevel.mockResolvedValue({ isValid: true });
+
+    const { getByText } = render(
+      <NavigationContainer>
+        <FitnessLevelScreen />
+      </NavigationContainer>
+    );
+
+    fireEvent.press(getByText('Intermediate'));
+
+    await act(async () => {
+      fireEvent.press(getByText('Continue'));
     });
+
+    expect(mockHandleFitnessLevel).toHaveBeenCalledWith('intermediate');
+  });
+
+  it('displays validation errors from hook', async () => {
+    mockHandleFitnessLevel.mockResolvedValue({
+      isValid: false,
+      errors: { level: 'Invalid fitness level' },
+    });
+
+    const { getByText } = render(
+      <NavigationContainer>
+        <FitnessLevelScreen />
+      </NavigationContainer>
+    );
+
+    fireEvent.press(getByText('Intermediate'));
+
+    await act(async () => {
+      fireEvent.press(getByText('Continue'));
+    });
+
+    expect(getByText('Invalid fitness level')).toBeTruthy();
+  });
+
+  it('has proper accessibility labels', () => {
+    const { getByA11yLabel } = render(
+      <NavigationContainer>
+        <FitnessLevelScreen />
+      </NavigationContainer>
+    );
+
+    expect(getByA11yLabel('Beginner fitness level')).toBeTruthy();
+    expect(getByA11yLabel('Continue to next step')).toBeTruthy();
   });
 });

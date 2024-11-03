@@ -1,126 +1,138 @@
 import React from 'react';
-import { render, fireEvent, waitFor } from '@testing-library/react-native';
-import DietaryPreferencesScreen from '../../../screens/onboarding/DietaryPreferencesScreen';
+import { render, fireEvent, act } from '@testing-library/react-native';
 import { NavigationContainer } from '@react-navigation/native';
+import DietaryPreferencesScreen from '../../../screens/onboarding/DietaryPreferencesScreen';
+import { useOnboarding } from '../../../hooks/useOnboarding';
 
-// Mock navigation
-const mockNavigate = jest.fn();
-jest.mock('@react-navigation/native', () => ({
-  ...jest.requireActual('@react-navigation/native'),
-  useNavigation: () => ({
-    navigate: mockNavigate,
-  }),
+jest.mock('../../../hooks/useOnboarding', () => ({
+  useOnboarding: jest.fn(),
 }));
 
 describe('DietaryPreferencesScreen', () => {
+  const mockHandleDietaryPreferences = jest.fn();
+
   beforeEach(() => {
-    mockNavigate.mockClear();
-  });
-
-  it('renders correctly', () => {
-    const { getByText } = render(
-      <NavigationContainer>
-        <DietaryPreferencesScreen />
-      </NavigationContainer>
-    );
-
-    expect(getByText('Dietary Preferences')).toBeTruthy();
-    expect(getByText('Diet Type')).toBeTruthy();
-    expect(getByText('Food Allergies')).toBeTruthy();
-    expect(getByText('Preferred Meals Per Day')).toBeTruthy();
-    expect(getByText('Meal Preparation Style')).toBeTruthy();
-  });
-
-  it('allows selecting diet type', () => {
-    const { getByText } = render(
-      <NavigationContainer>
-        <DietaryPreferencesScreen />
-      </NavigationContainer>
-    );
-
-    const veganOption = getByText('Vegan');
-    fireEvent.press(veganOption);
-
-    expect(veganOption.parent).toHaveStyle({ backgroundColor: expect.any(String) });
-  });
-
-  it('allows selecting multiple allergies', () => {
-    const { getByText } = render(
-      <NavigationContainer>
-        <DietaryPreferencesScreen />
-      </NavigationContainer>
-    );
-
-    const dairyOption = getByText('Dairy');
-    const nutsOption = getByText('Nuts');
-
-    fireEvent.press(dairyOption);
-    fireEvent.press(nutsOption);
-
-    expect(dairyOption.parent).toHaveStyle({ backgroundColor: expect.any(String) });
-    expect(nutsOption.parent).toHaveStyle({ backgroundColor: expect.any(String) });
-  });
-
-  it('allows selecting meal count preference', () => {
-    const { getByText } = render(
-      <NavigationContainer>
-        <DietaryPreferencesScreen />
-      </NavigationContainer>
-    );
-
-    const mealOption = getByText('3 meals');
-    fireEvent.press(mealOption);
-
-    expect(mealOption.parent).toHaveStyle({ backgroundColor: expect.any(String) });
-  });
-
-  it('allows toggling supplement use', () => {
-    const { getByText } = render(
-      <NavigationContainer>
-        <DietaryPreferencesScreen />
-      </NavigationContainer>
-    );
-
-    const supplementOption = getByText('Yes, I use or plan to use supplements');
-    fireEvent.press(supplementOption);
-
-    expect(supplementOption.parent).toHaveStyle({ backgroundColor: expect.any(String) });
-  });
-
-  it('navigates to next screen when form is valid', async () => {
-    const { getByText } = render(
-      <NavigationContainer>
-        <DietaryPreferencesScreen />
-      </NavigationContainer>
-    );
-
-    // Select required options
-    fireEvent.press(getByText('Omnivore'));
-    fireEvent.press(getByText('3 meals'));
-    fireEvent.press(getByText('Mixed Approach'));
-
-    // Submit form
-    const continueButton = getByText('Continue');
-    fireEvent.press(continueButton);
-
-    await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('ActivityLevel');
+    jest.clearAllMocks();
+    (useOnboarding as jest.Mock).mockReturnValue({
+      handleDietaryPreferences: mockHandleDietaryPreferences,
     });
   });
 
-  it('shows validation errors when form is incomplete', async () => {
+  it('renders all diet type options', () => {
     const { getByText } = render(
       <NavigationContainer>
         <DietaryPreferencesScreen />
       </NavigationContainer>
     );
 
-    // Submit without selecting required options
-    const continueButton = getByText('Continue');
-    fireEvent.press(continueButton);
+    expect(getByText('Omnivore')).toBeTruthy();
+    expect(getByText('Vegetarian')).toBeTruthy();
+    expect(getByText('Vegan')).toBeTruthy();
+    expect(getByText('Pescatarian')).toBeTruthy();
+    expect(getByText('Keto')).toBeTruthy();
+    expect(getByText('Paleo')).toBeTruthy();
+  });
 
-    await waitFor(() => {
-      expect(mockNavigate).not.toHaveBeenCalled();
+  it('allows adding dietary restrictions', () => {
+    const { getByPlaceholderText, getByText } = render(
+      <NavigationContainer>
+        <DietaryPreferencesScreen />
+      </NavigationContainer>
+    );
+
+    const input = getByPlaceholderText('Add a restriction');
+    fireEvent.changeText(input, 'No nuts');
+    fireEvent.press(getByText('Add'));
+
+    expect(getByText('No nuts')).toBeTruthy();
+  });
+
+  it('allows adding food intolerances', () => {
+    const { getByPlaceholderText, getByText } = render(
+      <NavigationContainer>
+        <DietaryPreferencesScreen />
+      </NavigationContainer>
+    );
+
+    const input = getByPlaceholderText('Add an intolerance');
+    fireEvent.changeText(input, 'Lactose');
+    fireEvent.press(getByText('Add'));
+
+    expect(getByText('Lactose')).toBeTruthy();
+  });
+
+  it('allows removing restrictions and intolerances', () => {
+    const { getByPlaceholderText, getByText, queryByText } = render(
+      <NavigationContainer>
+        <DietaryPreferencesScreen />
+      </NavigationContainer>
+    );
+
+    // Add restriction
+    const restrictionInput = getByPlaceholderText('Add a restriction');
+    fireEvent.changeText(restrictionInput, 'No nuts');
+    fireEvent.press(getByText('Add'));
+
+    // Remove restriction
+    fireEvent.press(getByText('No nuts'));
+    expect(queryByText('No nuts')).toBeNull();
+  });
+
+  it('submits dietary preferences successfully', async () => {
+    mockHandleDietaryPreferences.mockResolvedValue({ isValid: true });
+
+    const { getByText, getByPlaceholderText } = render(
+      <NavigationContainer>
+        <DietaryPreferencesScreen />
+      </NavigationContainer>
+    );
+
+    // Select diet type
+    fireEvent.press(getByText('Vegetarian'));
+
+    // Add restriction
+    const restrictionInput = getByPlaceholderText('Add a restriction');
+    fireEvent.changeText(restrictionInput, 'No nuts');
+    fireEvent.press(getByText('Add'));
+
+    // Submit
+    await act(async () => {
+      fireEvent.press(getByText('Continue'));
     });
+
+    expect(mockHandleDietaryPreferences).toHaveBeenCalledWith({
+      diet: 'vegetarian',
+      restrictions: ['No nuts'],
+      intolerances: [],
+    });
+  });
+
+  it('displays validation errors from hook', async () => {
+    mockHandleDietaryPreferences.mockResolvedValue({
+      isValid: false,
+      errors: { diet: 'Invalid diet type' },
+    });
+
+    const { getByText } = render(
+      <NavigationContainer>
+        <DietaryPreferencesScreen />
+      </NavigationContainer>
+    );
+
+    await act(async () => {
+      fireEvent.press(getByText('Continue'));
+    });
+
+    expect(getByText('Invalid diet type')).toBeTruthy();
+  });
+
+  it('has proper accessibility labels', () => {
+    const { getByA11yLabel } = render(
+      <NavigationContainer>
+        <DietaryPreferencesScreen />
+      </NavigationContainer>
+    );
+
+    expect(getByA11yLabel('Vegetarian diet type')).toBeTruthy();
   });
 });
