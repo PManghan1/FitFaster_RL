@@ -2,6 +2,7 @@ import { ErrorInfo } from 'react';
 import * as Sentry from '@sentry/react-native';
 import { PerformanceMonitor } from '../utils/performance';
 import { analyticsService } from './analytics';
+import { sanitizeErrorDetails, getUserFriendlyError } from '../utils/sanitize';
 
 export enum ErrorSeverity {
   LOW = 'low',
@@ -57,29 +58,33 @@ class ErrorReportingService {
     PerformanceMonitor.start('error-reporting');
 
     try {
-      // Log to console in development
+      // Sanitize error details before logging
+      const sanitizedError = sanitizeErrorDetails(details);
+
+      // Log to console in development with sanitized data
       if (__DEV__) {
         console.error('Error Report:', {
-          message: details.error.message,
-          stack: details.error.stack,
-          severity: details.severity,
-          category: details.category,
-          timestamp: new Date(details.timestamp).toISOString(),
+          code: sanitizedError.code,
+          message: sanitizedError.message,
+          severity: sanitizedError.severity,
+          category: sanitizedError.category,
+          timestamp: new Date(sanitizedError.timestamp).toISOString(),
           componentStack: details.errorInfo?.componentStack,
-          additionalData: details.additionalData,
+          additionalData: sanitizedError.sanitizedData,
         });
       }
 
-      // Track error pattern
-      const errorKey = `${details.category}:${details.error.message}`;
+      // Track error pattern with sanitized message
+      const errorKey = `${sanitizedError.category}:${sanitizedError.code}`;
       this.errorPatterns.set(errorKey, (this.errorPatterns.get(errorKey) || 0) + 1);
 
-      // Send to analytics
-      analyticsService.trackError(details.error, {
-        severity: details.severity,
-        category: details.category,
+      // Send to analytics with sanitized data
+      analyticsService.trackError(new Error(sanitizedError.message), {
+        code: sanitizedError.code,
+        severity: sanitizedError.severity,
+        category: sanitizedError.category,
         componentStack: details.errorInfo?.componentStack,
-        ...details.additionalData,
+        ...sanitizedError.sanitizedData,
       });
 
       // Apply recovery strategy if available
@@ -104,7 +109,7 @@ class ErrorReportingService {
 
   private getRecoveryStrategy(
     category: ErrorCategory,
-    _error: Error // Intentionally unused but kept for future use
+    _error: Error
   ): ErrorRecoveryStrategy | null {
     switch (category) {
       case ErrorCategory.NETWORK:
@@ -112,14 +117,12 @@ class ErrorReportingService {
           retry: true,
           maxAttempts: this.MAX_RETRY_ATTEMPTS,
           cleanup: async () => {
-            // Clear any cached network states
             await this.clearNetworkCache();
           },
         };
       case ErrorCategory.AUTH:
         return {
           fallback: async () => {
-            // Redirect to login
             await this.handleAuthError();
           },
         };
@@ -128,7 +131,6 @@ class ErrorReportingService {
           retry: true,
           maxAttempts: 2,
           fallback: async () => {
-            // Load from cache or default state
             await this.loadFallbackData();
           },
         };
@@ -139,7 +141,7 @@ class ErrorReportingService {
 
   private async applyRecoveryStrategy(
     strategy: ErrorRecoveryStrategy,
-    _details: ErrorDetails // Intentionally unused but kept for future use
+    details: ErrorDetails
   ): Promise<void> {
     try {
       if (strategy.cleanup) {
@@ -148,7 +150,6 @@ class ErrorReportingService {
 
       if (strategy.retry) {
         // Implementation would depend on the specific operation that failed
-        // This is a placeholder for the retry logic
         console.log('Retrying operation...');
       }
 
@@ -157,7 +158,15 @@ class ErrorReportingService {
       }
     } catch (_error) {
       if (__DEV__) {
-        console.error('Recovery strategy failed:', _error);
+        // Create proper ErrorDetails object for the recovery error
+        const recoveryError: ErrorDetails = {
+          error: _error as Error,
+          severity: ErrorSeverity.HIGH,
+          category: ErrorCategory.UNKNOWN,
+          timestamp: Date.now(),
+        };
+        const sanitizedError = sanitizeErrorDetails(recoveryError);
+        console.error('Recovery strategy failed:', sanitizedError);
       }
     }
   }

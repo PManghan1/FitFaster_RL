@@ -1,151 +1,99 @@
-import * as Sentry from '@sentry/react-native';
-
 export enum MetricType {
-  SCREEN_LOAD = 'screen_load',
   API_CALL = 'api_call',
-  RENDER = 'render',
+  SCREEN_LOAD = 'screen_load',
   INTERACTION = 'interaction',
-  RESOURCE = 'resource',
+  OPERATION_DURATION = 'operation_duration',
 }
 
-export interface PerformanceMetric {
-  type: MetricType;
-  name: string;
-  startTime: number;
-  duration: number;
-  metadata?: Record<string, unknown>;
+interface MetricEntry {
+  value: number;
+  timestamp: number;
 }
 
-type MetricCallback = (metric: PerformanceMetric) => void;
+class PerformanceMonitoring {
+  private static instance: PerformanceMonitoring;
+  private metrics: Map<string, MetricEntry[]>;
+  private readonly maxEntries: number = 100;
 
-export class PerformanceMonitoringService {
-  private static instance: PerformanceMonitoringService;
-  private metricCallbacks: Set<MetricCallback> = new Set();
-  private metrics: PerformanceMetric[] = [];
+  private constructor() {
+    this.metrics = new Map();
+  }
 
-  private constructor() {}
-
-  static getInstance(): PerformanceMonitoringService {
-    if (!PerformanceMonitoringService.instance) {
-      PerformanceMonitoringService.instance = new PerformanceMonitoringService();
+  static getInstance(): PerformanceMonitoring {
+    if (!PerformanceMonitoring.instance) {
+      PerformanceMonitoring.instance = new PerformanceMonitoring();
     }
-    return PerformanceMonitoringService.instance;
+    return PerformanceMonitoring.instance;
   }
 
-  onMetric(callback: MetricCallback): () => void {
-    this.metricCallbacks.add(callback);
-    return () => {
-      this.metricCallbacks.delete(callback);
-    };
-  }
-
-  private recordMetric(metric: PerformanceMetric): void {
-    this.metrics.push(metric);
-    this.metricCallbacks.forEach(callback => callback(metric));
-
-    // Send to Sentry
-    Sentry.addBreadcrumb({
-      category: 'performance',
-      message: `${metric.type}: ${metric.name}`,
-      data: {
-        duration: metric.duration,
-        ...metric.metadata,
-      },
-    });
-  }
-
-  async measureApiCall<T>(
-    promise: Promise<T>,
-    name: string,
-    metadata?: Record<string, unknown>,
-  ): Promise<T> {
-    const startTime = performance.now();
-    try {
-      const result = await promise;
-      const duration = performance.now() - startTime;
-
-      this.recordMetric({
-        type: MetricType.API_CALL,
-        name,
-        startTime,
-        duration,
-        metadata: {
-          ...metadata,
-          success: true,
-        },
-      });
-
-      return result;
-    } catch (error) {
-      const duration = performance.now() - startTime;
-
-      this.recordMetric({
-        type: MetricType.API_CALL,
-        name,
-        startTime,
-        duration,
-        metadata: {
-          ...metadata,
-          success: false,
-          error,
-        },
-      });
-
-      throw error;
+  trackMetric(type: MetricType, name: string, value: number): void {
+    const key = `${type}:${name}`;
+    if (!this.metrics.has(key)) {
+      this.metrics.set(key, []);
     }
-  }
 
-  measureScreenLoad(name: string, metadata?: Record<string, unknown>): void {
-    const startTime = performance.now();
-    requestAnimationFrame(() => {
-      const duration = performance.now() - startTime;
-      this.recordMetric({
-        type: MetricType.SCREEN_LOAD,
-        name,
-        startTime,
-        duration,
-        metadata,
-      });
+    const entries = this.metrics.get(key)!;
+    entries.push({
+      value,
+      timestamp: Date.now(),
     });
-  }
 
-  measureRender(name: string, duration: number, metadata?: Record<string, unknown>): void {
-    this.recordMetric({
-      type: MetricType.RENDER,
-      name,
-      startTime: performance.now() - duration,
-      duration,
-      metadata,
-    });
-  }
-
-  measureInteraction(name: string, callback: () => void, metadata?: Record<string, unknown>): void {
-    const startTime = performance.now();
-    callback();
-    const duration = performance.now() - startTime;
-    this.recordMetric({
-      type: MetricType.INTERACTION,
-      name,
-      startTime,
-      duration,
-      metadata,
-    });
-  }
-
-  getMetrics(): PerformanceMetric[] {
-    return this.metrics;
+    // Keep only the last maxEntries
+    if (entries.length > this.maxEntries) {
+      entries.shift();
+    }
   }
 
   getAverageMetric(type: MetricType, name: string): number {
-    const relevantMetrics = this.metrics.filter(
-      metric => metric.type === type && metric.name === name,
-    );
+    const key = `${type}:${name}`;
+    const entries = this.metrics.get(key);
 
-    if (relevantMetrics.length === 0) return 0;
+    if (!entries || entries.length === 0) {
+      return 0;
+    }
 
-    const total = relevantMetrics.reduce((sum, metric) => sum + metric.duration, 0);
-    return total / relevantMetrics.length;
+    const sum = entries.reduce((acc, entry) => acc + entry.value, 0);
+    return sum / entries.length;
+  }
+
+  getMetricTrend(type: MetricType, name: string): number[] {
+    const key = `${type}:${name}`;
+    const entries = this.metrics.get(key);
+
+    if (!entries || entries.length === 0) {
+      return [];
+    }
+
+    return entries.map(entry => entry.value);
+  }
+
+  getLatestMetric(type: MetricType, name: string): number {
+    const key = `${type}:${name}`;
+    const entries = this.metrics.get(key);
+
+    if (!entries || entries.length === 0) {
+      return 0;
+    }
+
+    return entries[entries.length - 1].value;
+  }
+
+  reset(): void {
+    this.metrics.clear();
+  }
+
+  detectPerformanceDegradation(type: MetricType, name: string, threshold: number = 1.5): boolean {
+    const trend = this.getMetricTrend(type, name);
+    if (trend.length < 2) return false;
+
+    const firstHalf = trend.slice(0, Math.floor(trend.length / 2));
+    const secondHalf = trend.slice(Math.floor(trend.length / 2));
+
+    const firstAvg = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
+    const secondAvg = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
+
+    return secondAvg / firstAvg >= threshold;
   }
 }
 
-export const performanceMonitoring = PerformanceMonitoringService.getInstance();
+export const performanceMonitoring = PerformanceMonitoring.getInstance();

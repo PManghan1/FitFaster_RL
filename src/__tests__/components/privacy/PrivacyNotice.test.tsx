@@ -3,6 +3,23 @@ import React from 'react';
 
 import { PrivacyNotice } from '../../../components/privacy/PrivacyNotice';
 
+// Mock the theme
+jest.mock('../../../theme', () => ({
+  colors: {
+    background: {
+      default: '#FFFFFF',
+      light: '#F5F5F5',
+    },
+    text: {
+      default: '#000000',
+      light: '#666666',
+    },
+    primary: {
+      default: '#007AFF',
+    },
+  },
+}));
+
 describe('PrivacyNotice', () => {
   const defaultProps = {
     testID: 'privacy-notice',

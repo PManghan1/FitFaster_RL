@@ -1,26 +1,31 @@
 module.exports = {
-  preset: 'jest-expo',
+  preset: 'react-native',
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   transformIgnorePatterns: [
-    'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg)',
+    'node_modules/(?!(react-native' +
+      '|@react-native' +
+      '|@react-navigation' +
+      '|react-native-gesture-handler' +
+      '|react-native-reanimated' +
+      '|react-native-safe-area-context' +
+      ')/)',
   ],
-  setupFiles: ['./jest.setup.js'],
-  setupFilesAfterEnv: ['@testing-library/jest-native/extend-expect'],
+  setupFilesAfterEnv: [
+    '@testing-library/jest-native/extend-expect',
+    '<rootDir>/src/__tests__/setup/jest.setup.ts',
+  ],
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/src/$1',
+    '\\.svg': '<rootDir>/src/__tests__/__mocks__/svgMock.js',
+    '\\.(jpg|jpeg|png|gif|eot|otf|webp|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga)$':
+      '<rootDir>/src/__tests__/__mocks__/fileMock.js',
   },
-  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx'],
-  collectCoverageFrom: [
-    'src/**/*.{ts,tsx}',
-    '!src/**/*.d.ts',
-    '!src/**/*.stories.{ts,tsx}',
-    '!src/**/*.test.{ts,tsx}',
-  ],
   testEnvironment: 'node',
+  testPathIgnorePatterns: ['/node_modules/', '/e2e/'],
+  coveragePathIgnorePatterns: ['/node_modules/', '/src/__tests__/'],
   globals: {
     'ts-jest': {
-      tsconfig: {
-        jsx: 'react',
-      },
+      tsconfig: 'tsconfig.jest.json',
+      isolatedModules: true,
     },
   },
 };

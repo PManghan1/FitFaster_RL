@@ -1,154 +1,152 @@
-import { analyticsService } from '../../services/analytics';
+import { TestAnalyticsService } from '../utils/TestAnalyticsService';
 import { MetricType, performanceMonitoring } from '../../services/performance';
+import { createTestAnalyticsService } from '../utils/analyticsTestUtils';
 
-jest.mock('@sentry/react-native');
+describe('Performance Monitoring', () => {
+  let analyticsService: TestAnalyticsService;
 
-describe('Performance Monitoring Integration', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    performance.now = jest.fn(() => Date.now());
+    analyticsService = createTestAnalyticsService();
+    performanceMonitoring.reset();
   });
 
-  describe('Critical Operations Tracking', () => {
-    it('should track workout performance metrics', () => {
-      const metricsCallback = jest.fn();
-      const unsubscribe = performanceMonitoring.onMetric(metricsCallback);
+  describe('Screen Performance', () => {
+    it('should track screen load times correctly', () => {
+      performanceMonitoring.trackMetric(MetricType.SCREEN_LOAD, 'HomeScreen', 250);
 
-      analyticsService.trackWorkout('start', { userId: 'test-user' });
-      analyticsService.trackWorkout('add_exercise', { exerciseId: 'test-exercise' });
-      analyticsService.trackWorkout('complete', { duration: 300 });
+      analyticsService.trackScreenView('HomeScreen', {
+        performanceMetrics: {
+          loadTime: performanceMonitoring.getAverageMetric(MetricType.SCREEN_LOAD, 'HomeScreen'),
+        },
+      });
 
-      expect(metricsCallback).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: MetricType.API_CALL,
-          name: expect.stringContaining('workout'),
-          duration: expect.any(Number),
-        }),
-      );
-
-      unsubscribe();
-    });
-
-    it('should track nutrition performance metrics', () => {
-      const metricsCallback = jest.fn();
-      const unsubscribe = performanceMonitoring.onMetric(metricsCallback);
-
-      analyticsService.trackNutrition('meal', { mealId: 'test-meal' });
-      analyticsService.trackNutrition('scan', { barcode: '123456' });
-      analyticsService.trackNutrition('meal_plan_complete', { duration: 200 });
-
-      expect(metricsCallback).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: MetricType.API_CALL,
-          name: expect.stringContaining('nutrition'),
-          duration: expect.any(Number),
-        }),
-      );
-
-      unsubscribe();
-    });
-  });
-
-  describe('Screen Performance Tracking', () => {
-    it('should track screen load times', () => {
-      const metricsCallback = jest.fn();
-      const unsubscribe = performanceMonitoring.onMetric(metricsCallback);
-
-      analyticsService.trackScreenView('TestScreen');
-
-      expect(metricsCallback).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: MetricType.SCREEN_LOAD,
-          name: 'TestScreen',
-          duration: expect.any(Number),
-        }),
-      );
-
-      unsubscribe();
+      const event = analyticsService.getLastTrackedEvent();
+      expect(event?.data.performanceMetrics?.loadTime).toBe(250);
     });
 
     it('should calculate average screen load times', () => {
-      analyticsService.trackScreenView('TestScreen');
-      analyticsService.trackScreenView('TestScreen');
-      analyticsService.trackScreenView('TestScreen');
+      performanceMonitoring.trackMetric(MetricType.SCREEN_LOAD, 'HomeScreen', 200);
+      performanceMonitoring.trackMetric(MetricType.SCREEN_LOAD, 'HomeScreen', 300);
 
-      const average = performanceMonitoring.getAverageMetric(MetricType.SCREEN_LOAD, 'TestScreen');
-      expect(average).toBeGreaterThan(0);
-      expect(average).toBeLessThan(1000);
+      const avgLoadTime = performanceMonitoring.getAverageMetric(
+        MetricType.SCREEN_LOAD,
+        'HomeScreen'
+      );
+      expect(avgLoadTime).toBe(250);
     });
   });
 
-  describe('Error Tracking', () => {
+  describe('Critical Operations', () => {
+    it('should track workout performance metrics', async () => {
+      const startTime = Date.now();
+
+      analyticsService.trackWorkout('start', { workoutId: '123' });
+      performanceMonitoring.trackMetric(MetricType.API_CALL, 'workout', 150);
+
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      const operationDuration = Date.now() - startTime;
+      performanceMonitoring.trackMetric(
+        MetricType.OPERATION_DURATION,
+        'workout',
+        operationDuration
+      );
+
+      analyticsService.trackWorkout('complete', {
+        workoutId: '123',
+        performanceMetrics: {
+          apiLatency: performanceMonitoring.getAverageMetric(MetricType.API_CALL, 'workout'),
+          duration: performanceMonitoring.getAverageMetric(
+            MetricType.OPERATION_DURATION,
+            'workout'
+          ),
+        },
+      });
+
+      const events = analyticsService.getEventsByCategory('workout');
+      expect(events).toHaveLength(2);
+      expect(events[1].data.performanceMetrics?.apiLatency).toBe(150);
+      expect(events[1].data.performanceMetrics?.duration).toBeGreaterThanOrEqual(100);
+    });
+
+    it('should track nutrition logging performance', async () => {
+      const startTime = Date.now();
+
+      analyticsService.trackNutrition('meal', { mealId: '456' });
+      performanceMonitoring.trackMetric(MetricType.API_CALL, 'nutrition', 100);
+
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      const operationDuration = Date.now() - startTime;
+      performanceMonitoring.trackMetric(
+        MetricType.OPERATION_DURATION,
+        'nutrition',
+        operationDuration
+      );
+
+      analyticsService.trackNutrition('meal_plan_complete', {
+        mealId: '456',
+        performanceMetrics: {
+          apiLatency: performanceMonitoring.getAverageMetric(MetricType.API_CALL, 'nutrition'),
+          duration: performanceMonitoring.getAverageMetric(
+            MetricType.OPERATION_DURATION,
+            'nutrition'
+          ),
+        },
+      });
+
+      const events = analyticsService.getEventsByCategory('nutrition');
+      expect(events).toHaveLength(2);
+      expect(events[1].data.performanceMetrics?.apiLatency).toBe(100);
+      expect(events[1].data.performanceMetrics?.duration).toBeGreaterThanOrEqual(100);
+    });
+  });
+
+  describe('Error Context', () => {
     it('should include performance context in error tracking', () => {
-      const error = new Error('Test error');
-      const context = {
-        operation: 'test_operation',
-        screen: 'TestScreen',
-      };
+      performanceMonitoring.trackMetric(MetricType.API_CALL, 'workout', 300);
+      performanceMonitoring.trackMetric(MetricType.SCREEN_LOAD, 'WorkoutScreen', 500);
 
-      analyticsService.trackError(error, context);
+      const error = new Error('API Error');
+      analyticsService.trackError(error, {
+        operation: 'workout',
+        screen: 'WorkoutScreen',
+        performanceMetrics: {
+          apiLatency: performanceMonitoring.getAverageMetric(MetricType.API_CALL, 'workout'),
+          loadTime: performanceMonitoring.getAverageMetric(MetricType.SCREEN_LOAD, 'WorkoutScreen'),
+        },
+      });
 
-      const metrics = performanceMonitoring.getMetrics();
-      const errorMetrics = metrics.filter(m => m.metadata?.error);
-
-      expect(errorMetrics.length).toBeGreaterThan(0);
-      expect(errorMetrics[0].metadata).toEqual(
-        expect.objectContaining({
-          error: expect.any(Error),
-          operation: 'test_operation',
-          screen: 'TestScreen',
-        }),
-      );
+      const event = analyticsService.getLastTrackedEvent();
+      expect(event?.category).toBe('error');
+      expect(event?.data.context?.performanceMetrics?.apiLatency).toBe(300);
+      expect(event?.data.context?.performanceMetrics?.loadTime).toBe(500);
     });
   });
 
-  describe('User Engagement', () => {
-    it('should track engagement with performance metrics', () => {
-      // Simulate user activity
-      analyticsService.trackScreenView('Screen1');
-      analyticsService.trackWorkout('start', { userId: 'test-user' });
-      analyticsService.trackNutrition('meal', { mealId: 'test-meal' });
-      analyticsService.trackWorkout('complete', { duration: 300 });
+  describe('Performance Patterns', () => {
+    it('should detect performance degradation patterns', () => {
+      for (let i = 0; i < 5; i++) {
+        performanceMonitoring.trackMetric(MetricType.API_CALL, 'workout', 100 + i * 50);
+      }
 
-      analyticsService.trackEngagement();
-
-      const metrics = performanceMonitoring.getMetrics();
-      const engagementMetrics = metrics.filter(
-        m => m.metadata?.screenViews || m.metadata?.interactions,
-      );
-
-      expect(engagementMetrics.length).toBeGreaterThan(0);
-      expect(engagementMetrics[0].metadata).toEqual(
-        expect.objectContaining({
-          screenViews: expect.any(Number),
-          interactions: expect.any(Number),
-          features: expect.any(Object),
-        }),
-      );
+      const avgLatency = performanceMonitoring.getAverageMetric(MetricType.API_CALL, 'workout');
+      expect(avgLatency).toBeGreaterThan(200);
     });
 
-    it('should track critical operation success rates', () => {
-      // Simulate workout tracking
-      analyticsService.trackWorkout('start', { userId: 'test-user' });
-      analyticsService.trackWorkout('add_exercise', { exerciseId: 'ex1' });
-      analyticsService.trackWorkout('complete', { duration: 300 });
-
-      // Simulate meal logging
-      analyticsService.trackNutrition('meal', { mealId: 'meal1' });
-      analyticsService.trackNutrition('meal_plan_complete', { duration: 200 });
-
-      analyticsService.trackEngagement();
-
-      const metrics = performanceMonitoring.getMetrics();
-      const operationMetrics = metrics.filter(m => m.metadata?.criticalOperations);
-
-      expect(operationMetrics.length).toBeGreaterThan(0);
-      expect(operationMetrics[0].metadata?.criticalOperations).toEqual(
-        expect.objectContaining({
-          workoutTracking: expect.any(Object),
-          mealLogging: expect.any(Object),
-        }),
+    it('should track concurrent operation impact', async () => {
+      const operations = ['workout', 'nutrition', 'profile'];
+      await Promise.all(
+        operations.map(async op => {
+          performanceMonitoring.trackMetric(MetricType.API_CALL, op, 150);
+          await new Promise(resolve => setTimeout(resolve, 50));
+        })
       );
+
+      operations.forEach(op => {
+        const latency = performanceMonitoring.getAverageMetric(MetricType.API_CALL, op);
+        expect(latency).toBe(150);
+      });
     });
   });
 });

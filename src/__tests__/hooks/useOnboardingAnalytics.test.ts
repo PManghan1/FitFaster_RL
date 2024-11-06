@@ -1,4 +1,4 @@
-import { renderHook, act } from '@testing-library/react-hooks';
+import { renderHook, act } from '@testing-library/react-native';
 import { useOnboardingAnalytics } from '../../hooks/useOnboardingAnalytics';
 import { trackOnboardingEvent, OnboardingEvents } from '../../analytics/onboarding-events';
 
@@ -8,6 +8,7 @@ jest.mock('../../analytics/onboarding-events', () => ({
     COMPLETE_ONBOARDING: 'complete_onboarding',
     SUBMIT_HEALTH_METRICS: 'submit_health_metrics',
     STEP_VIEW: 'onboarding_step_view',
+    VALIDATION_ERROR: 'validation_error',
   },
   trackOnboardingEvent: jest.fn(),
 }));
@@ -22,21 +23,25 @@ describe('useOnboardingAnalytics', () => {
     jest.useRealTimers();
   });
 
-  it('tracks onboarding start', () => {
+  it('tracks onboarding start', async () => {
     const { result } = renderHook(() => useOnboardingAnalytics());
 
-    act(() => {
+    await act(async () => {
       result.current.trackStartOnboarding();
     });
 
     expect(trackOnboardingEvent).toHaveBeenCalledWith(OnboardingEvents.START_ONBOARDING);
   });
 
-  it('tracks step time when changing steps', () => {
+  it('tracks step time when changing steps', async () => {
     const { result } = renderHook(() => useOnboardingAnalytics());
 
-    act(() => {
+    await act(async () => {
       result.current.startStep('HealthMetrics');
+    });
+
+    // Advance timers inside act to ensure state updates are handled properly
+    await act(async () => {
       jest.advanceTimersByTime(5000); // 5 seconds
       result.current.startStep('FitnessLevel');
     });
@@ -50,7 +55,7 @@ describe('useOnboardingAnalytics', () => {
     );
   });
 
-  it('tracks health metrics submission', () => {
+  it('tracks health metrics submission', async () => {
     const { result } = renderHook(() => useOnboardingAnalytics());
     const metrics = {
       height: 170,
@@ -61,7 +66,7 @@ describe('useOnboardingAnalytics', () => {
       medications: [],
     };
 
-    act(() => {
+    await act(async () => {
       result.current.trackHealthMetrics(metrics);
     });
 
@@ -78,11 +83,11 @@ describe('useOnboardingAnalytics', () => {
     );
   });
 
-  it('tracks validation errors', () => {
+  it('tracks validation errors', async () => {
     const { result } = renderHook(() => useOnboardingAnalytics());
     const errors = ['Invalid height', 'Invalid weight'];
 
-    act(() => {
+    await act(async () => {
       result.current.trackValidationError('HealthMetrics', errors);
     });
 
@@ -95,11 +100,14 @@ describe('useOnboardingAnalytics', () => {
     );
   });
 
-  it('tracks final step time on completion', () => {
+  it('tracks final step time on completion', async () => {
     const { result } = renderHook(() => useOnboardingAnalytics());
 
-    act(() => {
+    await act(async () => {
       result.current.startStep('FinalStep');
+    });
+
+    await act(async () => {
       jest.advanceTimersByTime(3000);
       result.current.trackCompleteOnboarding();
     });

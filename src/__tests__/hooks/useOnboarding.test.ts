@@ -1,7 +1,8 @@
-import { renderHook, act } from '@testing-library/react-hooks';
+import { renderHook, act } from '@testing-library/react-native';
 import { useOnboarding } from '../../hooks/useOnboarding';
 import useOnboardingStore from '../../store/onboarding.store';
 import { useOnboardingAnalytics } from '../../hooks/useOnboardingAnalytics';
+import type { ActivityLevel } from '../../types/onboarding';
 
 const mockNavigate = jest.fn();
 jest.mock('@react-navigation/native', () => ({
@@ -34,8 +35,10 @@ describe('useOnboarding', () => {
     (useOnboardingAnalytics as jest.Mock).mockReturnValue(mockAnalytics);
   });
 
-  it('tracks onboarding start on initial render', () => {
-    renderHook(() => useOnboarding());
+  it('tracks onboarding start on initial render', async () => {
+    await act(async () => {
+      renderHook(() => useOnboarding());
+    });
     expect(mockAnalytics.trackStartOnboarding).toHaveBeenCalled();
   });
 
@@ -71,7 +74,11 @@ describe('useOnboarding', () => {
     };
 
     await act(async () => {
-      await result.current.handleHealthMetrics(invalidHealthMetrics);
+      try {
+        await result.current.handleHealthMetrics(invalidHealthMetrics);
+      } catch (error) {
+        // Expected validation error
+      }
     });
 
     expect(mockAnalytics.trackValidationError).toHaveBeenCalledWith(
@@ -83,12 +90,18 @@ describe('useOnboarding', () => {
 
   it('tracks completion of onboarding', async () => {
     const { result } = renderHook(() => useOnboarding());
+    const activityLevel: ActivityLevel = {
+      dailyActivityLevel: 'moderately_active',
+      occupation: 'desk_job',
+      transportationMode: 'car',
+      weekendActivityLevel: 'same_as_weekday',
+    };
 
     await act(async () => {
-      await result.current.handleActivityLevel('moderately_active');
+      await result.current.handleActivityLevel(activityLevel);
     });
 
-    expect(mockAnalytics.trackActivityLevel).toHaveBeenCalledWith('moderately_active');
+    expect(mockAnalytics.trackActivityLevel).toHaveBeenCalledWith(activityLevel);
     expect(mockAnalytics.trackCompleteOnboarding).toHaveBeenCalled();
     expect(mockNavigate).toHaveBeenCalledWith('OnboardingGoals');
   });

@@ -1,135 +1,171 @@
 import React from 'react';
-import { render } from '@testing-library/react-native';
-import { NavigationContainer } from '@react-navigation/native';
+import { fireEvent } from '@testing-library/react-native';
 import { AppNavigator } from '../../navigation/AppNavigator';
-import { useOfflineSync } from '../../hooks/useOfflineSync';
-import type { BasicUserInfo } from '../../types/onboarding';
-import type { OnboardingGoalsFormData } from '../../types/goals';
+import useSupplementStore from '../../store/supplement.store';
+import { mockSupplementStore } from '../utils/supplement-test-utils';
+import { renderWithNavigation, mockDeepLink } from '../utils/navigation-test-utils';
 
-jest.mock('../../hooks/useOfflineSync');
-jest.mock('react-native-feather', () => ({
-  Activity: () => null,
-  Home: () => null,
-  Calendar: () => null,
-  Settings: () => null,
+// Mock all required stores
+jest.mock('../../store/supplement.store', () => ({
+  __esModule: true,
+  default: jest.fn(),
 }));
 
-// Mock the navigators and screens
-jest.mock('../../navigation/OnboardingNavigator', () => ({
-  OnboardingNavigator: () => null,
+// Add other store mocks as needed
+jest.mock('../../store/workout.store', () => ({
+  __esModule: true,
+  default: jest.fn(),
 }));
 
-jest.mock('../../screens/HomeScreen', () => ({
-  HomeScreen: () => null,
+jest.mock('../../store/nutrition.store', () => ({
+  __esModule: true,
+  default: jest.fn(),
 }));
 
-jest.mock('../../screens/WorkoutScreen', () => ({
-  WorkoutScreen: () => null,
+// Mock error boundary
+jest.mock('../../components/ErrorBoundary', () => ({
+  ErrorBoundary: ({ children }: { children: React.ReactNode }) => children,
 }));
-
-jest.mock('../../screens/NutritionTrackingScreen', () => ({
-  NutritionTrackingScreen: () => null,
-}));
-
-jest.mock('../../screens/AnalyticsScreen', () => ({
-  AnalyticsScreen: () => null,
-}));
-
-const mockUserInfo: BasicUserInfo = {
-  name: 'John Doe',
-  age: 25,
-  gender: 'male',
-  height: 180,
-  weight: 75,
-  unitSystem: 'metric',
-};
-
-const mockUserGoals: OnboardingGoalsFormData = {
-  primaryGoal: 'weight-loss',
-  secondaryGoals: ['stress-reduction'],
-  workoutTypes: ['strength', 'cardio'],
-  workoutsPerWeek: 3,
-  workoutDuration: 45,
-};
-
-const renderWithNavigation = () =>
-  render(
-    <NavigationContainer>
-      <AppNavigator />
-    </NavigationContainer>
-  );
 
 describe('AppNavigator', () => {
-  const mockUseOfflineSync = useOfflineSync as jest.Mock;
-
   beforeEach(() => {
     jest.clearAllMocks();
+    (useSupplementStore as jest.Mock).mockReturnValue(mockSupplementStore);
   });
 
-  it('shows onboarding when user info is missing', () => {
-    mockUseOfflineSync
-      .mockReturnValueOnce({ data: null, isLoading: false, error: null }) // userInfo
-      .mockReturnValueOnce({ data: mockUserGoals, isLoading: false, error: null }); // userGoals
+  it('renders all main tabs with proper accessibility labels', () => {
+    const { getByRole } = renderWithNavigation(<AppNavigator />);
 
-    const { getByTestId } = renderWithNavigation();
-    expect(getByTestId('onboarding-navigator')).toBeTruthy();
+    expect(getByRole('tab', { name: 'Home tab' })).toBeTruthy();
+    expect(getByRole('tab', { name: 'Workouts tab' })).toBeTruthy();
+    expect(getByRole('tab', { name: 'Nutrition tab' })).toBeTruthy();
+    expect(getByRole('tab', { name: 'Supplements tab' })).toBeTruthy();
+    expect(getByRole('tab', { name: 'Profile tab' })).toBeTruthy();
   });
 
-  it('shows onboarding when user goals are missing', () => {
-    mockUseOfflineSync
-      .mockReturnValueOnce({ data: mockUserInfo, isLoading: false, error: null }) // userInfo
-      .mockReturnValueOnce({ data: null, isLoading: false, error: null }); // userGoals
+  it('handles deep linking to supplement details', async () => {
+    const { getByText } = renderWithNavigation(<AppNavigator />);
 
-    const { getByTestId } = renderWithNavigation();
-    expect(getByTestId('onboarding-navigator')).toBeTruthy();
+    await mockDeepLink('supplements/details/1');
+    expect(getByText('Supplement Details')).toBeTruthy();
   });
 
-  it('shows main app when all user data is present', () => {
-    mockUseOfflineSync
-      .mockReturnValueOnce({ data: mockUserInfo, isLoading: false, error: null }) // userInfo
-      .mockReturnValueOnce({ data: mockUserGoals, isLoading: false, error: null }); // userGoals
+  it('handles deep linking to add supplement', async () => {
+    const { getByText } = renderWithNavigation(<AppNavigator />);
 
-    const { getByTestId } = renderWithNavigation();
-    expect(getByTestId('main-tabs')).toBeTruthy();
+    await mockDeepLink('supplements/add');
+    expect(getByText('Add Supplement')).toBeTruthy();
   });
 
-  it('prevents going back from onboarding', () => {
-    mockUseOfflineSync
-      .mockReturnValueOnce({ data: null, isLoading: false, error: null })
-      .mockReturnValueOnce({ data: null, isLoading: false, error: null });
+  it('recovers from navigation errors', () => {
+    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const { getByText } = renderWithNavigation(<AppNavigator />);
 
-    const { getByTestId } = renderWithNavigation();
-    const onboarding = getByTestId('onboarding-navigator');
-    expect(onboarding.props.options.gestureEnabled).toBe(false);
+    // Simulate navigation error
+    fireEvent(getByText('Supplements'), 'onError', new Error('Navigation error'));
+
+    expect(getByText('Something went wrong')).toBeTruthy();
+    expect(getByText('Try again')).toBeTruthy();
+
+    consoleError.mockRestore();
   });
 
-  it('shows all main tabs when in main app', () => {
-    mockUseOfflineSync
-      .mockReturnValueOnce({ data: mockUserInfo, isLoading: false, error: null })
-      .mockReturnValueOnce({ data: mockUserGoals, isLoading: false, error: null });
+  it('maintains accessibility focus during navigation', () => {
+    const { getByRole, getByText } = renderWithNavigation(<AppNavigator />);
 
-    const { getByText } = renderWithNavigation();
-    expect(getByText('Home')).toBeTruthy();
-    expect(getByText('Workout')).toBeTruthy();
-    expect(getByText('Nutrition')).toBeTruthy();
-    expect(getByText('Analytics')).toBeTruthy();
+    const supplementsTab = getByRole('tab', { name: 'Supplements tab' });
+    fireEvent.press(supplementsTab);
+
+    const addButton = getByText('Add');
+    fireEvent.press(addButton);
+
+    // Verify focus moves to the header of new screen
+    expect(getByRole('header', { name: 'Add Supplement' })).toHaveFocus();
   });
 
-  it('handles loading state gracefully', () => {
-    mockUseOfflineSync
-      .mockReturnValueOnce({ data: null, isLoading: true, error: null })
-      .mockReturnValueOnce({ data: null, isLoading: true, error: null });
+  it('supports keyboard navigation between tabs', () => {
+    const { getByRole } = renderWithNavigation(<AppNavigator />);
 
-    const { getByTestId } = renderWithNavigation();
-    expect(getByTestId('loading-screen')).toBeTruthy();
+    const homeTab = getByRole('tab', { name: 'Home tab' });
+    homeTab.focus();
+
+    // Simulate right arrow key press
+    fireEvent.keyPress(homeTab, { key: 'ArrowRight' });
+    expect(getByRole('tab', { name: 'Workouts tab' })).toHaveFocus();
+
+    // Simulate left arrow key press
+    fireEvent.keyPress(getByRole('tab', { name: 'Workouts tab' }), { key: 'ArrowLeft' });
+    expect(homeTab).toHaveFocus();
   });
 
-  it('handles error state gracefully', () => {
-    mockUseOfflineSync
-      .mockReturnValueOnce({ data: null, isLoading: false, error: new Error('Test error') })
-      .mockReturnValueOnce({ data: null, isLoading: false, error: null });
+  it('preserves scroll position when returning to previous screen', () => {
+    const { getByTestId, getByText } = renderWithNavigation(<AppNavigator />);
 
-    const { getByTestId } = renderWithNavigation();
-    expect(getByTestId('error-screen')).toBeTruthy();
+    // Navigate to supplements and scroll
+    fireEvent.press(getByText('Supplements'));
+    const supplementList = getByTestId('supplement-list');
+    fireEvent.scroll(supplementList, { nativeEvent: { contentOffset: { y: 100 } } });
+
+    // Navigate away and back
+    fireEvent.press(getByText('Home'));
+    fireEvent.press(getByText('Supplements'));
+
+    // Verify scroll position is maintained
+    expect(supplementList).toHaveStyle({ transform: [{ translateY: 100 }] });
+  });
+
+  it('handles state restoration after app reload', () => {
+    const initialState = {
+      routes: [
+        {
+          name: 'Supplements',
+          params: { screen: 'SupplementDetails', params: { supplementId: '1' } },
+        },
+      ],
+    };
+
+    const { getByText } = renderWithNavigation(<AppNavigator />, { initialState });
+    expect(getByText('Supplement Details')).toBeTruthy();
+  });
+
+  describe('Error Boundaries', () => {
+    it('catches and displays tab rendering errors', () => {
+      const error = new Error('Tab render error');
+      jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      // Mock a component that throws
+      const FailingComponent = () => {
+        throw error;
+      };
+
+      jest.mock('../../screens/supplement/SupplementListScreen', () => FailingComponent);
+
+      const { getByText } = renderWithNavigation(<AppNavigator />);
+      fireEvent.press(getByText('Supplements'));
+
+      expect(getByText('Something went wrong')).toBeTruthy();
+      expect(getByText('Try again')).toBeTruthy();
+    });
+
+    it('allows continuing to use other tabs when one fails', () => {
+      const error = new Error('Tab render error');
+      jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      // Mock a component that throws
+      const FailingComponent = () => {
+        throw error;
+      };
+
+      jest.mock('../../screens/supplement/SupplementListScreen', () => FailingComponent);
+
+      const { getByText } = renderWithNavigation(<AppNavigator />);
+
+      // Navigate to failing tab
+      fireEvent.press(getByText('Supplements'));
+
+      // Should still be able to use other tabs
+      fireEvent.press(getByText('Home'));
+      expect(getByText('Progress Summary')).toBeTruthy();
+    });
   });
 });

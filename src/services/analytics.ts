@@ -1,5 +1,4 @@
 import * as Sentry from '@sentry/react-native';
-
 import { MetricType, performanceMonitoring } from './performance';
 import {
   AnalyticsMetadata,
@@ -100,11 +99,11 @@ class AnalyticsService {
       scope.setExtra('performanceMetrics', {
         apiLatency: performanceMonitoring.getAverageMetric(
           MetricType.API_CALL,
-          context?.operation as string,
+          context?.operation as string
         ),
         screenLoadTime: performanceMonitoring.getAverageMetric(
           MetricType.SCREEN_LOAD,
-          context?.screen as string,
+          context?.screen as string
         ),
       });
 

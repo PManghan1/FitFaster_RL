@@ -20,38 +20,70 @@
 ```
 src/
 ├── components/           # Reusable UI components
-│   ├── auth/            # Authentication-related components
-│   ├── common/          # Shared/common components
-│   ├── nutrition/       # Nutrition tracking components
-│   ├── privacy/         # Privacy and security components
-│   ├── styled/          # Styled components
-│   └── workout/         # Workout-related components
+│   ├── analytics/       # Analytics visualization components
+│   ├── auth/           # Authentication-related components
+│   ├── common/         # Shared/common components
+│   ├── nutrition/      # Nutrition tracking components
+│   ├── onboarding/     # Onboarding flow components
+│   ├── privacy/        # Privacy and security components
+│   ├── styled/         # Styled components
+│   ├── supplement/     # Supplement tracking components
+│   └── workout/        # Workout-related components
 │
 ├── screens/             # Application screens/pages
 │   ├── auth/           # Authentication screens
+│   ├── onboarding/     # Onboarding flow screens
+│   ├── supplement/     # Supplement management screens
 │   └── ...             # Other main screens
 │
 ├── navigation/          # Navigation configuration
 │   ├── AppNavigator.tsx
 │   ├── AuthNavigator.tsx
+│   ├── OnboardingNavigator.tsx
+│   ├── SupplementNavigator.tsx
 │   └── RootNavigator.tsx
 │
 ├── store/              # State management
-│   ├── hooks/          # Custom store hooks
-│   ├── middleware/     # Store middleware
-│   ├── selectors/      # State selectors
-│   └── *.store.ts      # Store slices
+│   ├── hooks/         # Custom store hooks
+│   ├── middleware/    # Store middleware
+│   ├── selectors/     # State selectors
+│   └── *.store.ts     # Store slices (auth, nutrition, workout, supplement, onboarding)
 │
 ├── services/           # Business logic and API services
 │   ├── analytics.ts
+│   ├── cache.ts       # Caching service
+│   ├── error.ts       # Error handling service
+│   ├── notification.ts # Notification service
+│   ├── performance.ts # Performance monitoring
+│   ├── preferences.ts # User preferences
 │   ├── supabase.ts
+│   ├── sync.ts        # Data synchronization
 │   └── ...
 │
 ├── hooks/              # Custom React hooks
+│   ├── useAccessibilityFocus.ts
+│   ├── useConnectionAlert.ts
+│   ├── useOfflineSync.ts
+│   ├── useOnboarding.ts
+│   ├── usePerformanceMonitoring.ts
+│   └── useSupplementReminders.ts
+│
+├── analytics/          # Analytics events and tracking
+│   ├── onboarding-events.ts
+│   └── supplement-events.ts
 │
 ├── types/              # TypeScript type definitions
 │
 ├── utils/              # Utility functions
+│   ├── logger.ts
+│   ├── performance.ts
+│   ├── tailwind.ts
+│   ├── time.ts
+│   └── validation.ts
+│
+├── validation/         # Validation schemas
+│   ├── goals.ts
+│   └── onboarding.ts
 │
 └── constants/          # Constants and configuration
 ```
@@ -59,7 +91,7 @@ src/
 ## Architectural Patterns
 
 ### Feature-based Structure
-The project follows a feature-based architecture where related code is grouped by feature (auth, nutrition, workout) rather than by type. This improves maintainability and makes the codebase more navigable.
+The project follows a feature-based architecture where related code is grouped by feature (auth, nutrition, workout, supplement, onboarding) rather than by type. This improves maintainability and makes the codebase more navigable.
 
 ### Clean Architecture Principles
 - **Separation of Concerns**: Clear separation between UI, business logic, and data layers
@@ -69,21 +101,29 @@ The project follows a feature-based architecture where related code is grouped b
 ### State Management
 - **Zustand**: Used for global state management
 - **Store Structure**:
-  - Separate stores for different domains (auth, nutrition, workout, progress)
+  - Separate stores for different domains (auth, nutrition, workout, progress, supplement, onboarding)
   - Middleware for performance monitoring and persistence
   - Custom hooks for store cleanup and state selection
 
 ### Navigation
-Three-tier navigation structure:
+Multi-tier navigation structure:
 - **RootNavigator**: Handles authentication state
 - **AppNavigator**: Main app navigation (bottom tabs)
 - **AuthNavigator**: Authentication flow
+- **OnboardingNavigator**: User onboarding flow
+- **SupplementNavigator**: Supplement management flow
 
 ### Testing Strategy
 - **Unit Tests**: For utilities and services
 - **Component Tests**: Using React Native Testing Library
 - **Integration Tests**: For complex features
 - **E2E Tests**: Using Detox for critical user flows
+- **Accessibility Tests**: For WCAG compliance
+- **Test Utilities**: 
+  - Custom render functions
+  - Navigation mocks
+  - Test data generators
+  - Mock implementations
 
 ### Security Features
 - Email + Social Authentication
@@ -91,12 +131,22 @@ Three-tier navigation structure:
 - Secure data storage
 - Privacy-focused components
 - GDPR compliance features
+- Offline data encryption
 
 ### Performance Optimization
 - Performance monitoring hooks
 - Lazy loading of components
 - Optimized re-renders using memo and callbacks
 - Efficient state management with selectors
+- Offline-first architecture
+- Connection status monitoring
+
+### Offline Capabilities
+- Offline data sync
+- Queue system for offline actions
+- Connection status monitoring
+- Conflict resolution
+- Background sync
 
 ## Data Flow
 
@@ -104,21 +154,25 @@ Three-tier navigation structure:
    - Handles user interactions
    - Manages local state
    - Dispatches actions to store
+   - Implements accessibility features
 
 2. **State Management** (Zustand Stores)
    - Maintains application state
    - Handles state updates
    - Triggers side effects
+   - Manages offline queue
 
 3. **Service Layer**
    - Implements business logic
    - Handles API communication
    - Manages data transformation
+   - Handles caching and sync
 
 4. **External Services** (Supabase)
    - Data persistence
    - Authentication
    - Real-time features
+   - Analytics events
 
 ## Key Features
 
@@ -128,6 +182,13 @@ Three-tier navigation structure:
 - Two-factor authentication
 - Biometric authentication
 - Session management
+
+### Onboarding
+- User preferences collection
+- Health metrics input
+- Goal setting
+- Dietary preferences
+- Activity level assessment
 
 ### Nutrition Tracking
 - Food item search
@@ -143,12 +204,27 @@ Three-tier navigation structure:
 - Timer functionality
 - History tracking
 
+### Supplement Management
+- Supplement tracking
+- Intake reminders
+- History logging
+- Performance analysis
+- Interaction warnings
+
+### Analytics & Reporting
+- Progress visualization
+- Performance metrics
+- Usage analytics
+- Goal tracking
+- Custom charts
+
 ### Privacy & Security
 - Data encryption
 - Privacy notices
 - Security badges
 - Consent management
 - GDPR compliance
+- Offline security
 
 ## Development Guidelines
 
@@ -165,6 +241,7 @@ Three-tier navigation structure:
 - Efficient list rendering
 - Proper memoization
 - Bundle size optimization
+- Offline performance
 
 ### Security Best Practices
 - Input validation
@@ -172,6 +249,7 @@ Three-tier navigation structure:
 - API security
 - Authentication flows
 - Data encryption
+- Offline data protection
 
 ### Accessibility
 - WCAG compliance
@@ -179,6 +257,7 @@ Three-tier navigation structure:
 - Proper contrast ratios
 - Keyboard navigation
 - Focus management
+- Custom hooks for accessibility
 
 ## Deployment & CI/CD
 
@@ -196,6 +275,7 @@ Three-tier navigation structure:
 - Unit test coverage
 - E2E test passing
 - Performance metrics
+- Accessibility compliance
 
 ## Future Considerations
 
@@ -204,6 +284,7 @@ Three-tier navigation structure:
 - Scalable state management
 - Efficient data caching
 - Performance monitoring
+- Enhanced offline capabilities
 
 ### Maintenance
 - Documentation updates
@@ -211,3 +292,4 @@ Three-tier navigation structure:
 - Code quality monitoring
 - Performance optimization
 - Security updates
+- Analytics monitoring
