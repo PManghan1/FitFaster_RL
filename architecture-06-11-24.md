@@ -2,174 +2,243 @@
 
 ## Project Structure
 
-### Root Configuration Files
-- `.detoxrc.js` - Detox E2E testing configuration
-- `.env` - Environment variables
-- `.env.example` - Example environment variables template
-- `.eslintrc.js` - ESLint configuration
-- `.prettierrc` / `.prettierrc.js` - Prettier code formatting configuration
-- `app.config.ts` - Expo application configuration
-- `app.json` - Application metadata
-- `App.tsx` - Root application component
-- `babel.config.js` - Babel transpiler configuration
-- `jest.config.js` - Jest testing configuration
-- `metro.config.js` - Metro bundler configuration
-- `package.json` - Project dependencies and scripts
-- `tailwind.config.js` - TailwindCSS/NativeWind configuration
-- `tsconfig.json` / `tsconfig.jest.json` - TypeScript configuration
+```
+/src
+├── __mocks__/                  # Jest mock files
+├── __tests__/                  # Test files
+│   ├── components/             # Component tests
+│   ├── hooks/                  # Hook tests
+│   ├── integration/           # Integration tests
+│   ├── navigation/            # Navigation tests
+│   ├── performance/           # Performance tests
+│   ├── screens/               # Screen tests
+│   ├── services/              # Service tests
+│   ├── setup/                # Test setup files
+│   └── utils/                # Test utilities
+├── analytics/                 # Analytics event definitions
+│   └── supplement-events.ts
+├── components/               # React components
+│   ├── ErrorBoundary.tsx
+│   ├── analytics/
+│   ├── auth/
+│   ├── common/
+│   ├── hoc/
+│   ├── home/
+│   ├── nutrition/
+│   ├── onboarding/
+│   ├── privacy/
+│   ├── styled/
+│   ├── supplement/
+│   └── workout/
+├── config/                   # Configuration files
+├── constants/               # Application constants
+│   ├── config.ts
+│   ├── icons.tsx
+│   └── theme.ts
+├── docs/                    # Documentation
+│   └── error-handling.md
+├── hooks/                   # Custom React hooks
+│   ├── useAccessibilityFocus.ts
+│   ├── useConnectionAlert.ts
+│   ├── useOfflineSync.ts
+│   ├── useOnboarding.ts
+│   ├── useOnboardingAnalytics.ts
+│   ├── usePerformanceMonitoring.ts
+│   ├── useSupplementAnalytics.ts
+│   ├── useSupplementPerformance.ts
+│   └── useSupplementReminders.ts
+├── navigation/              # Navigation configuration
+│   ├── AppNavigator.tsx
+│   ├── AuthNavigator.tsx
+│   ├── OnboardingNavigator.tsx
+│   ├── RootNavigator.tsx
+│   └── SupplementNavigator.tsx
+├── screens/                # Screen components
+│   ├── AnalyticsScreen.tsx
+│   ├── ExerciseLibraryScreen.tsx
+│   ├── HomeScreen.tsx
+│   ├── NutritionTrackingScreen.tsx
+│   ├── ProgressScreen.tsx
+│   ├── WorkoutDetailsScreen.tsx
+│   ├── WorkoutScreen.tsx
+│   ├── auth/
+│   ├── onboarding/
+│   └── supplement/
+├── services/               # Business logic and API services
+│   ├── analytics.ts
+│   ├── base.ts
+│   ├── biometric.ts
+│   ├── cache.ts
+│   ├── error.ts
+│   ├── factory.ts
+│   ├── notification.ts
+│   ├── nutrition.ts
+│   ├── performance.ts
+│   ├── preferences.ts
+│   ├── profile.ts
+│   ├── progress.ts
+│   ├── supabase.ts
+│   ├── sync.ts
+│   ├── twoFactor.ts
+│   └── workout.ts
+├── store/                  # State management
+│   ├── auth.store.ts
+│   ├── nutrition.store.ts
+│   ├── onboarding.store.ts
+│   ├── progress.store.ts
+│   ├── supplement.store.ts
+│   ├── types.ts
+│   ├── workout.store.ts
+│   ├── hooks/
+│   ├── middleware/
+│   └── selectors/
+├── styles/                 # Global styles
+│   └── global.css
+├── theme/                  # Theme configuration
+│   └── index.ts
+├── types/                  # TypeScript type definitions
+│   ├── analytics.ts
+│   ├── api.ts
+│   ├── auth.ts
+│   ├── bottom-sheet.ts
+│   ├── branded.ts
+│   ├── goals.ts
+│   ├── icons.ts
+│   ├── nutrition.ts
+│   ├── onboarding.ts
+│   ├── preferences.ts
+│   ├── profile.ts
+│   ├── progress.ts
+│   ├── supabase.ts
+│   ├── supplement.ts
+│   ├── sync.ts
+│   └── workout.ts
+├── utils/                  # Utility functions
+│   ├── database.ts
+│   ├── logger.ts
+│   ├── performance.ts
+│   ├── sanitize.ts
+│   ├── supabase.ts
+│   ├── tailwind.ts
+│   ├── time.ts
+│   └── validation.ts
+└── validation/            # Form validation schemas
+    ├── goals.ts
+    └── onboarding.ts
+```
 
-### Source Code (`/src`)
+## Key Technologies
 
-#### Components
-- `/components`
-  - `/analytics` - Analytics-related components
-  - `/auth` - Authentication components
-  - `/common` - Shared/reusable components
-  - `/hoc` - Higher-order components
-  - `/home` - Home screen components
-  - `/nutrition` - Nutrition tracking components
-  - `/onboarding` - User onboarding components
-  - `/privacy` - Privacy-related components
-  - `/styled` - Styled components
-  - `/supplement` - Supplement tracking components
-  - `/workout` - Workout-related components
-  - `ErrorBoundary.tsx` - Global error boundary component
+- **React Native (Expo)**: Mobile application framework
+- **TypeScript**: Programming language with strict typing
+- **Supabase**: Backend as a Service (BaaS)
+- **Zustand**: State management
+- **NativeWind**: Tailwind CSS for React Native
+- **React Navigation**: Navigation library
 
-#### Screens
-- `/screens`
-  - `/auth` - Authentication screens
-  - `/onboarding` - Onboarding flow screens
-  - `/supplement` - Supplement management screens
-  - `AnalyticsScreen.tsx`
-  - `ExerciseLibraryScreen.tsx`
-  - `HomeScreen.tsx`
-  - `NutritionTrackingScreen.tsx`
-  - `ProgressScreen.tsx`
-  - `WorkoutDetailsScreen.tsx`
-  - `WorkoutScreen.tsx`
+## Architecture Patterns
 
-#### Navigation
-- `/navigation`
-  - `AppNavigator.tsx` - Main app navigation
-  - `AuthNavigator.tsx` - Authentication flow
-  - `OnboardingNavigator.tsx` - Onboarding flow
-  - `RootNavigator.tsx` - Root navigation setup
-  - `SupplementNavigator.tsx` - Supplement section navigation
+### Clean Architecture
+- Clear separation of concerns
+- Domain-driven design principles
+- Independent business logic layer
 
-#### State Management
-- `/store`
-  - `/hooks` - Custom store hooks
-  - `/middleware` - Store middleware
-  - `/selectors` - State selectors
-  - `auth.store.ts`
-  - `nutrition.store.ts`
-  - `onboarding.store.ts`
-  - `progress.store.ts`
-  - `supplement.store.ts`
-  - `workout.store.ts`
-  - `types.ts`
+### Feature-based Structure
+- Features are organized in self-contained modules
+- Each feature has its own components, screens, and tests
+- Shared utilities and services are centralized
 
-#### Services
-- `/services`
-  - `analytics.ts` - Analytics service
-  - `base.ts` - Base service class
-  - `biometric.ts` - Biometric authentication
-  - `cache.ts` - Caching service
-  - `error.ts` - Error handling service
-  - `factory.ts` - Service factory
-  - `notification.ts` - Push notifications
-  - `nutrition.ts` - Nutrition tracking
-  - `performance.ts` - Performance monitoring
-  - `preferences.ts` - User preferences
-  - `profile.ts` - User profile management
-  - `progress.ts` - Progress tracking
-  - `supabase.ts` - Supabase client/configuration
-  - `sync.ts` - Offline synchronization
-  - `twoFactor.ts` - 2FA implementation
-  - `workout.ts` - Workout management
+### Testing Strategy
+- Jest + React Native Testing Library
+- Unit tests for components and hooks
+- Integration tests for critical paths
+- E2E tests with Detox
 
-#### Hooks
-- `/hooks`
-  - `useAccessibilityFocus.ts`
-  - `useConnectionAlert.ts`
-  - `useOfflineSync.ts`
-  - `useOnboarding.ts`
-  - `useOnboardingAnalytics.ts`
-  - `usePerformanceMonitoring.ts`
-  - `useSupplementAnalytics.ts`
-  - `useSupplementPerformance.ts`
-  - `useSupplementReminders.ts`
+## Core Features
 
-#### Types
-- `/types`
-  - `analytics.ts`
-  - `api.ts`
-  - `auth.ts`
-  - `bottom-sheet.ts`
-  - `branded.ts`
-  - `goals.ts`
-  - `icons.ts`
-  - `nutrition.ts`
-  - `onboarding.ts`
-  - `preferences.ts`
-  - `profile.ts`
-  - `progress.ts`
-  - `supabase.ts`
-  - Type definitions (*.d.ts files)
+### Authentication
+- Email and social authentication
+- Two-factor authentication
+- Secure session management
 
-#### Testing
-- `/__tests__`
-  - `/integration` - Integration tests
-  - `/utils` - Test utilities
-  - `/__mocks__` - Mock implementations
-  - `/setup` - Test setup files
+### Profile Management
+- User profiles and preferences
+- Data synchronization
+- Privacy settings
 
-#### E2E Testing
-- `/e2e`
-  - `auth.e2e.ts`
-  - `nutrition.e2e.ts`
-  - `workout.e2e.ts`
-  - `setup.ts`
-  - `jest.config.js`
+### Tracking
+- Meal tracking
+- Workout tracking
+- Supplement tracking
+- Progress visualization
 
-#### Assets
-- `/assets`
-  - `adaptive-icon.png`
-  - `favicon.png`
-  - `icon.png`
-  - `splash.png`
+### Performance Monitoring
+- Analytics integration
+- Performance metrics
+- Error tracking
 
-#### Platform Specific
-- `/android` - Android specific configuration and build files
+### Offline Support
+- Offline data persistence
+- Background sync
+- Conflict resolution
 
-### Documentation
-- `documentation-complete.md`
-- `documentation-index.md`
-- `DRD.md`
-- `INSTALL.md`
-- `README.md`
-- Various error documentation and implementation guides
+## Security Features
 
-## Key Technical Aspects
+- Secure data storage
+- Input validation
+- Error boundaries
+- API security
+- Data encryption
 
-1. **Frontend Framework**: React Native with Expo
-2. **Language**: TypeScript with strict type checking
-3. **State Management**: Zustand
-4. **Styling**: NativeWind (TailwindCSS for React Native)
-5. **Navigation**: React Navigation
-6. **Backend**: Supabase
-7. **Testing**: Jest + React Native Testing Library
-8. **E2E Testing**: Detox
+## Accessibility
 
-## Architecture Principles
+- Screen reader support
+- Keyboard navigation
+- Color contrast compliance
+- Dynamic text sizing
 
-1. **Feature-based Structure**: Code organized by feature rather than type
-2. **Clean Architecture**: Clear separation of concerns
-3. **Type Safety**: Strict TypeScript implementation
-4. **Component Architecture**: Functional components with hooks
-5. **Error Handling**: Comprehensive error boundaries and handling
-6. **Testing**: Comprehensive test coverage
-7. **Performance**: Built-in monitoring and optimization
-8. **Offline Support**: Robust offline synchronization
-9. **Security**: Built-in security best practices
-10. **Accessibility**: WCAG compliance focus
+## State Management
+
+### Zustand Stores
+- Authentication state
+- User preferences
+- Workout data
+- Nutrition data
+- Supplement data
+- Progress tracking
+
+### Middleware
+- Performance monitoring
+- State persistence
+- Analytics tracking
+
+## Services Layer
+
+### API Services
+- Base service configuration
+- Error handling
+- Request/response interceptors
+- Rate limiting
+
+### Business Logic
+- Workout calculations
+- Nutrition analysis
+- Progress tracking
+- Notification management
+
+## Documentation
+
+- API documentation
+- Component documentation
+- Test coverage reports
+- Error handling guidelines
+- Performance optimization guides
+
+## Build and Deployment
+
+- Continuous Integration
+- Automated testing
+- Code quality checks
+- Performance monitoring
+- Error tracking
+- Analytics integration

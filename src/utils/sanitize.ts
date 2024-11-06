@@ -1,168 +1,87 @@
-import { ErrorDetails } from '../services/error';
+import { ErrorCode, ErrorCategory, ErrorSeverity, ErrorDetails } from '../types/errors';
 
-// Sensitive data patterns to redact
+export interface SanitizedError {
+  code: ErrorCode;
+  message: string;
+  severity: ErrorSeverity;
+  category: ErrorCategory;
+  timestamp: number;
+  context?: {
+    route?: string;
+    action?: string;
+    component?: string;
+  };
+  sanitizedData?: Record<string, unknown>;
+}
+
+// Sensitive data patterns
 const SENSITIVE_PATTERNS = {
   email: /([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g,
   password: /(?:password["']?\s*[:=]\s*["']?)([^"'\s]+)(?:["']?)/gi,
   token: /(?:bearer token:\s*["']?)([^"'\s]+)(?:["']?)/gi,
-  creditCard: /(\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b)/g,
-  phoneNumber: /(\b\d{3}[-.]?\d{3}[-.]?\d{4}\b)/g,
-  ssn: /(\b\d{3}[-]?\d{2}[-]?\d{4}\b)/g,
-  bearerToken: /Bearer\s+([a-zA-Z0-9._-]+)/gi,
+  creditCard: /\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b/g,
 };
 
-// List of sensitive keys to remove entirely
-const SENSITIVE_KEYS = [
-  'password',
-  'token',
-  'auth',
-  'authorization',
-  'credit',
-  'ssn',
-  'refresh',
-  'secret',
-  'key',
-];
+// Keys that should be removed from error data
+const SENSITIVE_KEYS = ['password', 'token', 'auth', 'authorization', 'credit', 'secret', 'key'];
 
-// List of keys to redact but keep
-const REDACT_KEYS = ['phone', 'email'];
+/**
+ * Sanitize error details for safe logging and reporting
+ */
+export function sanitizeErrorDetails(details: ErrorDetails): SanitizedError {
+  const sanitizedMessage = sanitizeString(details.error.message);
+  const sanitizedData = sanitizeObject(details.additionalData || {});
 
-// Error codes for different types of errors
-export enum ErrorCode {
-  AUTH_FAILED = 'AUTH_001',
-  NETWORK_ERROR = 'NET_001',
-  DATA_ERROR = 'DATA_001',
-  VALIDATION_ERROR = 'VAL_001',
-  UNKNOWN_ERROR = 'UNK_001',
-}
+  const sanitizedContext = details.context
+    ? {
+        route: details.context.route,
+        action: details.context.action,
+        component: details.context.component,
+      }
+    : undefined;
 
-interface SanitizedError {
-  code: ErrorCode;
-  message: string;
-  category: string;
-  severity: string;
-  timestamp: number;
-  sanitizedData: Record<string, unknown>;
+  return {
+    code: details.code,
+    message: sanitizedMessage,
+    severity: details.severity,
+    category: details.category,
+    timestamp: details.timestamp,
+    context: sanitizedContext,
+    sanitizedData,
+  };
 }
 
 /**
- * Redacts sensitive information from a string
- * @param text The text to sanitize
- * @returns Sanitized text with sensitive information redacted
+ * Sanitize a string by removing sensitive information
  */
-export function redactSensitiveInfo(text: string): string {
-  let sanitized = text;
+function sanitizeString(input: string): string {
+  let sanitized = input;
 
-  // First handle the special case of "bearer token:"
-  if (sanitized.toLowerCase().includes('bearer token:')) {
-    return sanitized.replace(/bearer token:\s*["']?[^"'\s]+["']?/gi, match => {
-      // Preserve the case of "bearer token:"
-      const prefix = match.substring(0, match.indexOf(':') + 1);
-      return `${prefix} [REDACTED_TOKEN]`;
-    });
-  }
-
-  // Then handle other patterns
+  // Replace sensitive patterns with placeholders
   Object.entries(SENSITIVE_PATTERNS).forEach(([key, pattern]) => {
-    if (key === 'bearerToken') {
-      sanitized = sanitized.replace(pattern, 'Bearer [REDACTED_TOKEN]');
-    } else if (key === 'password') {
-      sanitized = sanitized.replace(pattern, match => {
-        // Preserve the case of "password:"
-        const prefix = match.substring(0, match.indexOf(':') + 1);
-        return `${prefix} [REDACTED_PASSWORD]`;
-      });
-    } else if (key !== 'token') {
-      // Skip token as it's handled above
-      sanitized = sanitized.replace(pattern, (match, _, offset) => {
-        // Find the label before the sensitive data
-        const beforeMatch = sanitized.substring(0, offset);
-        const label = beforeMatch.match(/(\w+):\s*$/)?.[1];
-
-        // If there's a label, preserve its case
-        if (label) {
-          return `[REDACTED_${key.toUpperCase()}]`;
-        }
-        return `[REDACTED_${key.toUpperCase()}]`;
-      });
-    }
+    sanitized = sanitized.replace(pattern, `[REDACTED_${key.toUpperCase()}]`);
   });
 
   return sanitized;
 }
 
 /**
- * Determines the appropriate error code based on error details
- */
-function determineErrorCode(details: ErrorDetails): ErrorCode {
-  const message = details.error.message.toLowerCase();
-
-  if (message.includes('auth') || message.includes('unauthorized')) {
-    return ErrorCode.AUTH_FAILED;
-  }
-  if (message.includes('network') || message.includes('fetch')) {
-    return ErrorCode.NETWORK_ERROR;
-  }
-  if (message.includes('data') || message.includes('parse')) {
-    return ErrorCode.DATA_ERROR;
-  }
-  if (message.includes('validation') || message.includes('invalid')) {
-    return ErrorCode.VALIDATION_ERROR;
-  }
-
-  return ErrorCode.UNKNOWN_ERROR;
-}
-
-/**
- * Checks if a key contains sensitive information
- */
-function isSensitiveKey(key: string): boolean {
-  return SENSITIVE_KEYS.some(k => key.toLowerCase().includes(k));
-}
-
-/**
- * Checks if a key should be redacted but kept
- */
-function isRedactKey(key: string): boolean {
-  return REDACT_KEYS.some(k => key.toLowerCase().includes(k));
-}
-
-/**
- * Sanitizes an object recursively
+ * Recursively sanitize an object by removing sensitive data
  */
 function sanitizeObject(obj: Record<string, unknown>): Record<string, unknown> {
   const sanitized: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(obj)) {
-    // Skip sensitive keys entirely
-    if (isSensitiveKey(key)) {
+    // Skip sensitive keys
+    if (SENSITIVE_KEYS.some(sensitive => key.toLowerCase().includes(sensitive))) {
       continue;
     }
 
-    // Handle keys that should be redacted but kept
-    if (isRedactKey(key)) {
-      sanitized[key] = `[REDACTED_${key.toUpperCase()}]`;
-      continue;
-    }
-
-    // Handle nested objects
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
-      const sanitizedNested = sanitizeObject(value as Record<string, unknown>);
-      // Always include headers object, even if empty
-      if (key === 'headers' || Object.keys(sanitizedNested).length > 0) {
-        sanitized[key] = sanitizedNested;
-      }
-    }
-    // Sanitize string values
-    else if (typeof value === 'string') {
-      const sanitizedValue = redactSensitiveInfo(value);
-      // Only include the value if it wasn't completely redacted
-      if (!SENSITIVE_KEYS.some(k => sanitizedValue === `[REDACTED_${k.toUpperCase()}]`)) {
-        sanitized[key] = sanitizedValue;
-      }
-    }
-    // Keep other values as is
-    else if (value !== undefined && value !== null) {
+    if (typeof value === 'string') {
+      sanitized[key] = sanitizeString(value);
+    } else if (value && typeof value === 'object' && !Array.isArray(value)) {
+      sanitized[key] = sanitizeObject(value as Record<string, unknown>);
+    } else {
       sanitized[key] = value;
     }
   }
@@ -171,40 +90,67 @@ function sanitizeObject(obj: Record<string, unknown>): Record<string, unknown> {
 }
 
 /**
- * Sanitizes error details for safe logging
- * @param details The error details to sanitize
- * @returns Sanitized error object safe for logging
- */
-export function sanitizeErrorDetails(details: ErrorDetails): SanitizedError {
-  // Sanitize additional data if it exists
-  const sanitizedData = details.additionalData ? sanitizeObject(details.additionalData) : {};
-
-  return {
-    code: determineErrorCode(details),
-    message: redactSensitiveInfo(details.error.message),
-    category: details.category,
-    severity: details.severity,
-    timestamp: details.timestamp,
-    sanitizedData,
-  };
-}
-
-/**
- * Creates a safe error message for user display
- * @param code The error code
- * @returns User-friendly error message
+ * Get a user-friendly error message based on error code
  */
 export function getUserFriendlyError(code: ErrorCode): string {
   switch (code) {
-    case ErrorCode.AUTH_FAILED:
-      return 'Authentication failed. Please try logging in again.';
-    case ErrorCode.NETWORK_ERROR:
-      return 'Network connection issue. Please check your internet connection.';
-    case ErrorCode.DATA_ERROR:
-      return 'There was an issue processing your request. Please try again.';
-    case ErrorCode.VALIDATION_ERROR:
-      return 'The provided information is invalid. Please check your input.';
+    // Network errors
+    case ErrorCode.NETWORK_OFFLINE:
+      return 'Please check your internet connection and try again';
+    case ErrorCode.NETWORK_TIMEOUT:
+      return 'The request timed out. Please try again';
+
+    // Auth errors
+    case ErrorCode.AUTH_INVALID:
+      return 'Invalid credentials. Please check your login details';
+    case ErrorCode.AUTH_EXPIRED:
+      return 'Your session has expired. Please log in again';
+    case ErrorCode.AUTH_REQUIRED:
+      return 'Please log in to continue';
+
+    // Security errors
+    case ErrorCode.SECURITY_BREACH:
+      return 'A security issue was detected. Please log in again';
+    case ErrorCode.ENCRYPTION_FAILED:
+      return 'Unable to secure your data. Please try again';
+    case ErrorCode.DECRYPTION_FAILED:
+      return 'Unable to access encrypted data. Please try again';
+
+    // Performance errors
+    case ErrorCode.PERFORMANCE_THRESHOLD:
+      return 'The app is running slowly. Please try again in a moment';
+    case ErrorCode.MEMORY_LIMIT:
+      return 'The app is running low on memory. Please restart the app';
+    case ErrorCode.SLOW_OPERATION:
+      return 'This operation is taking longer than expected';
+
+    // Sync errors
+    case ErrorCode.SYNC_CONFLICT:
+      return 'Unable to sync your changes. Please refresh and try again';
+    case ErrorCode.SYNC_FAILED:
+      return 'Failed to sync with the server. Changes saved locally';
+
+    // API errors
+    case ErrorCode.API_ERROR:
+      return 'Unable to complete the request. Please try again';
+    case ErrorCode.API_VALIDATION:
+      return 'Please check your input and try again';
+    case ErrorCode.API_RATE_LIMIT:
+      return 'Too many requests. Please wait a moment and try again';
+
+    // Data errors
+    case ErrorCode.DATA_INVALID:
+      return 'Invalid data format. Please check your input';
+    case ErrorCode.DATA_CORRUPT:
+      return 'Data corruption detected. Please contact support';
+
+    // UI errors
+    case ErrorCode.UI_RENDER:
+      return 'Display error occurred. Please refresh the app';
+    case ErrorCode.UI_INTERACTION:
+      return 'Unable to process your action. Please try again';
+
     default:
-      return 'An unexpected error occurred. Please try again later.';
+      return 'An unexpected error occurred. Please try again';
   }
 }

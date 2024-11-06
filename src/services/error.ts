@@ -1,50 +1,31 @@
-import { ErrorInfo } from 'react';
 import * as Sentry from '@sentry/react-native';
-import { PerformanceMonitor } from '../utils/performance';
+import { appMetrics, performanceAlerts } from '../monitoring';
 import { analyticsService } from './analytics';
 import { sanitizeErrorDetails, getUserFriendlyError } from '../utils/sanitize';
-
-export enum ErrorSeverity {
-  LOW = 'low',
-  MEDIUM = 'medium',
-  HIGH = 'high',
-  CRITICAL = 'critical',
-}
-
-export enum ErrorCategory {
-  NETWORK = 'network',
-  AUTH = 'authentication',
-  DATA = 'data',
-  UI = 'ui',
-  UNKNOWN = 'unknown',
-}
-
-export interface ErrorDetails {
-  error: Error;
-  errorInfo?: ErrorInfo;
-  severity: ErrorSeverity;
-  category: ErrorCategory;
-  timestamp: number;
-  componentStack?: string;
-  additionalData?: Record<string, unknown>;
-}
-
-interface ErrorRecoveryStrategy {
-  retry?: boolean;
-  maxAttempts?: number;
-  fallback?: () => Promise<void>;
-  cleanup?: () => Promise<void>;
-}
+import {
+  ErrorSeverity,
+  ErrorCategory,
+  ErrorCode,
+  ErrorDetails,
+  ErrorPattern,
+  ErrorRecoveryStrategy,
+  ErrorResponse,
+  ErrorAnalytics,
+  ErrorMetrics,
+} from '../types/errors';
 
 class ErrorReportingService {
   private static instance: ErrorReportingService;
   private readonly MAX_RETRY_ATTEMPTS = 3;
   private readonly RETRY_DELAY = 1000; // milliseconds
-  private errorPatterns: Map<string, number> = new Map(); // Track error frequencies
+  private readonly PATTERN_ANALYSIS_INTERVAL = 3600000; // 1 hour
+  private readonly ERROR_THRESHOLD = 10; // Errors per hour for pattern detection
+
+  private errorPatterns: Map<string, ErrorPattern> = new Map();
+  private recoveryMetrics: Map<ErrorCode, { attempts: number; successes: number }> = new Map();
 
   private constructor() {
-    // Private constructor to enforce singleton
-    setInterval(() => this.analyzeErrorPatterns(), 3600000); // Analyze patterns hourly
+    setInterval(() => void this.analyzeErrorPatterns(), this.PATTERN_ANALYSIS_INTERVAL);
   }
 
   static getInstance(): ErrorReportingService {
@@ -54,85 +35,204 @@ class ErrorReportingService {
     return ErrorReportingService.instance;
   }
 
-  async reportError(details: ErrorDetails): Promise<void> {
-    PerformanceMonitor.start('error-reporting');
+  /**
+   * Convert ErrorMetrics to a plain object for analytics
+   */
+  private metricsToRecord(metrics?: ErrorMetrics): Record<string, unknown> | undefined {
+    if (!metrics) return undefined;
+    return {
+      timestamp: metrics.timestamp,
+      duration: metrics.duration,
+      retryCount: metrics.retryCount,
+      memoryUsage: metrics.memoryUsage,
+      cpuUsage: metrics.cpuUsage,
+    };
+  }
+
+  /**
+   * Convert sanitized error to Sentry context
+   */
+  private errorToContext(
+    sanitizedError: ReturnType<typeof sanitizeErrorDetails>
+  ): Record<string, unknown> {
+    return {
+      message: sanitizedError.message,
+      severity: sanitizedError.severity,
+      category: sanitizedError.category,
+      context: sanitizedError.context || {},
+      data: sanitizedError.sanitizedData || {},
+    };
+  }
+
+  async reportError(details: ErrorDetails): Promise<ErrorResponse> {
+    const startTime = Date.now();
+    const correlationId = `${details.category}-${startTime}-${Math.random().toString(36).substr(2, 9)}`;
 
     try {
-      // Sanitize error details before logging
-      const sanitizedError = sanitizeErrorDetails(details);
+      // Start performance tracking
+      await appMetrics.trackOperation('error-handling', async () => {
+        // Sanitize error details before logging
+        const sanitizedError = sanitizeErrorDetails(details);
 
-      // Log to console in development with sanitized data
-      if (__DEV__) {
-        console.error('Error Report:', {
-          code: sanitizedError.code,
-          message: sanitizedError.message,
-          severity: sanitizedError.severity,
-          category: sanitizedError.category,
-          timestamp: new Date(sanitizedError.timestamp).toISOString(),
-          componentStack: details.errorInfo?.componentStack,
-          additionalData: sanitizedError.sanitizedData,
+        // Track error pattern
+        this.trackErrorPattern(details, startTime);
+
+        // Log sanitized error in development
+        if (__DEV__) {
+          console.error('Error Report:', {
+            correlationId,
+            code: details.code,
+            message: sanitizedError.message,
+            severity: details.severity,
+            category: details.category,
+            context: sanitizedError.context,
+          });
+        }
+
+        // Report to Sentry
+        Sentry.captureException(details.error, {
+          level: details.severity === ErrorSeverity.CRITICAL ? 'fatal' : 'error',
+          tags: {
+            code: details.code,
+            category: details.category,
+            correlationId,
+          },
+          contexts: {
+            performance: this.metricsToRecord(details.metrics),
+            error: this.errorToContext(sanitizedError),
+          },
         });
-      }
 
-      // Track error pattern with sanitized message
-      const errorKey = `${sanitizedError.category}:${sanitizedError.code}`;
-      this.errorPatterns.set(errorKey, (this.errorPatterns.get(errorKey) || 0) + 1);
+        // Report to analytics with sanitized data
+        await analyticsService.trackError(
+          {
+            sessionId: details.context?.sessionId || correlationId,
+            platform: 'react-native',
+            appVersion: '1.0.0', // Should come from app config
+            deviceInfo: {
+              os: 'unknown',
+              version: 'unknown',
+              model: 'unknown',
+            },
+            performanceMetrics: {
+              responseTime: Date.now() - startTime,
+            },
+            context: sanitizedError.context,
+            message: sanitizedError.message,
+          },
+          {
+            code: details.code,
+            severity: details.severity,
+            category: details.category,
+            correlationId,
+          }
+        );
 
-      // Send to analytics with sanitized data
-      analyticsService.trackError(new Error(sanitizedError.message), {
-        code: sanitizedError.code,
-        severity: sanitizedError.severity,
-        category: sanitizedError.category,
-        componentStack: details.errorInfo?.componentStack,
-        ...sanitizedError.sanitizedData,
+        // Check for critical performance impact
+        if (details.category === ErrorCategory.PERFORMANCE) {
+          performanceAlerts.createAlert(
+            'api',
+            details.severity === ErrorSeverity.CRITICAL ? 'critical' : 'warning',
+            sanitizedError.message,
+            this.metricsToRecord(details.metrics)
+          );
+        }
+
+        // Apply recovery strategy if available
+        const strategy = this.getRecoveryStrategy(details);
+        if (strategy) {
+          await this.applyRecoveryStrategy(strategy, details);
+        }
       });
 
-      // Apply recovery strategy if available
-      const strategy = this.getRecoveryStrategy(details.category, details.error);
-      if (strategy) {
-        await this.applyRecoveryStrategy(strategy, details);
+      // Return user-friendly error response
+      return {
+        success: false,
+        error: {
+          code: details.code,
+          message: sanitizeErrorDetails(details).message,
+          userMessage: this.getUserFriendlyMessage(details),
+          recoveryAction: this.getRecoveryAction(details.category),
+          correlationId,
+        },
+      };
+    } catch (error) {
+      // Handle errors in the error reporting itself
+      if (__DEV__) {
+        console.error('Error reporting failed:', error);
       }
 
-      // Log performance metrics
-      const duration = PerformanceMonitor.end('error-reporting');
-      if (duration > 1000) {
-        console.warn(`Slow error reporting detected: ${duration}ms`);
-      }
-    } catch (_error) {
-      // We intentionally ignore errors in the error reporting service
-      // to prevent infinite loops, but we still want to log them in dev
-      if (__DEV__) {
-        console.error('Failed to report error:', _error);
-      }
+      // Report internal error to Sentry
+      Sentry.captureException(error, {
+        level: 'fatal',
+        tags: {
+          code: ErrorCode.DATA_CORRUPT,
+          category: ErrorCategory.UNKNOWN,
+          correlationId,
+        },
+      });
+
+      // Return a generic error response
+      return {
+        success: false,
+        error: {
+          code: ErrorCode.DATA_CORRUPT,
+          message: 'Error reporting failed',
+          userMessage: 'An unexpected error occurred',
+          correlationId,
+        },
+      };
     }
   }
 
-  private getRecoveryStrategy(
-    category: ErrorCategory,
-    _error: Error
-  ): ErrorRecoveryStrategy | null {
-    switch (category) {
+  private trackErrorPattern(details: ErrorDetails, timestamp: number): void {
+    const key = `${details.category}:${details.code}`;
+    const existing = this.errorPatterns.get(key);
+
+    if (existing) {
+      existing.count++;
+      existing.lastOccurrence = timestamp;
+      existing.averageDuration = existing.averageDuration
+        ? (existing.averageDuration + (details.metrics?.duration || 0)) / 2
+        : details.metrics?.duration;
+    } else {
+      this.errorPatterns.set(key, {
+        code: details.code,
+        category: details.category,
+        count: 1,
+        firstOccurrence: timestamp,
+        lastOccurrence: timestamp,
+        averageDuration: details.metrics?.duration,
+      });
+    }
+  }
+
+  private getRecoveryStrategy(details: ErrorDetails): ErrorRecoveryStrategy | null {
+    switch (details.category) {
       case ErrorCategory.NETWORK:
         return {
           retry: true,
           maxAttempts: this.MAX_RETRY_ATTEMPTS,
-          cleanup: async () => {
-            await this.clearNetworkCache();
-          },
+          validation: async () => await this.checkNetworkConnection(),
+          cleanup: async () => await this.clearNetworkCache(),
         };
-      case ErrorCategory.AUTH:
+      case ErrorCategory.SECURITY:
         return {
-          fallback: async () => {
-            await this.handleAuthError();
-          },
+          retry: false,
+          cleanup: async () => await this.handleSecurityBreach(),
         };
-      case ErrorCategory.DATA:
+      case ErrorCategory.PERFORMANCE:
         return {
           retry: true,
           maxAttempts: 2,
-          fallback: async () => {
-            await this.loadFallbackData();
-          },
+          validation: async () => await this.checkResourceAvailability(),
+          cleanup: async () => await this.cleanupResources(),
+        };
+      case ErrorCategory.SYNC:
+        return {
+          retry: true,
+          maxAttempts: 3,
+          fallback: async () => await this.loadOfflineData(),
         };
       default:
         return null;
@@ -142,33 +242,106 @@ class ErrorReportingService {
   private async applyRecoveryStrategy(
     strategy: ErrorRecoveryStrategy,
     details: ErrorDetails
-  ): Promise<void> {
+  ): Promise<boolean> {
+    const key = details.code;
+    const metrics = this.recoveryMetrics.get(key) || { attempts: 0, successes: 0 };
+    metrics.attempts++;
+
     try {
       if (strategy.cleanup) {
         await strategy.cleanup();
       }
 
-      if (strategy.retry) {
-        // Implementation would depend on the specific operation that failed
-        console.log('Retrying operation...');
+      if (strategy.retry && strategy.maxAttempts) {
+        const success = await this.retryOperation(async () => {
+          if (strategy.validation) {
+            return await strategy.validation();
+          }
+          return true;
+        }, strategy.maxAttempts);
+
+        if (success) {
+          metrics.successes++;
+          this.recoveryMetrics.set(key, metrics);
+          return true;
+        }
       }
 
       if (strategy.fallback) {
         await strategy.fallback();
+        metrics.successes++;
+        this.recoveryMetrics.set(key, metrics);
+        return true;
       }
-    } catch (_error) {
-      if (__DEV__) {
-        // Create proper ErrorDetails object for the recovery error
-        const recoveryError: ErrorDetails = {
-          error: _error as Error,
-          severity: ErrorSeverity.HIGH,
-          category: ErrorCategory.UNKNOWN,
-          timestamp: Date.now(),
-        };
-        const sanitizedError = sanitizeErrorDetails(recoveryError);
-        console.error('Recovery strategy failed:', sanitizedError);
-      }
+
+      return false;
+    } catch (error) {
+      this.recoveryMetrics.set(key, metrics);
+      return false;
     }
+  }
+
+  private async analyzeErrorPatterns(): Promise<ErrorAnalytics> {
+    const now = Date.now();
+    let criticalPatterns = 0;
+    let totalErrors = 0;
+    let totalRecoveryAttempts = 0;
+    let totalRecoverySuccesses = 0;
+    let totalDuration = 0;
+
+    const patterns = Array.from(this.errorPatterns.values()).filter(pattern => {
+      const isRecent = now - pattern.lastOccurrence < this.PATTERN_ANALYSIS_INTERVAL;
+      if (isRecent) {
+        totalErrors += pattern.count;
+        if (pattern.count > this.ERROR_THRESHOLD) {
+          criticalPatterns++;
+        }
+        if (pattern.averageDuration) {
+          totalDuration += pattern.averageDuration * pattern.count;
+        }
+        return true;
+      }
+      return false;
+    });
+
+    // Calculate recovery metrics
+    for (const metrics of this.recoveryMetrics.values()) {
+      totalRecoveryAttempts += metrics.attempts;
+      totalRecoverySuccesses += metrics.successes;
+    }
+
+    const analytics: ErrorAnalytics = {
+      patterns,
+      totalErrors,
+      recoveryRate: totalRecoveryAttempts ? totalRecoverySuccesses / totalRecoveryAttempts : 0,
+      averageResponseTime: totalErrors ? totalDuration / totalErrors : 0,
+      criticalErrorCount: criticalPatterns,
+      timestamp: now,
+    };
+
+    // Report critical patterns
+    if (criticalPatterns > 0) {
+      performanceAlerts.createAlert(
+        'api',
+        'critical',
+        `Detected ${criticalPatterns} critical error patterns`,
+        { patterns: analytics.patterns }
+      );
+    }
+
+    // Clear old patterns
+    this.errorPatterns.clear();
+    return analytics;
+  }
+
+  private async checkNetworkConnection(): Promise<boolean> {
+    // Implementation would depend on network checking logic
+    return true;
+  }
+
+  private async checkResourceAvailability(): Promise<boolean> {
+    // Implementation would depend on resource monitoring
+    return true;
   }
 
   private async clearNetworkCache(): Promise<void> {
@@ -176,92 +349,36 @@ class ErrorReportingService {
     console.log('Clearing network cache...');
   }
 
-  private async handleAuthError(): Promise<void> {
-    // Implementation would depend on auth setup
-    console.log('Handling auth error...');
+  private async handleSecurityBreach(): Promise<void> {
+    // Implementation would depend on security protocols
+    console.log('Handling security breach...');
   }
 
-  private async loadFallbackData(): Promise<void> {
-    // Implementation would depend on data structure
-    console.log('Loading fallback data...');
+  private async cleanupResources(): Promise<void> {
+    // Implementation would depend on resource management
+    console.log('Cleaning up resources...');
   }
 
-  private analyzeErrorPatterns(): void {
-    for (const [errorKey, count] of this.errorPatterns.entries()) {
-      if (count > 10) {
-        // Alert for frequently occurring errors
-        Sentry.addBreadcrumb({
-          category: 'error_patterns',
-          message: 'Frequent error detected',
-          data: {
-            error_key: errorKey,
-            count,
-            timeframe: '1h',
-          },
-        });
-      }
-    }
-    // Reset counters after analysis
-    this.errorPatterns.clear();
+  private async loadOfflineData(): Promise<void> {
+    // Implementation would depend on offline storage
+    console.log('Loading offline data...');
   }
 
-  categorizeError(error: Error): ErrorCategory {
-    if (error.message.includes('network') || error.message.includes('fetch')) {
-      return ErrorCategory.NETWORK;
-    }
-    if (error.message.includes('auth') || error.message.includes('unauthorized')) {
-      return ErrorCategory.AUTH;
-    }
-    if (error.message.includes('data') || error.message.includes('parse')) {
-      return ErrorCategory.DATA;
-    }
-    if (error.message.includes('render') || error.message.includes('component')) {
-      return ErrorCategory.UI;
-    }
-    return ErrorCategory.UNKNOWN;
+  private getUserFriendlyMessage(details: ErrorDetails): string {
+    return getUserFriendlyError(details.code);
   }
 
-  determineSeverity(error: Error, category: ErrorCategory): ErrorSeverity {
-    // Authentication errors are typically high severity
-    if (category === ErrorCategory.AUTH) {
-      return ErrorSeverity.HIGH;
+  private getRecoveryAction(category: ErrorCategory): string {
+    switch (category) {
+      case ErrorCategory.SECURITY:
+        return 'Please log out and back in to continue';
+      case ErrorCategory.PERFORMANCE:
+        return 'Try closing other apps or restarting the app';
+      case ErrorCategory.SYNC:
+        return 'Check your connection and try syncing again';
+      default:
+        return 'Please try again or contact support if the issue persists';
     }
-
-    // Network errors might be medium severity
-    if (category === ErrorCategory.NETWORK) {
-      return ErrorSeverity.MEDIUM;
-    }
-
-    // UI errors might be low severity
-    if (category === ErrorCategory.UI) {
-      return ErrorSeverity.LOW;
-    }
-
-    // Data errors could be high severity
-    if (category === ErrorCategory.DATA) {
-      return ErrorSeverity.HIGH;
-    }
-
-    return ErrorSeverity.MEDIUM;
-  }
-
-  isRecoverable(error: Error): boolean {
-    // Network errors are typically recoverable
-    if (error.message.includes('network') || error.message.includes('timeout')) {
-      return true;
-    }
-
-    // Authentication errors might be recoverable through re-login
-    if (error.message.includes('auth') || error.message.includes('token')) {
-      return true;
-    }
-
-    // Some data errors might be recoverable
-    if (error.message.includes('parse')) {
-      return true;
-    }
-
-    return false;
   }
 
   async retryOperation<T>(
@@ -275,51 +392,12 @@ class ErrorReportingService {
         return await operation();
       } catch (error) {
         lastError = error as Error;
-
-        if (attempt === maxAttempts) {
-          break;
-        }
-
-        // Wait before retrying
+        if (attempt === maxAttempts) break;
         await new Promise(resolve => setTimeout(resolve, this.RETRY_DELAY * attempt));
       }
     }
 
     throw lastError || new Error('Operation failed after multiple attempts');
-  }
-
-  getRecoveryAction(category: ErrorCategory): string {
-    switch (category) {
-      case ErrorCategory.NETWORK:
-        return 'Check your internet connection and try again';
-      case ErrorCategory.AUTH:
-        return 'Please log in again to continue';
-      case ErrorCategory.DATA:
-        return 'Try refreshing the page or restarting the app';
-      case ErrorCategory.UI:
-        return 'Try navigating back and forth or restarting the app';
-      default:
-        return 'Please try again or contact support if the issue persists';
-    }
-  }
-
-  getUserFriendlyMessage(category: ErrorCategory, severity: ErrorSeverity): string {
-    if (severity === ErrorSeverity.CRITICAL) {
-      return 'A critical error has occurred. Please try again later.';
-    }
-
-    switch (category) {
-      case ErrorCategory.NETWORK:
-        return 'Unable to connect to the server. Please check your internet connection.';
-      case ErrorCategory.AUTH:
-        return 'Your session has expired. Please log in again.';
-      case ErrorCategory.DATA:
-        return 'There was an issue processing your data. Please try again.';
-      case ErrorCategory.UI:
-        return 'Something went wrong with the display. Please refresh the app.';
-      default:
-        return 'An unexpected error occurred. Please try again.';
-    }
   }
 }
 
