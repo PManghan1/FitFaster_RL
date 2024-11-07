@@ -1,244 +1,251 @@
-# FitFaster Project Architecture Overview
+# FitFaster Architecture Documentation
 
-## Project Structure
+## System Overview
 
-```
-/src
-├── __mocks__/                  # Jest mock files
-├── __tests__/                  # Test files
-│   ├── components/             # Component tests
-│   ├── hooks/                  # Hook tests
-│   ├── integration/           # Integration tests
-│   ├── navigation/            # Navigation tests
-│   ├── performance/           # Performance tests
-│   ├── screens/               # Screen tests
-│   ├── services/              # Service tests
-│   ├── setup/                # Test setup files
-│   └── utils/                # Test utilities
-├── analytics/                 # Analytics event definitions
-│   └── supplement-events.ts
-├── components/               # React components
-│   ├── ErrorBoundary.tsx
-│   ├── analytics/
-│   ├── auth/
-│   ├── common/
-│   ├── hoc/
-│   ├── home/
-│   ├── nutrition/
-│   ├── onboarding/
-│   ├── privacy/
-│   ├── styled/
-│   ├── supplement/
-│   └── workout/
-├── config/                   # Configuration files
-├── constants/               # Application constants
-│   ├── config.ts
-│   ├── icons.tsx
-│   └── theme.ts
-├── docs/                    # Documentation
-│   └── error-handling.md
-├── hooks/                   # Custom React hooks
-│   ├── useAccessibilityFocus.ts
-│   ├── useConnectionAlert.ts
-│   ├── useOfflineSync.ts
-│   ├── useOnboarding.ts
-│   ├── useOnboardingAnalytics.ts
-│   ├── usePerformanceMonitoring.ts
-│   ├── useSupplementAnalytics.ts
-│   ├── useSupplementPerformance.ts
-│   └── useSupplementReminders.ts
-├── navigation/              # Navigation configuration
-│   ├── AppNavigator.tsx
-│   ├── AuthNavigator.tsx
-│   ├── OnboardingNavigator.tsx
-│   ├── RootNavigator.tsx
-│   └── SupplementNavigator.tsx
-├── screens/                # Screen components
-│   ├── AnalyticsScreen.tsx
-│   ├── ExerciseLibraryScreen.tsx
-│   ├── HomeScreen.tsx
-│   ├── NutritionTrackingScreen.tsx
-│   ├── ProgressScreen.tsx
-│   ├── WorkoutDetailsScreen.tsx
-│   ├── WorkoutScreen.tsx
-│   ├── auth/
-│   ├── onboarding/
-│   └── supplement/
-├── services/               # Business logic and API services
-│   ├── analytics.ts
-│   ├── base.ts
-│   ├── biometric.ts
-│   ├── cache.ts
-│   ├── error.ts
-│   ├── factory.ts
-│   ├── notification.ts
-│   ├── nutrition.ts
-│   ├── performance.ts
-│   ├── preferences.ts
-│   ├── profile.ts
-│   ├── progress.ts
-│   ├── supabase.ts
-│   ├── sync.ts
-│   ├── twoFactor.ts
-│   └── workout.ts
-├── store/                  # State management
-│   ├── auth.store.ts
-│   ├── nutrition.store.ts
-│   ├── onboarding.store.ts
-│   ├── progress.store.ts
-│   ├── supplement.store.ts
-│   ├── types.ts
-│   ├── workout.store.ts
-│   ├── hooks/
-│   ├── middleware/
-│   └── selectors/
-├── styles/                 # Global styles
-│   └── global.css
-├── theme/                  # Theme configuration
-│   └── index.ts
-├── types/                  # TypeScript type definitions
-│   ├── analytics.ts
-│   ├── api.ts
-│   ├── auth.ts
-│   ├── bottom-sheet.ts
-│   ├── branded.ts
-│   ├── goals.ts
-│   ├── icons.ts
-│   ├── nutrition.ts
-│   ├── onboarding.ts
-│   ├── preferences.ts
-│   ├── profile.ts
-│   ├── progress.ts
-│   ├── supabase.ts
-│   ├── supplement.ts
-│   ├── sync.ts
-│   └── workout.ts
-├── utils/                  # Utility functions
-│   ├── database.ts
-│   ├── logger.ts
-│   ├── performance.ts
-│   ├── sanitize.ts
-│   ├── supabase.ts
-│   ├── tailwind.ts
-│   ├── time.ts
-│   └── validation.ts
-└── validation/            # Form validation schemas
-    ├── goals.ts
-    └── onboarding.ts
+FitFaster is built with a modular, service-oriented architecture focusing on security, performance, and scalability. The system is composed of several key subsystems working together to provide a robust fitness tracking experience.
+
+## Core Subsystems
+
+### 1. Security System
+
+#### Authentication
+- Email + Social authentication
+- Two-factor authentication support
+- Session management
+- Token-based authentication
+
+#### Encryption
+- Password hashing using bcrypt
+- Secure token generation
+- Data encryption at rest
+- Transport layer security
+
+#### Security Services
+- Validation service
+- Encryption service
+- Authentication service
+- Security configuration
+
+### 2. Background Processing
+
+#### Task Queue
+- Priority-based task scheduling
+- Task lifecycle management
+- Status tracking and metrics
+- Performance monitoring
+
+#### Worker Pool
+- Dynamic worker scaling
+- Resource utilization monitoring
+- Performance tracking
+- Error recovery
+
+#### Background Service
+- Task coordination
+- Process management
+- Error handling
+- Analytics integration
+
+### 3. Error Handling
+
+#### Error Service
+- Centralized error management
+- Pattern tracking
+- Recovery strategies
+- Analytics integration
+
+#### Error Types
+- Domain-specific error codes
+- Severity levels
+- Category-based classification
+- Error metadata tracking
+
+### 4. Performance Monitoring
+
+#### Metrics
+- Task metrics
+- Worker metrics
+- Queue utilization
+- System performance
+
+#### Alerts
+- Performance degradation
+- Resource utilization
+- Error patterns
+- System health
+
+## Service Integration
+
+### Analytics Integration
+```typescript
+interface AnalyticsEvent {
+  sessionId: string;
+  platform: string;
+  appVersion: string;
+  deviceInfo: DeviceInfo;
+  message: string;
+}
 ```
 
-## Key Technologies
-
-- **React Native (Expo)**: Mobile application framework
-- **TypeScript**: Programming language with strict typing
-- **Supabase**: Backend as a Service (BaaS)
-- **Zustand**: State management
-- **NativeWind**: Tailwind CSS for React Native
-- **React Navigation**: Navigation library
-
-## Architecture Patterns
-
-### Clean Architecture
-- Clear separation of concerns
-- Domain-driven design principles
-- Independent business logic layer
-
-### Feature-based Structure
-- Features are organized in self-contained modules
-- Each feature has its own components, screens, and tests
-- Shared utilities and services are centralized
-
-### Testing Strategy
-- Jest + React Native Testing Library
-- Unit tests for components and hooks
-- Integration tests for critical paths
-- E2E tests with Detox
-
-## Core Features
-
-### Authentication
-- Email and social authentication
-- Two-factor authentication
-- Secure session management
-
-### Profile Management
-- User profiles and preferences
-- Data synchronization
-- Privacy settings
-
-### Tracking
-- Meal tracking
-- Workout tracking
-- Supplement tracking
-- Progress visualization
+### Error Tracking
+```typescript
+interface ErrorDetails {
+  code: ErrorCode;
+  message: string;
+  category: ErrorCategory;
+  severity: ErrorSeverity;
+  timestamp: number;
+}
+```
 
 ### Performance Monitoring
-- Analytics integration
+```typescript
+interface TaskMetrics {
+  totalTasks: number;
+  pendingTasks: number;
+  runningTasks: number;
+  completedTasks: number;
+  failedTasks: number;
+  utilization: number;
+  oldestTask: number;
+  newestTask: number;
+}
+```
+
+## Best Practices
+
+### Security
+1. All sensitive data must be encrypted
+2. Passwords must be hashed using bcrypt
+3. Security events must be logged
+4. Regular security audits required
+
+### Error Handling
+1. All errors must be categorized
+2. Error patterns must be tracked
+3. Recovery strategies must be implemented
+4. Error metrics must be monitored
+
+### Performance
+1. Task queues must be monitored
+2. Worker pools must scale dynamically
+3. Performance metrics must be tracked
+4. Alerts must be configured
+
+### Code Quality
+1. Strict TypeScript usage
+2. No 'any' types allowed
+3. Comprehensive error handling
+4. Full test coverage
+
+## Implementation Guidelines
+
+### Security Implementation
+```typescript
+// Example: Password Hashing
+async function hashPassword(password: string): Promise<string> {
+  const salt = await bcrypt.genSalt(10);
+  return bcrypt.hash(password, salt);
+}
+```
+
+### Background Processing
+```typescript
+// Example: Task Queue
+interface TaskQueue {
+  add(task: Task): Promise<void>;
+  remove(taskId: string): Promise<void>;
+  getNext(): Task | null;
+  getMetrics(): TaskMetrics;
+}
+```
+
+### Error Handling
+```typescript
+// Example: Error Service
+interface ErrorService {
+  handleError(details: ErrorDetails): Promise<ErrorResponse>;
+  createDataError(message: string): ErrorResponse;
+  trackPattern(details: ErrorDetails): Promise<void>;
+}
+```
+
+## Deployment
+
+### Requirements
+- Node.js 16+
+- TypeScript 4.5+
+- React Native (Expo)
+- Supabase
+
+### Configuration
+- Environment variables
+- Security settings
+- Performance thresholds
+- Error tracking setup
+
+### Monitoring
 - Performance metrics
-- Error tracking
+- Error patterns
+- System health
+- Resource utilization
 
-### Offline Support
-- Offline data persistence
-- Background sync
-- Conflict resolution
+## Security Considerations
 
-## Security Features
+### Data Protection
+1. All sensitive data encrypted at rest
+2. Secure communication channels
+3. Regular security audits
+4. Access control enforcement
 
-- Secure data storage
-- Input validation
-- Error boundaries
-- API security
-- Data encryption
+### Error Management
+1. Error information sanitization
+2. Secure error logging
+3. Error pattern analysis
+4. Recovery procedures
 
-## Accessibility
+### Performance Security
+1. Resource limits
+2. Rate limiting
+3. DDoS protection
+4. Load balancing
 
-- Screen reader support
-- Keyboard navigation
-- Color contrast compliance
-- Dynamic text sizing
+## Testing Strategy
 
-## State Management
+### Unit Tests
+- Component testing
+- Service testing
+- Utility testing
+- Error handling testing
 
-### Zustand Stores
-- Authentication state
-- User preferences
-- Workout data
-- Nutrition data
-- Supplement data
-- Progress tracking
+### Integration Tests
+- Service integration
+- API testing
+- Error recovery testing
+- Performance testing
 
-### Middleware
-- Performance monitoring
-- State persistence
-- Analytics tracking
+### Performance Tests
+- Load testing
+- Stress testing
+- Scalability testing
+- Resource monitoring
 
-## Services Layer
+## Maintenance
 
-### API Services
-- Base service configuration
-- Error handling
-- Request/response interceptors
-- Rate limiting
+### Regular Tasks
+1. Security updates
+2. Dependency updates
+3. Performance optimization
+4. Error pattern analysis
 
-### Business Logic
-- Workout calculations
-- Nutrition analysis
-- Progress tracking
-- Notification management
+### Monitoring
+1. System health checks
+2. Performance metrics
+3. Error tracking
+4. Resource utilization
 
-## Documentation
-
-- API documentation
-- Component documentation
-- Test coverage reports
-- Error handling guidelines
-- Performance optimization guides
-
-## Build and Deployment
-
-- Continuous Integration
-- Automated testing
-- Code quality checks
-- Performance monitoring
-- Error tracking
-- Analytics integration
+### Updates
+1. Security patches
+2. Feature updates
+3. Bug fixes
+4. Performance improvements
