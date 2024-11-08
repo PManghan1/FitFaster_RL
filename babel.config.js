@@ -1,40 +1,37 @@
 module.exports = function (api) {
   api.cache(true);
-
-  const commonPlugins = [
-    ['@babel/plugin-transform-class-properties', { loose: true }],
-    ['@babel/plugin-transform-private-methods', { loose: true }],
-    ['@babel/plugin-transform-private-property-in-object', { loose: true }],
-    '@babel/plugin-proposal-export-namespace-from',
-    [
-      '@babel/plugin-transform-runtime',
-      {
-        helpers: true,
-        regenerator: true,
-      },
-    ],
-  ];
-
   return {
-    presets: [
+    presets: ['babel-preset-expo'],
+    plugins: [
       [
-        'babel-preset-expo',
+        'module-resolver',
         {
-          jsxRuntime: 'automatic',
+          root: ['./src'],
+          extensions: [
+            '.ios.ts',
+            '.android.ts',
+            '.ts',
+            '.ios.tsx',
+            '.android.tsx',
+            '.tsx',
+            '.jsx',
+            '.js',
+            '.json',
+          ],
+          alias: {
+            '@': './src',
+            '@config': './src/config',
+            '@services': './src/services',
+            '@components': './src/components',
+            '@screens': './src/screens',
+            '@utils': './src/utils',
+            '@types': './src/types',
+            '@hooks': './src/hooks',
+            '@navigation': './src/navigation',
+            '@constants': './src/constants',
+          },
         },
       ],
     ],
-    env: {
-      test: {
-        plugins: [
-          ...commonPlugins,
-          '@babel/plugin-transform-modules-commonjs',
-          'dynamic-import-node',
-        ],
-      },
-      production: {
-        plugins: [...commonPlugins, 'react-native-reanimated/plugin', 'nativewind/babel'],
-      },
-    },
   };
 };
